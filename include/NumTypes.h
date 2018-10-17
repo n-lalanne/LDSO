@@ -13,7 +13,7 @@ using namespace std;
 
 #include <glog/logging.h>
 
-#include "DBoW3/src/DBoW3.h"
+#include <DBoW3/DBoW3.h>
 
 // pose represented as sophus structs
 typedef Sophus::SE3d SE3;

@@ -10,6 +10,16 @@
 #include "internal/PointHessian.h"
 #include "internal/CalibHessian.h"
 
+#ifdef _WIN32
+#pragma once
+#define WIN32_LEAN_AND_MEAN
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+#include <Windows.h>
+#include "Win32/time.h"
+#else
+#include <sys/time.h>
+#endif
+
 #include <thread>
 #include <mutex>
 #include <pangolin/pangolin.h>

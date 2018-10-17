@@ -6,6 +6,8 @@ add_library(ldso
         Camera.cc
         Map.cc
 
+		Win32/times.cpp
+
         internal/PointHessian.cc
         internal/FrameHessian.cc
         internal/GlobalCalib.cc

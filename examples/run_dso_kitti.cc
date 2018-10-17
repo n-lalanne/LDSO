@@ -3,8 +3,16 @@
 #include <csignal>
 #include <cstdlib>
 #include <cstdio>
-#include <unistd.h>
+
+
+#ifdef _WIN32
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+#include "Win32/time.h"
+#include <io.h>
+#else
 #include <sys/time.h>
+#include <unistd.h>
+#endif
 
 #include <glog/logging.h>
 
@@ -362,7 +370,7 @@ int main(int argc, char **argv) {
         for (int ii = 0; ii < (int) idsToPlay.size(); ii++) {
 
             while (setting_pause == true) {
-                usleep(5000);
+				std::this_thread::sleep_for(std::chrono::microseconds(5000));
             }
             if (!fullSystem->initialized)    // if not initialized: reset start time.
             {

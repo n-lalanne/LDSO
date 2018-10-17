@@ -35,6 +35,10 @@ namespace ldso {
 
         Point();
 
+#ifdef _WIN32
+#undef OUT
+#endif
+
         enum PointStatus {
             ACTIVE = 0,     // point is still active in optimization
             OUTLIER,        // considered as outlier in optimization

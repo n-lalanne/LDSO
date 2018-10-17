@@ -173,9 +173,15 @@ namespace ldso {
      */
     class CmpFrameID {
     public:
-        inline bool operator()(const std::shared_ptr<Frame> &f1, const std::shared_ptr<Frame> &f2) {
+#ifdef _WIN32
+        inline bool operator()(const std::shared_ptr<Frame> &f1, const std::shared_ptr<Frame> &f2) const {
             return f1->id < f2->id;
         }
+#else
+		inline bool operator()(const std::shared_ptr<Frame> &f1, const std::shared_ptr<Frame> &f2) {
+			return f1->id < f2->id;
+		}
+#endif
     };
 
     /**

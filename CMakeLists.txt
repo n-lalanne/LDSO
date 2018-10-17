@@ -32,11 +32,23 @@ find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Glog REQUIRED)
 find_package(Pangolin REQUIRED)
+find_package(g2o REQUIRED)
+find_package(DBoW3 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
 
 # optional libs
 find_package(LibZip QUIET)
 
-set(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated -march=native -Wno-duplicate-decl-specifier -Wno-ignored-qualifiers -Wno-reorder -pthread")
+if (MSVC)
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /FR /bigobj /fp:fast /openmp /Ox")
+	add_definitions("-D__SSE3__")
+	add_definitions("-DNOMINMAX")
+	add_definitions("-D_USE_MATH_DEFINES")
+	add_definitions("-DGOOGLE_GLOG_DLL_DECL=")
+else()
+	add_definitions("-DENABLE_SSE")
+	set(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated -march=native -Wno-duplicate-decl-specifier -Wno-ignored-qualifiers -Wno-reorder -pthread")
+endif (MSVC)
 
 # decide if we have ziplib.
 if (LIBZIP_LIBRARY)
@@ -51,23 +63,43 @@ endif()
 include_directories(
         ${EIGEN3_INCLUDE_DIR}
         ${OpenCV_INCLUDE_DIR}
-        ${Glog_INCLUDE_DIRS}
+        ${GLOG_INCLUDE_DIR}
         ${Pangolin_INCLUDE_DIRS}
+		${G2O_INCLUDE_DIR}
+		${DBoW3_INCLUDE_DIRS}
+		${Boost_INCLUDE_DIR}
 
         ${PROJECT_SOURCE_DIR}/include
-        ${PROJECT_SOURCE_DIR}/thirdparty/
-        ${PROJECT_SOURCE_DIR}/thirdparty/g2o/
-        ${PROJECT_SOURCE_DIR}/thirdparty/DBoW3/
+        ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
 )
 
 set( THIRD_PARTY_LIBS
         ${OpenCV_LIBS}
         ${GLOG_LIBRARY}
         ${Pangolin_LIBRARIES}
-        ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o${CMAKE_SHARED_LIBRARY_SUFFIX}
-        ${PROJECT_SOURCE_DIR}/thirdparty/DBoW3/build/src/libDBoW3${CMAKE_SHARED_LIBRARY_SUFFIX}
+
+		${G2O_CORE_LIBRARY}
+		${G2O_STUFF_LIBRARY}
+		${G2O_TYPES_ICP}
+		${G2O_TYPES_DATA}
+		${G2O_TYPES_SBA}
+		${G2O_TYPES_SCLAM2D}
+		${G2O_TYPES_SIM3}
+		${G2O_TYPES_SLAM3D}
+		
+		${G2O_SOLVER_EIGEN}
+
+        ${DBoW3_LIBRARIES}
         ${LIBZIP_LIBRARY}
+		${Boost_LIBRARY_DIRS}
 )
+
+if (MSVC)
+	set( THIRD_PARTY_LIBS
+        ${THIRD_PARTY_LIBS}
+		-lpthread
+	)
+endif (MSVC)
 
 add_subdirectory(src)
 add_subdirectory(examples)
