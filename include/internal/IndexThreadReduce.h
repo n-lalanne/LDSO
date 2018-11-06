@@ -96,7 +96,7 @@ namespace ldso {
 
                 nextIndex = 0;
                 maxIndex = 0;
-                this->callPerIndex = bind(&IndexThreadReduce::callPerIndexDefault, this, _1, _2, _3, _4);
+                this->callPerIndex = bind(&IndexThreadReduce::callPerIndexDefault, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
             }
 
             Running stats;

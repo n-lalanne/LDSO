@@ -4,8 +4,7 @@
 #include <cstdlib>
 #include <cstdio>
 
-#ifdef _WIN32
-#define GLOG_NO_ABBREVIATED_SEVERITIES
+#ifdef _WIN32 
 #include "Win32/time.h"
 #include <io.h>
 #else

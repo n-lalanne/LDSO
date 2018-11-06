@@ -12,8 +12,6 @@
 
 #ifdef _WIN32
 #pragma once
-#define WIN32_LEAN_AND_MEAN
-#define GLOG_NO_ABBREVIATED_SEVERITIES
 #include <Windows.h>
 #include "Win32/time.h"
 #else
