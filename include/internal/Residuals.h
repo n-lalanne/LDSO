@@ -66,7 +66,7 @@ namespace ldso {
 				setState(ResState::IN);
 			};
 
-			// 将state_NewState的状态更新至当前状态
+			// 将state_NewState的状态更新至当前状态 -> Update the state of state_NewState to the current state
 			void applyRes(bool copyJacobians) {
 
 				if (copyJacobians) {
@@ -102,7 +102,7 @@ namespace ldso {
 			shared_ptr<RawResidualJacobian> J = nullptr;
 
 			bool isNew = true;
-			Eigen::Vector2f projectedTo[MAX_RES_PER_POINT]; // 从host到target的投影点
+			Eigen::Vector2f projectedTo[MAX_RES_PER_POINT]; // 从host到target的投影点 -> Projection point from host to target
 			Vec3f centerProjectedTo;
 
 			// ==================================================================================== //

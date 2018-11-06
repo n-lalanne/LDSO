@@ -1,10 +1,16 @@
 {
   "ExpandedNodes": [
     "",
+    "\\cmake",
+    "\\examples",
+    "\\examples\\Kitti",
+    "\\include",
+    "\\include\\Win32",
     "\\src",
     "\\src\\frontend",
-    "\\thirdparty"
+    "\\src\\internal",
+    "\\src\\internal\\OptimizationBackend"
   ],
-  "SelectedNode": "\\thirdparty\\Sophus-master",
+  "SelectedNode": "\\examples\\DatasetReader.h",
   "PreviewInSolutionExplorer": false
 }

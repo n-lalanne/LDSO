@@ -599,17 +599,25 @@ namespace ldso {
 
 			acc.updateSSE_eighted(
 				_mm_mul_ps(id, dx),
+
 				_mm_mul_ps(id, dy),
+
 				_mm_sub_ps(zero, _mm_mul_ps(id, _mm_add_ps(_mm_mul_ps(u, dx), _mm_mul_ps(v, dy)))),
+
 				_mm_sub_ps(zero, _mm_add_ps(
 					_mm_mul_ps(_mm_mul_ps(u, v), dx),
 					_mm_mul_ps(dy, _mm_add_ps(one, _mm_mul_ps(v, v))))),
+
 				_mm_add_ps(
 					_mm_mul_ps(_mm_mul_ps(u, v), dy),
 					_mm_mul_ps(dx, _mm_add_ps(one, _mm_mul_ps(u, u)))),
+
 				_mm_sub_ps(_mm_mul_ps(u, dy), _mm_mul_ps(v, dx)),
+
 				_mm_mul_ps(a, _mm_sub_ps(b0, _mm_load_ps(buf_warped_refColor + i))),
+
 				minusOne,
+
 				_mm_load_ps(buf_warped_residual + i),
 				_mm_load_ps(buf_warped_weight + i));
 		}
