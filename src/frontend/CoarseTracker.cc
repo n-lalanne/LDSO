@@ -93,6 +93,8 @@ namespace ldso {
 				resOld = calcRes(lvl, refToNew_current, aff_g2l_current, setting_coarseCutoffTH * levelCutoffRepeat);
 			}
 
+			printf("INCREASING cutoff to %f (ratio is %f)!\n", setting_coarseCutoffTH*levelCutoffRepeat, resOld[5]);
+
 			// Compute H and b
 			calcGSSSE(lvl, H, b, refToNew_current, aff_g2l_current);
 
@@ -100,6 +102,15 @@ namespace ldso {
 
 			Vec2f relAff = AffLight::fromToVecExposure(lastRef->ab_exposure, newFrame->ab_exposure, lastRef_aff_g2l,
 				aff_g2l_current).cast<float>();
+
+			/*printf("lvl%d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = %f)! \t",
+				lvl, -1, lambda, 1.0f,
+				"INITIA",
+				0.0f,
+				resOld[0] / resOld[1],
+				0, (int)resOld[1],
+				0.0f);
+			std::cout << refToNew_current.log().transpose() << " AFF " << aff_g2l_current.vec().transpose() << " (rel " << relAff.transpose() << ")\n";*/
 
 			// L-M iteration
 			for (int iteration = 0; iteration < maxIterations[lvl]; iteration++) {
@@ -160,6 +171,17 @@ namespace ldso {
 
 				Vec2f relAff = AffLight::fromToVecExposure(lastRef->ab_exposure, newFrame->ab_exposure,
 					lastRef_aff_g2l, aff_g2l_new).cast<float>();
+
+				/*printf("lvl %d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = %f)! \t",
+					lvl, iteration, lambda,
+					extrapFac,
+					(accept ? "ACCEPT" : "REJECT"),
+					resOld[0] / resOld[1],
+					resNew[0] / resNew[1],
+					(int)resOld[1], (int)resNew[1],
+					inc.norm());
+				std::cout << refToNew_new.log().transpose() << " AFF " << aff_g2l_new.vec().transpose() << " (rel " << relAff.transpose() << ")\n";*/
+
 				if (accept) {
 
 					// decrease lambda
@@ -185,12 +207,16 @@ namespace ldso {
 			lastResiduals[lvl] = sqrtf((float)(resOld[0] / resOld[1]));
 			lastFlowIndicators = resOld.segment<3>(2);
 			if (lastResiduals[lvl] > 1.5 * minResForAbort[lvl])
+			{
+				/*printf("resOld[0]: %f\tresOld[1]: %f\tresOld[0]/resOld[1]: %f\tlastResiduals: %f\ttrashold: %f\n", resOld[0], resOld[1], resOld[0] / resOld[1], lastResiduals[lvl], 1.5 * minResForAbort[lvl]);*/
 				return false;
+			}
 
 			// repeat this level level
 			if (levelCutoffRepeat > 1 && !haveRepeated) {
 				lvl++;
 				haveRepeated = true;
+				//printf("REPEAT LEVEL!\n");
 			}
 		} // end of for: pyramid level
 

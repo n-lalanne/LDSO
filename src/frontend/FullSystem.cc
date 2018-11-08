@@ -327,7 +327,9 @@ namespace ldso {
 		// I'll keep track of the so-far best achieved residual for each level in achievedRes.
 		// If on a coarse level, tracking is WORSE than achievedRes, we will not continue to save time.
 
-		Vec5 achievedRes = Vec5::Constant(NAN);
+		//Vec5 achievedRes = Vec5::Constant(NAN);
+
+		Vec5 achievedRes = Vec5::Constant(INFINITY);
 		bool haveOneGood = false;
 		int tryIterations = 0;
 		for (unsigned int i = 0; i < lastF_2_fh_tries.size(); i++) {
