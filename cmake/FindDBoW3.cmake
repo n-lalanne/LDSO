@@ -19,9 +19,9 @@
 #      - DBoW3_VERSION_PATCH : Patch version part of VERSION. Example: "0"
 #
 # ===================================================================================
-SET(DBoW3_INCLUDE_DIRS "C:/SDKs/DBo3W/include")
+SET(DBoW3_INCLUDE_DIRS "$ENV{DBoW3_ROOT}/include")
 
-SET(DBoW3_LIB_DIR "C:/SDKs/DBo3W/lib")
+SET(DBoW3_LIB_DIR "/lib")
 
 SET(DBoW3_LIBS "${DBoW3_LIB_DIR}/DBoW3001.lib")
 SET(DBoW3_LIBRARIES "${DBoW3_LIB_DIR}/DBoW3001.lib")
