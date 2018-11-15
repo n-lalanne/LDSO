@@ -91,7 +91,7 @@ namespace ldso {
 
         float my_scaledTH = 1e10, my_absTH = 1e10, my_scale = 0;
         int my_sparsifyFactor = 1;
-        int my_displayMode = 0;
+        int my_displayMode = 1;
         float my_minRelBS = 0;
         bool needRefresh = true;
 

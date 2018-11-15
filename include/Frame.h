@@ -155,7 +155,11 @@ namespace ldso {
         };
 
         // relative poses within the active window
-        map<shared_ptr<Frame>, RELPOSE, std::less<shared_ptr<Frame>>, Eigen::aligned_allocator<RELPOSE>> poseRel;
+#ifdef _WIN32
+		map<shared_ptr<Frame>, RELPOSE, std::less<shared_ptr<Frame>>, Eigen::aligned_allocator<RELPOSE>> poseRel;
+#else
+		map<shared_ptr<Frame>, RELPOSE, std::less<shared_ptr<Frame>>, Eigen::aligned_allocator<std::pair<const shared_ptr<Frame>, RELPOSE>>> poseRel;
+#endif
 
         // Bag of Words Vector structures.
         DBoW3::BowVector bowVec;       // BoW Vector

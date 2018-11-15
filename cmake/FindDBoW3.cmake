@@ -19,15 +19,53 @@
 #      - DBoW3_VERSION_PATCH : Patch version part of VERSION. Example: "0"
 #
 # ===================================================================================
-SET(DBoW3_INCLUDE_DIRS "$ENV{DBoW3_ROOT}/include")
 
-SET(DBoW3_LIB_DIR "/lib")
+find_path(DBoW3_INCLUDE_DIRS DBoW3/BowVector.h
+  $ENV{DBoW3_ROOT}/include
+  /usr/local/include
+  /usr/include
+  /opt/local/include
+  /sw/local/include
+  /sw/include
+  NO_DEFAULT_PATH
+  )
 
-SET(DBoW3_LIBS "${DBoW3_LIB_DIR}/DBoW3001.lib")
-SET(DBoW3_LIBRARIES "${DBoW3_LIB_DIR}/DBoW3001.lib")
+   find_library(DBoW3_WIN32
+    NAMES "DBoW3001"
+    PATHS
+    $ENV{DBoW3_ROOT}/lib
+    )
 
-SET(DBoW3_FOUND YES)
-SET(DBoW3_FOUND "YES")
+	find_library(DBoW3_LINUX
+    NAMES "DBoW3"
+    PATHS
+    ~/Library/Frameworks
+    /Library/Frameworks
+    /usr/local/lib
+    /usr/local/lib64
+    /usr/lib
+    /usr/lib64
+    /opt/local/lib
+    /sw/local/lib
+    /sw/lib
+    )
+
+if(DBoW3_WIN32)
+	SET(DBoW3_LIBRARIES ${DBoW3_WIN32})
+else()
+	SET(DBoW3_LIBRARIES ${DBoW3_LINUX})
+endif()
+
+
+
+set(DBoW3_FOUND "NO")
+if(DBoW3_LIBRARIES AND DBoW3_INCLUDE_DIRS)
+  set(DBoW3_FOUND "YES")
+  message("Found DBoW3: ${DBoW3_LIBRARIES}, ${DBoW3_INCLUDE_DIRS}")
+else()
+	MESSAGE(FATAL_ERROR "Could not find DBoW3.")
+endif(DBoW3_LIBRARIES AND DBoW3_INCLUDE_DIRS)
+
 SET(DBoW3_VERSION        0.0.1)
 SET(DBoW3_VERSION_MAJOR  0)
 SET(DBoW3_VERSION_MINOR  0)

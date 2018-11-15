@@ -24,15 +24,15 @@ endif()
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 # TODO: change this to not output outside build dir
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
 # required libs
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Glog REQUIRED)
 find_package(Pangolin REQUIRED)
-find_package(g2o REQUIRED)
+find_package(G2O REQUIRED)
 find_package(DBoW3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 

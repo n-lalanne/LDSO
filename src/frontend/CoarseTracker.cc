@@ -93,7 +93,7 @@ namespace ldso {
 				resOld = calcRes(lvl, refToNew_current, aff_g2l_current, setting_coarseCutoffTH * levelCutoffRepeat);
 			}
 
-			printf("INCREASING cutoff to %f (ratio is %f)!\n", setting_coarseCutoffTH*levelCutoffRepeat, resOld[5]);
+			//printf("INCREASING cutoff to %f (ratio is %f)!\n", setting_coarseCutoffTH*levelCutoffRepeat, resOld[5]);
 
 			// Compute H and b
 			calcGSSSE(lvl, H, b, refToNew_current, aff_g2l_current);

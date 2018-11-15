@@ -171,11 +171,19 @@ namespace ldso {
             /**
              * connectivity map, the higher 32 bit of the key is host frame's id, and the lower is target frame's id
              */
-            std::map<uint64_t,
-                    Eigen::Vector2i,
-                    std::less<uint64_t>,
-                    Eigen::aligned_allocator<std::pair<uint64_t, Eigen::Vector2i>>
-            > connectivityMap;
+#ifdef _WIN32
+			std::map<uint64_t,
+				Eigen::Vector2i,
+				std::less<uint64_t>,
+				Eigen::aligned_allocator<std::pair<uint64_t, Eigen::Vector2i>>
+			> connectivityMap;
+#else
+			std::map<uint64_t,
+				Eigen::Vector2i,
+				std::less<uint64_t>,
+				Eigen::aligned_allocator<std::pair< const uint64_t, Eigen::Vector2i>>
+			> connectivityMap;
+#endif
 
         private:
             /// I really don't know what are they doing in the private functions
