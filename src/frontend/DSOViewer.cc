@@ -647,6 +647,8 @@ namespace ldso {
 		if (lastNTrackingMs.size() > 10)
 			lastNTrackingMs.pop_front();
 
+		
+
 		last_track = time_now;
 		if (currentCam)
 			currentCam->setFromF(frame, HCalib);

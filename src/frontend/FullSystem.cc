@@ -1337,6 +1337,8 @@ namespace ldso {
 	}
 
 	void FullSystem::initializeFromInitializer(shared_ptr<FrameHessian> newFrame) {
+
+		std::srand(549812361);
 		unique_lock<mutex> lock(mapMutex);
 
 		shared_ptr<FrameHessian> firstFrame = coarseInitializer->firstFrame;
