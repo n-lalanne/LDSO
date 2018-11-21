@@ -153,8 +153,8 @@ namespace ldso {
 				needToMakeKF = allFrameHistory.size() == 1 || b1 || b2;
 			}
 
-			if (viewer)
-				viewer->publishCamPose(fh->frame, Hcalib->mpCH);
+			for (shared_ptr<OutputWrapper> ow : viewers)
+				ow->publishCamPose(fh->frame, Hcalib->mpCH);
 
 			lock.unlock();
 			LOG(INFO) << "deliver frame " << fh->frame->id << endl;
@@ -566,8 +566,8 @@ namespace ldso {
 		}
 
 		// visualization
-		if (viewer)
-			viewer->publishKeyframes(frames, false, Hcalib->mpCH);
+		for (shared_ptr<OutputWrapper> ow : viewers)
+			ow->publishKeyframes(frames, false, Hcalib->mpCH);
 
 		// =========================== Marginalize Frames =========================
 		{
@@ -1927,8 +1927,8 @@ namespace ldso {
 
 		fin.close();
 
-		if (viewer)
-			viewer->publishKeyframes(allKFs, false, Hcalib->mpCH);
+		for (shared_ptr<OutputWrapper> ow : viewers)
+			ow->publishKeyframes(allKFs, false, Hcalib->mpCH);
 
 		frames = allKFs;
 		for (auto &kf : allKFs) {

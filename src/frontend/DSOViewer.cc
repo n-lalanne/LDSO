@@ -17,7 +17,8 @@
 namespace ldso {
 
 
-	void KeyFrameDisplay::setFromKF(shared_ptr<FrameHessian> fh, shared_ptr<CalibHessian> HCalib) {
+	void KeyFrameDisplay::setFromKF(shared_ptr<FrameHessian> fh, shared_ptr<CalibHessian> HCalib)
+	{
 
 		if (fh->frame) {
 			setFromF(fh->frame, HCalib);
@@ -467,7 +468,7 @@ namespace ldso {
 					glColor3f(colorRed[0], colorRed[1], colorRed[2]);
 					glLineWidth(3);
 					glBegin(GL_LINE_STRIP);
-					for (unsigned int i = 0; i < allFramePoses.size(); i++) {
+					for (unsigned int i = allFramePoses.size() - 10 > 0 ? allFramePoses.size() - 10 : 0; i < allFramePoses.size(); i++) {
 						shared_ptr<Frame> fr = allFramePoses[i];
 						Vec3 t = fr->getPose().inverse().translation();
 						glVertex3d(t[0], t[1], t[2]);
@@ -488,7 +489,8 @@ namespace ldso {
 
 					// draw pose graph
 					glLineWidth(3.0);
-					glColor3f(yellow[0], yellow[1], yellow[2]);
+					float colorgreen[3] = { 0, 1, 0 };
+					glColor3f(colorgreen[0], colorgreen[1], colorgreen[2]);
 					glBegin(GL_LINES);
 					for (size_t i = 0; i < keyframes.size(); i++) {
 						shared_ptr<Frame> frame = keyframes[i]->originFrame;
@@ -647,7 +649,7 @@ namespace ldso {
 		if (lastNTrackingMs.size() > 10)
 			lastNTrackingMs.pop_front();
 
-		
+
 
 		last_track = time_now;
 		if (currentCam)
