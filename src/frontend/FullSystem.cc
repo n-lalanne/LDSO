@@ -677,13 +677,16 @@ namespace ldso {
 			Vec2 refToFh = AffLight::fromToVecExposure(frames.back()->frameHessian->ab_exposure, fh->ab_exposure,
 				frames.back()->frameHessian->aff_g2l(), fh->aff_g2l());
 
-			// some kind of marginlization conditions
-			if ((in < setting_minPointsRemaining * (in + out) ||
-				fabs(logf((float)refToFh[0])) > setting_maxLogAffFacInWindow)
-				&& ((int)frames.size()) - flagged > setting_minFrames) {
-				LOG(INFO) << "frame " << fh->frame->kfId << " is set as marged" << endl;
-				fh->flaggedForMarginalization = true;
-				flagged++;
+			if (!coarseTracker && !coarseTracker->lastRef && frames[i] != coarseTracker->lastRef->frame)
+			{
+				// some kind of marginlization conditions
+				if ((in < setting_minPointsRemaining * (in + out) ||
+					fabs(logf((float)refToFh[0])) > setting_maxLogAffFacInWindow)
+					&& ((int)frames.size()) - flagged > setting_minFrames) {
+					LOG(INFO) << "frame " << fh->frame->kfId << " is set as marged" << endl;
+					fh->flaggedForMarginalization = true;
+					flagged++;
+				}
 			}
 		}
 
@@ -695,7 +698,7 @@ namespace ldso {
 
 			for (auto &fr : frames) {
 				if (fr->frameHessian->frameID > latest->frameHessian->frameID - setting_minFrameAge ||
-					fr->frameHessian->frameID == 0)
+					fr->frameHessian->frameID == 0 || fr == coarseTracker->lastRef->frame)
 					continue;
 				double distScore = 0;
 				for (FrameFramePrecalc &ffh : fr->frameHessian->targetPrecalc) {
@@ -781,6 +784,14 @@ namespace ldso {
 			solveSystem(iteration, lambda);
 			double incDirChange = (1e-20 + previousX.dot(ef->lastX)) / (1e-20 + previousX.norm() * ef->lastX.norm());
 			previousX = ef->lastX;
+
+			LOG(INFO) << "incDirChange: " << incDirChange;
+
+			if (isnan(ef->lastX.norm())) {
+				LOG(WARNING) << "KF Tracking failed: LOST!";
+				isLost = true;
+				return DBL_MAX;
+			}
 
 			if (std::isfinite(incDirChange) && (setting_solverMode & SOLVER_STEPMOMENTUM)) {
 				float newStepsize = exp(incDirChange * 1.4);
@@ -1604,6 +1615,9 @@ namespace ldso {
 			Hcalib->mpCH->setValue(Hcalib->mpCH->value_backup + stepfacC * Hcalib->mpCH->step);
 			for (auto &fr : frames) {
 				auto fh = fr->frameHessian;
+
+				//LOG(INFO) << "fh->step:" << fh->step;
+				 
 				fh->setState(fh->state_backup + pstepfac.cwiseProduct(fh->step));
 				sumA += fh->step[6] * fh->step[6];
 				sumB += fh->step[7] * fh->step[7];
