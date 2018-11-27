@@ -236,8 +236,8 @@ namespace ldso {
 				int dx = patternP[idx][0];
 				int dy = patternP[idx][1];
 
-
 				Vec3f pt = RKi * Vec3f(point->u + dx, point->v + dy, 1) + t * point->idepth_new;
+
 				float u = pt[0] / pt[2];
 				float v = pt[1] / pt[2];
 				float Ku = fxl * u + cxl;
@@ -560,6 +560,7 @@ namespace ldso {
 		bool *statusMapB = new bool[w[0] * h[0]];
 
 		float densities[] = { 0.03, 0.05, 0.15, 0.5, 1 };
+		/*float densities[] = { 0.01, 0.03, 0.5, 0.5, 1 };*/
 		for (int lvl = 0; lvl < pyrLevelsUsed; lvl++) {
 			sel.currentPotential = 3;
 			int npts;

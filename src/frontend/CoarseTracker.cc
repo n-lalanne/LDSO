@@ -226,14 +226,20 @@ namespace ldso {
 
 		if ((setting_affineOptModeA != 0 && (fabsf(aff_g2l_out.a) > 1.2))
 			|| (setting_affineOptModeB != 0 && (fabsf(aff_g2l_out.b) > 200)))
+		{
+			LOG(INFO) << "Affine a b to big! " << fabsf(aff_g2l_out.a) << " " << fabsf(aff_g2l_out.b);
 			return false;
+		}
 
 		Vec2f relAff = AffLight::fromToVecExposure(lastRef->ab_exposure, newFrame->ab_exposure, lastRef_aff_g2l,
 			aff_g2l_out).cast<float>();
 
 		if ((setting_affineOptModeA == 0 && (fabsf(logf((float)relAff[0])) > 1.5))
 			|| (setting_affineOptModeB == 0 && (fabsf((float)relAff[1]) > 200)))
+		{
+			LOG(INFO) << "rel Affine a b to big! " << fabsf(logf((float)relAff[0])) << " " << fabsf((float)relAff[1]);
 			return false;
+		}
 
 		if (setting_affineOptModeA < 0) aff_g2l_out.a = 0;
 		if (setting_affineOptModeB < 0) aff_g2l_out.b = 0;
@@ -847,8 +853,8 @@ namespace ldso {
 					}
 				}
 			}
-		}
 	}
+}
 
 	void CoarseDistanceMap::addIntoDistFinal(int u, int v) {
 		if (w[0] == 0) return;

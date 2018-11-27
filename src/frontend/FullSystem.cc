@@ -139,12 +139,12 @@ namespace ldso {
 				Vec2 refToFh = AffLight::fromToVecExposure(coarseTracker->lastRef->ab_exposure, fh->ab_exposure,
 					coarseTracker->lastRef_aff_g2l, fh->aff_g2l());
 
-				float b = setting_kfGlobalWeight * setting_maxShiftWeightT * sqrtf((double)tres[1]) /
-					(wG[0] + hG[0]) +
-					setting_kfGlobalWeight * setting_maxShiftWeightR * sqrtf((double)tres[2]) /
-					(wG[0] + hG[0]) +
-					setting_kfGlobalWeight * setting_maxShiftWeightRT * sqrtf((double)tres[3]) /
-					(wG[0] + hG[0]) +
+				float b = setting_kfGlobalWeight * setting_maxShiftWeightT * sqrtf((double)tres[1])
+					+
+					setting_kfGlobalWeight * setting_maxShiftWeightR * sqrtf((double)tres[2])
+					+
+					setting_kfGlobalWeight * setting_maxShiftWeightRT * sqrtf((double)tres[3])
+					+
 					setting_kfGlobalWeight * setting_maxAffineWeight * fabs(logf((float)refToFh[0]));
 
 				bool b1 = b > 1;
@@ -353,6 +353,9 @@ namespace ldso {
 				haveOneGood = true;
 			}
 
+			LOG(INFO) << "-- Coarse Tracker tracked ab = " << aff_g2l.a << " " << aff_g2l.b << " (exp " << fh->ab_exposure
+				<< " ). Res " << achievedRes[0] << " last " << coarseTracker->lastResiduals[0] << " good? " << trackingIsGood << " rmse " << lastCoarseRMSE[0] * setting_reTrackThreshold << endl;
+
 			// take over achieved res (always).
 			if (haveOneGood) {
 				for (int i = 0; i < 5; i++) {
@@ -414,8 +417,7 @@ namespace ldso {
 			fh->frame->setPoseOpti(Sim3(fh->frame->getPose().matrix()));
 		}
 
-		LOG(INFO) << "frame " << fh->frame->id << " is marked as key frame, active keyframes: " << frames.size()
-			<< endl;
+		LOG(INFO) << "frame " << fh->frame->id << " is marked as key frame, active keyframes: " << frames.size() << endl;
 
 		// trace new keyframe
 		traceNewCoarse(fh);
@@ -431,6 +433,7 @@ namespace ldso {
 			fh->idx = frames.size();
 			frames.push_back(fh->frame);
 			fh->frame->kfId = fh->frameID = globalMap->NumFrames();
+			LOG(INFO) << "frame " << fh->frame->id << " is key frame: " << fh->frame->kfId << endl;
 		}
 
 		ef->insertFrame(fh, Hcalib->mpCH);
@@ -1617,7 +1620,7 @@ namespace ldso {
 				auto fh = fr->frameHessian;
 
 				//LOG(INFO) << "fh->step:" << fh->step;
-				 
+
 				fh->setState(fh->state_backup + pstepfac.cwiseProduct(fh->step));
 				sumA += fh->step[6] * fh->step[6];
 				sumB += fh->step[7] * fh->step[7];
