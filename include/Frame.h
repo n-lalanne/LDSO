@@ -167,7 +167,6 @@ namespace ldso {
         vector<size_t> bowIdx;         // index of the bow-ized corners
 
         shared_ptr<internal::FrameHessian> frameHessian = nullptr;  // internal data
-		weak_ptr<internal::FrameHessian> frameHessian2;
 
         // ===== debug stuffs ======= //
         cv::Mat imgDisplay;    // image to display, only for debugging, remain an empty image if setting_show_loopclosing is false

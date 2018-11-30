@@ -33,13 +33,7 @@ namespace ldso {
 				this->frame = frame;
 			}
 
-			~FrameHessian() {
-				LOG(INFO) << "delete FrameHessian";
-				for (int i = 0; i < pyrLevelsUsed; i++) {
-					delete[] dIp[i];
-					delete[]  absSquaredGrad[i];
-				}
-			}
+			~FrameHessian();
 
 			// accessors
 			EIGEN_STRONG_INLINE const SE3 &get_worldToCam_evalPT() const {

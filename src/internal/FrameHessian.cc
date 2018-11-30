@@ -9,6 +9,14 @@ namespace ldso {
 
     namespace internal {
 
+		FrameHessian::~FrameHessian()
+		{
+			for (int i = 0; i < pyrLevelsUsed; i++) {
+				delete[] dIp[i];
+				delete[]  absSquaredGrad[i];
+			}
+		}
+
         void FrameHessian::setStateZero(const Vec10 &state_zero) {
 
             assert(state_zero.head<6>().squaredNorm() < 1e-20);

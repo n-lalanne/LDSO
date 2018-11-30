@@ -61,6 +61,11 @@ namespace ldso {
 		blockUntilMappingIsFinished();
 		// remember to release the inner structure
 		this->unmappedTrackedFrames.clear();
+
+		for (auto fr : frames) {
+			fr->ReleaseAll();
+		}
+
 		if (setting_enableLoopClosing == false) {
 			delete[] selectionMap;
 		}

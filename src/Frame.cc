@@ -23,7 +23,6 @@ namespace ldso {
 
     void Frame::ReleaseFH() {
         if (frameHessian) {
-			frameHessian2 = frameHessian;
             frameHessian->frame = nullptr;
 			frameHessian = nullptr;
         }
