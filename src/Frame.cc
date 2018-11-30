@@ -32,6 +32,7 @@ namespace ldso {
         for (auto &feat: features) {
             feat->ReleaseAll();
         }
+		features.clear();
     }
 
     void Frame::CreateFH(shared_ptr<Frame> frame) {

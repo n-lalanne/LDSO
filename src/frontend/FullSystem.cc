@@ -62,7 +62,7 @@ namespace ldso {
 		// remember to release the inner structure
 		this->unmappedTrackedFrames.clear();
 
-		for (auto fr : frames) {
+		for (auto fr : allFrameHistory) {
 			fr->ReleaseAll();
 		}
 
@@ -1893,6 +1893,7 @@ namespace ldso {
 						unique_lock<mutex> crlock(shellPoseMutex);
 						fh->setEvalPT_scaled(fr->getPose(), fh->frame->aff_g2l);
 					}
+					fr->ReleaseAll();
 				}
 			}
 			else {
