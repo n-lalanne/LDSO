@@ -198,20 +198,201 @@ namespace ldso {
 		float cxl = cx[lvl];
 		float cyl = cy[lvl];
 
-		Accumulator11 E;
-		acc9.initialize();
-		E.initialize();
 
+		if (multiThreading)
+		{
+			red.reduce(std::bind(&CoarseInitializer::setZero, this, _1, _2, _3, _4), 0, 0, 0);
+		}
+		else
+		{
+			setZero();
+		}
 
 		int npts = numPoints[lvl];
 		Pnt *ptsl = points[lvl];
-		for (int i = 0; i < npts; i++) {
+		if (multiThreading)
+		{
+			red.reduce(std::bind(&CoarseInitializer::calculateAllResiduals, this, ptsl, RKi, t, r2new_aff, fxl, fyl, cxl, cyl, wl, hl, colorRef, colorNew, _1, _2, _3, _4), 0, npts, 50);
+		}
+		else
+		{
+			calculateAllResiduals(ptsl, RKi, t, r2new_aff, fxl, fyl, cxl, cyl, wl, hl, colorRef, colorNew, 0, npts, 0, 0);
+		}
 
+		if (multiThreading)
+		{
+			red.reduce(std::bind(&CoarseInitializer::finishAccE, this, _1, _2, _3, _4), 0, 0, 0);
+		}
+		else
+		{
+			finishAccE();
+		}
+		if (multiThreading)
+		{
+			red.reduce(std::bind(&CoarseInitializer::finishAcc9, this, _1, _2, _3, _4), 0, 0, 0);
+		}
+		else
+		{
+			finishAcc9();
+		}
+
+		if (multiThreading)
+		{
+			red.reduce(std::bind(&CoarseInitializer::calculateAlphaEnergy, this, ptsl, _1, _2, _3, _4), 0, npts, 50);
+		}
+		else
+		{
+			calculateAlphaEnergy(ptsl, 0, npts, 0, 0);
+		}
+
+		if (multiThreading)
+		{
+			red.reduce(std::bind(&CoarseInitializer::finishAccEAlpha, this, _1, _2, _3, _4), 0, 0, 0);
+		}
+		else
+		{
+			finishAccEAlpha();
+		}
+
+		float alphaEnergy = refToNew.translation().squaredNorm() * npts;
+		if (multiThreading)
+		{
+			for (int tid = 0; tid < NUM_THREADS; tid++) {
+				alphaEnergy += accEAlpha[tid].A;
+			}
+		}
+		else
+		{
+			alphaEnergy += accEAlpha[0].A;
+		}
+		alphaEnergy *= alphaW;
+
+		// compute alpha opt.
+		float alphaOpt;
+		if (alphaEnergy > alphaK * npts) {
+			alphaOpt = 0;
+			alphaEnergy = alphaK * npts;
+		}
+		else {
+			alphaOpt = alphaW;
+		}
+
+		if (multiThreading)
+		{
+			red.reduce(std::bind(&CoarseInitializer::calculateSC, this, ptsl, alphaOpt, _1, _2, _3, _4), 0, npts, 50);
+		}
+		else
+		{
+			calculateSC(ptsl, alphaOpt, 0, npts, 0, 0);
+		}
+
+		if (multiThreading)
+		{
+			red.reduce(bind(&CoarseInitializer::finishAcc9SC, this, _1, _2, _3, _4), 0, 0, 0);
+		}
+		else
+		{
+			finishAcc9SC();
+		}
+
+		float accEA = 0.0f;
+		float accENum = 0.0f;
+
+		if (multiThreading)
+		{
+			H_out.setZero();
+			H_out_sc.setZero();
+			b_out.setZero();
+			b_out_sc.setZero();
+
+			for (int tid = 0; tid < NUM_THREADS; tid++)
+			{
+				H_out += acc9[tid].H.topLeftCorner<8, 8>();// / acc9.num;
+				b_out += acc9[tid].H.topRightCorner<8, 1>();// / acc9.num;
+				H_out_sc += acc9SC[tid].H.topLeftCorner<8, 8>();// / acc9.num;
+				b_out_sc += acc9SC[tid].H.topRightCorner<8, 1>();// / acc9.num;
+				accENum += accE[tid].num;
+				accEA += accE[tid].A;
+			}
+		}
+		else
+		{
+			H_out = acc9[0].H.topLeftCorner<8, 8>();// / acc9.num;
+			b_out = acc9[0].H.topRightCorner<8, 1>();// / acc9.num;
+			H_out_sc = acc9SC[0].H.topLeftCorner<8, 8>();// / acc9.num;
+			b_out_sc = acc9SC[0].H.topRightCorner<8, 1>();// / acc9.num;
+			accEA = accE[0].A;
+			accENum = accE[0].num;
+		}
+
+
+		H_out(0, 0) += alphaOpt * npts;
+		H_out(1, 1) += alphaOpt * npts;
+		H_out(2, 2) += alphaOpt * npts;
+
+		Vec3f tlog = refToNew.log().head<3>().cast<float>();
+		b_out[0] += tlog[0] * alphaOpt * npts;
+		b_out[1] += tlog[1] * alphaOpt * npts;
+		b_out[2] += tlog[2] * alphaOpt * npts;
+
+		return Vec3f(accEA, alphaEnergy, accENum);
+	}
+
+	float CoarseInitializer::rescale() {
+		float factor = 20 * thisToNext.translation().norm();
+		return factor;
+	}
+
+	void CoarseInitializer::calculateSC(Pnt *ptsl, float alphaOpt, int min, int max, Vec3 *stats, int tid)
+	{
+		for (int i = min; i < max; i++) {
+			Pnt *point = ptsl + i;
+			if (!point->isGood_new)
+				continue;
+
+			point->lastHessian_new = JbBuffer_new[i][9];
+
+			JbBuffer_new[i][8] += alphaOpt * (point->idepth_new - 1);
+			JbBuffer_new[i][9] += alphaOpt;
+
+			if (alphaOpt == 0) {
+				JbBuffer_new[i][8] += couplingWeight * (point->idepth_new - point->iR);
+				JbBuffer_new[i][9] += couplingWeight;
+			}
+
+			JbBuffer_new[i][9] = 1 / (1 + JbBuffer_new[i][9]);
+			acc9SC[tid].updateSingleWeighted(
+				(float)JbBuffer_new[i][0], (float)JbBuffer_new[i][1], (float)JbBuffer_new[i][2],
+				(float)JbBuffer_new[i][3],
+				(float)JbBuffer_new[i][4], (float)JbBuffer_new[i][5], (float)JbBuffer_new[i][6],
+				(float)JbBuffer_new[i][7],
+				(float)JbBuffer_new[i][8], (float)JbBuffer_new[i][9]);
+		}
+	}
+
+	void CoarseInitializer::calculateAlphaEnergy(Pnt *ptsl, int min, int max, Vec3 *stats, int tid)
+	{
+		// calculate alpha energy, and decide if we cap it.
+		for (int i = min; i < max; i++) {
+			Pnt *point = ptsl + i;
+			if (!point->isGood_new) {
+				accE[tid].updateSingle((float)(point->energy[1]));
+			}
+			else {
+				point->energy_new[1] = (point->idepth_new - 1) * (point->idepth_new - 1);
+				accE[tid].updateSingle((float)(point->energy_new[1]));
+			}
+		}
+	}
+
+	void CoarseInitializer::calculateAllResiduals(Pnt *ptsl, Mat33f RKi, Vec3f t, Eigen::Vector2f r2new_aff, float fxl, float fyl, float cxl, float cyl, int wl, int hl, Eigen::Vector3f *colorRef, Eigen::Vector3f *colorNew, int min, int max, Vec3 *stats, int tid)
+	{
+		for (int i = min; i < max; i++) {
 			Pnt *point = ptsl + i;
 
 			point->maxstep = 1e10;
 			if (!point->isGood) {
-				E.updateSingle((float)(point->energy[0]));
+				accE[tid].updateSingle((float)(point->energy[0]));
 				point->energy_new = point->energy;
 				point->isGood_new = false;
 				continue;
@@ -300,7 +481,7 @@ namespace ldso {
 			}
 
 			if (!isGood || energy > point->outlierTH * 20) {
-				E.updateSingle((float)(point->energy[0]));
+				accE[tid].updateSingle((float)(point->energy[0]));
 				point->isGood_new = false;
 				point->energy_new = point->energy;
 				continue;
@@ -308,13 +489,13 @@ namespace ldso {
 
 
 			// add into energy.
-			E.updateSingle(energy);
+			accE[tid].updateSingle(energy);
 			point->isGood_new = true;
 			point->energy_new[0] = energy;
 
 			// update Hessian matrix.
 			for (int i = 0; i + 3 < patternNum; i += 4)
-				acc9.updateSSE(
+				acc9[tid].updateSSE(
 					_mm_load_ps(((float *)(&dp0)) + i),
 					_mm_load_ps(((float *)(&dp1)) + i),
 					_mm_load_ps(((float *)(&dp2)) + i),
@@ -327,90 +508,11 @@ namespace ldso {
 
 
 			for (int i = ((patternNum >> 2) << 2); i < patternNum; i++)
-				acc9.updateSingle(
+				acc9[tid].updateSingle(
 				(float)dp0[i], (float)dp1[i], (float)dp2[i], (float)dp3[i],
 					(float)dp4[i], (float)dp5[i], (float)dp6[i], (float)dp7[i],
 					(float)r[i]);
-
-
 		}
-
-		E.finish();
-		acc9.finish();
-
-		// calculate alpha energy, and decide if we cap it.
-		Accumulator11 EAlpha;
-		EAlpha.initialize();
-		for (int i = 0; i < npts; i++) {
-			Pnt *point = ptsl + i;
-			if (!point->isGood_new) {
-				E.updateSingle((float)(point->energy[1]));
-			}
-			else {
-				point->energy_new[1] = (point->idepth_new - 1) * (point->idepth_new - 1);
-				E.updateSingle((float)(point->energy_new[1]));
-			}
-		}
-		EAlpha.finish();
-		float alphaEnergy = alphaW * (EAlpha.A + refToNew.translation().squaredNorm() * npts);
-
-		// compute alpha opt.
-		float alphaOpt;
-		if (alphaEnergy > alphaK * npts) {
-			alphaOpt = 0;
-			alphaEnergy = alphaK * npts;
-		}
-		else {
-			alphaOpt = alphaW;
-		}
-
-		acc9SC.initialize();
-		for (int i = 0; i < npts; i++) {
-			Pnt *point = ptsl + i;
-			if (!point->isGood_new)
-				continue;
-
-			point->lastHessian_new = JbBuffer_new[i][9];
-
-			JbBuffer_new[i][8] += alphaOpt * (point->idepth_new - 1);
-			JbBuffer_new[i][9] += alphaOpt;
-
-			if (alphaOpt == 0) {
-				JbBuffer_new[i][8] += couplingWeight * (point->idepth_new - point->iR);
-				JbBuffer_new[i][9] += couplingWeight;
-			}
-
-			JbBuffer_new[i][9] = 1 / (1 + JbBuffer_new[i][9]);
-			acc9SC.updateSingleWeighted(
-				(float)JbBuffer_new[i][0], (float)JbBuffer_new[i][1], (float)JbBuffer_new[i][2],
-				(float)JbBuffer_new[i][3],
-				(float)JbBuffer_new[i][4], (float)JbBuffer_new[i][5], (float)JbBuffer_new[i][6],
-				(float)JbBuffer_new[i][7],
-				(float)JbBuffer_new[i][8], (float)JbBuffer_new[i][9]);
-		}
-		acc9SC.finish();
-
-		H_out = acc9.H.topLeftCorner<8, 8>();// / acc9.num;
-		b_out = acc9.H.topRightCorner<8, 1>();// / acc9.num;
-		H_out_sc = acc9SC.H.topLeftCorner<8, 8>();// / acc9.num;
-		b_out_sc = acc9SC.H.topRightCorner<8, 1>();// / acc9.num;
-
-		H_out(0, 0) += alphaOpt * npts;
-		H_out(1, 1) += alphaOpt * npts;
-		H_out(2, 2) += alphaOpt * npts;
-
-		Vec3f tlog = refToNew.log().head<3>().cast<float>();
-		b_out[0] += tlog[0] * alphaOpt * npts;
-		b_out[1] += tlog[1] * alphaOpt * npts;
-		b_out[2] += tlog[2] * alphaOpt * npts;
-
-
-		return Vec3f(E.A, alphaEnergy, E.num);
-	}
-
-	float CoarseInitializer::rescale() {
-		float factor = 20 * thisToNext.translation().norm();
-		return factor;
 	}
 
 	Vec3f CoarseInitializer::calcEC(int lvl) {
