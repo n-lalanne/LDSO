@@ -376,11 +376,11 @@ namespace ldso {
 		for (int i = min; i < max; i++) {
 			Pnt *point = ptsl + i;
 			if (!point->isGood_new) {
-				accE[tid].updateSingle((float)(point->energy[1]));
+				accEAlpha[tid].updateSingle((float)(point->energy[1]));
 			}
 			else {
 				point->energy_new[1] = (point->idepth_new - 1) * (point->idepth_new - 1);
-				accE[tid].updateSingle((float)(point->energy_new[1]));
+				accEAlpha[tid].updateSingle((float)(point->energy_new[1]));
 			}
 		}
 	}
