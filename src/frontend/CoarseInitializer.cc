@@ -4,7 +4,8 @@
 #include "frontend/PixelSelector2.h"
 #include "frontend/CoarseInitializer.h"
 #include "frontend/nanoflann.h"
-
+#include <thread>
+#include <chrono>
 #include <iostream>
 
 
@@ -69,9 +70,8 @@ namespace ldso {
 
 
 		Vec3f latestRes = Vec3f::Zero();
-		for (int lvl = pyrLevelsUsed - 1; lvl >= 0; lvl--) {
-
-
+		for (int lvl = pyrLevelsUsed - 1; lvl >= 0; lvl--)
+		{
 			if (lvl < pyrLevelsUsed - 1)
 				propagateDown(lvl + 1);
 
@@ -161,7 +161,6 @@ namespace ldso {
 				iteration++;
 			}
 			latestRes = resOld;
-
 		}
 
 		thisToNext = refToNew_current;
