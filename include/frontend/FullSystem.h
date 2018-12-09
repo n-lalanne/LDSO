@@ -109,7 +109,7 @@ namespace ldso {
 			return frames;
 		}
 
-		void RefreshGUI() 
+		void RefreshGUI()
 		{
 			for (shared_ptr<OutputWrapper> ow : viewers)
 				ow->refreshAll();
@@ -310,6 +310,8 @@ namespace ldso {
 		condition_variable trackedFrameSignal;
 		condition_variable mappedFrameSignal;
 		deque<shared_ptr<Frame>> unmappedTrackedFrames;
+		deque<unsigned long> unmappedTrackedFramesNeedKeyFrameIndicator;
+
 		int needNewKFAfter = -1;    // Otherwise, a new KF is *needed that has ID bigger than [needNewKFAfter]*.
 
 		thread mappingThread;

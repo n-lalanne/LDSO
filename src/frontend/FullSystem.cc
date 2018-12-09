@@ -61,6 +61,7 @@ namespace ldso {
 		blockUntilMappingIsFinished();
 		// remember to release the inner structure
 		this->unmappedTrackedFrames.clear();
+		this->unmappedTrackedFramesNeedKeyFrameIndicator.clear();
 
 		for (auto fr : allFrameHistory) {
 			fr->ReleaseAll();
@@ -181,6 +182,8 @@ namespace ldso {
 		else {
 			unique_lock<mutex> lock(trackMapSyncMutex);
 			unmappedTrackedFrames.push_back(fh->frame);
+			if (needKF)
+				unmappedTrackedFramesNeedKeyFrameIndicator.push_back(fh->frame->id);
 			trackedFrameSignal.notify_all();
 			while (coarseTracker_forNewKF->refFrameID == -1 && coarseTracker->refFrameID == -1) {
 				LOG(INFO) << "wait for mapped frame signal" << endl;
@@ -1897,7 +1900,29 @@ namespace ldso {
 				}
 			}
 			else {
-				if (setting_realTimeMaxKF || needNewKFAfter >= frames.back()->id) {
+				bool needKeyFrame = false;
+
+				if (unmappedTrackedFramesNeedKeyFrameIndicator.size() > 0)
+				{
+					unsigned long nextNeedKF = unmappedTrackedFramesNeedKeyFrameIndicator.front();
+					while (fr->id >= nextNeedKF) 
+					{
+						unmappedTrackedFramesNeedKeyFrameIndicator.pop_front();
+
+						needKeyFrame = true;
+						if (unmappedTrackedFramesNeedKeyFrameIndicator.size() > 0)
+						{
+							nextNeedKF = unmappedTrackedFramesNeedKeyFrameIndicator.front();
+						}
+						else
+						{
+							break;
+						}
+					}
+
+				}
+
+				if (setting_realTimeMaxKF || needKeyFrame) {
 					lock.unlock();
 					makeKeyFrame(fh);
 					needToKetchupMapping = false;
