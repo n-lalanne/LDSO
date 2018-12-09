@@ -121,8 +121,6 @@ namespace ldso {
 		// select!
 		Eigen::Vector3i n = this->select(fh, map_out, currentPotential, thFactor);
 
-		std::cout << n << std::endl;
-
 		// sub-select!
 		numHave = n[0] + n[1] + n[2];
 		quotia = numWant / numHave;

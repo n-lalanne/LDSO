@@ -27,6 +27,7 @@ namespace ldso {
 		wM.diagonal()[3] = wM.diagonal()[4] = wM.diagonal()[5] = SCALE_XI_TRANS;
 		wM.diagonal()[6] = SCALE_A;
 		wM.diagonal()[7] = SCALE_B;
+		sparsityFactor = 5;
 	}
 
 	CoarseInitializer::~CoarseInitializer() {
@@ -660,6 +661,9 @@ namespace ldso {
 		float *statusMap = new float[w[0] * h[0]];
 		bool *statusMapB = new bool[w[0] * h[0]];
 
+		memset(statusMap, 0, sizeof(float)*w[0] * h[0]);
+		memset(statusMapB, 0, sizeof(bool)*w[0] * h[0]);
+
 		float densities[] = { 0.03, 0.05, 0.15, 0.5, 1 };
 		/*float densities[] = { 0.01, 0.03, 0.5, 0.5, 1 };*/
 		for (int lvl = 0; lvl < pyrLevelsUsed; lvl++) {
@@ -674,13 +678,16 @@ namespace ldso {
 
 			if (points[lvl] != 0) delete[] points[lvl];
 			points[lvl] = new Pnt[npts];
+			memset(points[lvl], 0, sizeof(Pnt)*npts);
 
 			// set idepth map to initially 1 everywhere.
 			int wl = w[lvl], hl = h[lvl];
 			Pnt *pl = points[lvl];
 			int nl = 0;
+
 			for (int y = patternPadding + 1; y < hl - patternPadding - 2; y++)
 				for (int x = patternPadding + 1; x < wl - patternPadding - 2; x++) {
+
 					if ((lvl != 0 && statusMapB[x + y * wl]) || (lvl == 0 && statusMap[x + y * wl] != 0)) {
 						//assert(patternNum==9);
 						pl[nl].u = x + 0.1;
@@ -706,9 +713,9 @@ namespace ldso {
 
 						nl++;
 						assert(nl <= npts);
+						CHECK(nl <= npts);
 					}
 				}
-
 
 			numPoints[lvl] = nl;
 		}
@@ -814,7 +821,7 @@ namespace ldso {
 			fy[level] = fy[level - 1] * 0.5;
 			cx[level] = (cx[0] + 0.5) / ((int)1 << level) - 0.5;
 			cy[level] = (cy[0] + 0.5) / ((int)1 << level) - 0.5;
-		}
+	}
 
 		for (int level = 0; level < pyrLevelsUsed; ++level) {
 			K[level] << fx[level], 0.0, cx[level], 0.0, fy[level], cy[level], 0.0, 0.0, 1.0;
@@ -824,7 +831,7 @@ namespace ldso {
 			cxi[level] = Ki[level](0, 2);
 			cyi[level] = Ki[level](1, 2);
 		}
-	}
+}
 
 	void CoarseInitializer::makeNN() {
 		const float NNDistFactor = 0.05;
