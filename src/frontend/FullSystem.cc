@@ -1421,8 +1421,6 @@ namespace ldso {
 		SE3 firstToNew = coarseInitializer->thisToNext;
 		firstToNew.translation() /= rescaleFactor;
 
-		std::cout << firstToNew.matrix() << std::endl;
-
 		// really no lock required, as we are initializing.
 		{
 			unique_lock<mutex> crlock(shellPoseMutex);

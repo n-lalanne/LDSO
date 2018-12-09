@@ -20,6 +20,9 @@ namespace ldso {
 		JbBuffer = new Vec10f[ww * hh];
 		JbBuffer_new = new Vec10f[ww * hh];
 
+		memset(JbBuffer, 0, sizeof(Vec10f)*ww * hh);
+		memset(JbBuffer_new, 0, sizeof(Vec10f)*ww * hh);
+
 		fixAffine = true;
 		printDebug = false;
 
@@ -80,6 +83,7 @@ namespace ldso {
 			Vec8f b, bsc;
 			resetPoints(lvl);
 			Vec3f resOld = calcResAndGS(lvl, H, b, Hsc, bsc, refToNew_current, refToNew_aff_current, false);
+
 			applyStep(lvl);
 
 			float lambda = 0.1;
@@ -105,7 +109,6 @@ namespace ldso {
 				}
 				else
 					inc = -(wM * (Hl.ldlt().solve(bl)));    //=-H^-1 * b.
-
 
 				SE3 refToNew_new = SE3::exp(inc.head<6>().cast<double>()) * refToNew_current;
 				AffLight refToNew_aff_new = refToNew_aff_current;
@@ -446,7 +449,6 @@ namespace ldso {
 				float hw = fabs(residual) < setting_huberTH ? 1 : setting_huberTH / fabs(residual);
 				energy += hw * residual * residual * (2 - hw);
 
-
 				float dxdd = (t[0] - t[2] * u) / pt[2];
 				float dydd = (t[1] - t[2] * v) / pt[2];
 
@@ -700,6 +702,7 @@ namespace ldso {
 						pl[nl].lastHessian_new = 0;
 						pl[nl].my_type = (lvl != 0) ? 1 : statusMap[x + y * wl];
 
+
 						Eigen::Vector3f *cpt = firstFrame->dIp[lvl] + x + y * w[lvl];
 						float sumGrad2 = 0;
 						for (int idx = 0; idx < patternNum; idx++) {
@@ -821,7 +824,7 @@ namespace ldso {
 			fy[level] = fy[level - 1] * 0.5;
 			cx[level] = (cx[0] + 0.5) / ((int)1 << level) - 0.5;
 			cy[level] = (cy[0] + 0.5) / ((int)1 << level) - 0.5;
-	}
+		}
 
 		for (int level = 0; level < pyrLevelsUsed; ++level) {
 			K[level] << fx[level], 0.0, cx[level], 0.0, fy[level], cy[level], 0.0, 0.0, 1.0;
@@ -831,7 +834,7 @@ namespace ldso {
 			cxi[level] = Ki[level](0, 2);
 			cyi[level] = Ki[level](1, 2);
 		}
-}
+	}
 
 	void CoarseInitializer::makeNN() {
 		const float NNDistFactor = 0.05;
