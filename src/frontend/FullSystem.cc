@@ -842,7 +842,7 @@ namespace ldso {
 				lambda *= 0.25;
 			}
 			else {
-				// energy increses, reload the backup state and increase lambda
+				// energy increases, reload the backup state and increase lambda
 				loadSateBackup();
 				lastEnergy = linearizeAll(false);
 				lastEnergyL = calcLEnergy();
