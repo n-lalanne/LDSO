@@ -11,6 +11,7 @@ using namespace std;
 
 #include "NumTypes.h"
 #include "AffLight.h"
+#include "inertial/ImuData.h"
 
 namespace ldso {
 
@@ -40,7 +41,7 @@ namespace ldso {
         /**
          * this internal structure should be created if you want to use them
          */
-        void CreateFH(shared_ptr<Frame> frame);
+        void CreateFH(shared_ptr<Frame> frame, vector<ldso::inertial::ImuData> imuData);
 
         /**
          * release the inner structures

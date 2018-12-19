@@ -21,6 +21,9 @@
 #include "internal/IndexThreadReduce.h"
 #include "LoopClosing.h"
 
+#include "inertial/ImuData.h"
+#include "inertial/InertialHessian.h"
+
 using namespace std;
 using namespace ldso;
 using namespace ldso::internal;
@@ -62,7 +65,7 @@ namespace ldso {
 		~FullSystem();
 
 		/// adds a new frame, and creates point & residual structs.
-		void addActiveFrame(ImageAndExposure *image, int id);
+		void addActiveFrame(ImageAndExposure *image, vector<ldso::inertial::ImuData> imuData);
 
 		/// block the tracking until mapping is finished, return when mapping is finished.
 		void blockUntilMappingIsFinished();
@@ -251,7 +254,7 @@ namespace ldso {
 		void makeKeyFrame(shared_ptr<FrameHessian> fh);
 
 		/// make an ordinary frame
-		void makeNonKeyFrame(shared_ptr<FrameHessian> &fh);
+		void makeNonKeyFrame(shared_ptr<FrameHessian> &fh, bool fast);
 
 		/// deliver the tracked frame to makeKeyFrame/makeNonKeyFrame
 		/// if we do linearization, here we will call makekeyframe /makeNonKeyFrame, otherwise, they are called in mapping loop
@@ -317,6 +320,10 @@ namespace ldso {
 		thread mappingThread;
 		bool runMapping = true;
 		bool needToKetchupMapping = false;
+
+		//VI
+
+		vector<ldso::inertial::ImuData> imuDataHistory;
 
 	public:
 		shared_ptr<Map> globalMap = nullptr;    // global map
