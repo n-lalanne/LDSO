@@ -20,7 +20,7 @@ namespace ldso {
     float setting_initialAffBPrior = 1e14;
     float setting_initialAffAPrior = 1e14;
     float setting_initialCalibHessian = 5e9;
-    int setting_solverMode = SOLVER_FIX_LAMBDA | SOLVER_ORTHOGONALIZE_X_LATER ;
+    int setting_solverMode = SOLVER_FIX_LAMBDA | SOLVER_ORTHOGONALIZE_X_LATER;
     double setting_solverModeDelta = 0.00001;
     float setting_minIdepthH_act = 100;
     float setting_minIdepthH_marg = 50;

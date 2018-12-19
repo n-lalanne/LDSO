@@ -1631,6 +1631,12 @@ namespace ldso {
 				//LOG(INFO) << "fh->step:" << fh->step;
 
 				fh->setState(fh->state_backup + pstepfac.cwiseProduct(fh->step));
+
+				//Sophus::Vector<double, 6> se3step = (SE3::exp(pstepfac.head<6>().cwiseProduct(fh->step.head<6>()))*SE3::exp(fh->state_backup.head<6>())).log();
+				//Vec10 step = fh->state_backup + pstepfac.cwiseProduct(fh->step);
+				//step.head<6>() = se3step;
+				//fh->setState(step);
+
 				sumA += fh->step[6] * fh->step[6];
 				sumB += fh->step[7] * fh->step[7];
 				sumT += fh->step.segment<3>(0).squaredNorm();
@@ -1905,7 +1911,7 @@ namespace ldso {
 				if (unmappedTrackedFramesNeedKeyFrameIndicator.size() > 0)
 				{
 					unsigned long nextNeedKF = unmappedTrackedFramesNeedKeyFrameIndicator.front();
-					while (fr->id >= nextNeedKF) 
+					while (fr->id >= nextNeedKF)
 					{
 						unmappedTrackedFramesNeedKeyFrameIndicator.pop_front();
 
