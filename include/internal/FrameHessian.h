@@ -9,10 +9,16 @@
 
 #include <glog/logging.h>
 #include "internal/FrameFramePrecalc.h"
+#include "inertial/ImuData.h"
+#include "inertial/InertialHessian.h"
 
 using namespace std;
 
 namespace ldso {
+
+	namespace inertial {
+		class InertialHessian;
+	}
 
 	namespace internal {
 
@@ -29,8 +35,10 @@ namespace ldso {
 		public:
 			EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-			FrameHessian(shared_ptr<Frame> frame) {
+			FrameHessian(shared_ptr<Frame> frame, vector<ldso::inertial::ImuData> imuData) {
 				this->frame = frame;
+				for (int i = 0; i < imuData.size(); i++)
+					this->imuDataSinceLastFrame.push_back(imuData[i]);
 			}
 
 			~FrameHessian();
@@ -210,6 +218,10 @@ namespace ldso {
 			Vec8 delta = Vec8::Zero();             // state - state_zero.
 			int idx = 0;                         // the id in the sliding window, used for constructing matricies
 
+			// Visual Inertial 
+			vector<inertial::ImuData> imuDataSinceLastFrame;
+			shared_ptr<inertial::InertialHessian> fromInertialHessian;
+			shared_ptr<inertial::InertialHessian> toInertialHessian;
 		};
 	}
 }

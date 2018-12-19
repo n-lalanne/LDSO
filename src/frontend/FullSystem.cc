@@ -74,16 +74,15 @@ namespace ldso {
 		}
 	}
 
-	void FullSystem::addActiveFrame(ImageAndExposure *image, int id) {
+	void FullSystem::addActiveFrame(ImageAndExposure *image, vector<ldso::inertial::ImuData> imuData)
+	{
 		if (isLost)
 			return;
 		unique_lock<mutex> lock(trackMutex);
 
-		LOG(INFO) << "*** taking frame " << id << " ***" << endl;
-
 		// create frame and frame hessian
 		shared_ptr<Frame> frame(new Frame(image->timestamp));
-		frame->CreateFH(frame);
+		frame->CreateFH(frame, imuData);
 		allFrameHistory.push_back(frame);
 
 		// ==== make images ==== //
@@ -99,6 +98,16 @@ namespace ldso {
 			}
 			else if (coarseInitializer->trackFrame(fh)) {
 				// init succeeded
+
+				for (int i = 0; i < fh->imuDataSinceLastFrame.size(); i++) {
+					imuDataHistory.push_back(fh->imuDataSinceLastFrame[i]);
+				}
+				fh->imuDataSinceLastFrame.clear();
+				for (int i = 0; i < imuDataHistory.size(); i++) {
+					fh->imuDataSinceLastFrame.push_back(imuDataHistory[i]);
+				}
+				imuDataHistory.clear();
+
 				initializeFromInitializer(fh);
 				lock.unlock();
 				deliverTrackedFrame(fh, true);  // create new keyframe
@@ -106,6 +115,10 @@ namespace ldso {
 			}
 			else {
 				// still initializing
+				for (int i = 0; i < fh->imuDataSinceLastFrame.size(); i++) {
+					imuDataHistory.push_back(fh->imuDataSinceLastFrame[i]);
+				}
+				fh->imuDataSinceLastFrame.clear();
 				frame->poseValid = false;
 				frame->ReleaseAll();        // don't need this frame, release all the internal
 			}
@@ -176,7 +189,7 @@ namespace ldso {
 				makeKeyFrame(fh);
 			}
 			else {
-				makeNonKeyFrame(fh);
+				makeNonKeyFrame(fh, false);
 			}
 		}
 		else {
@@ -431,6 +444,15 @@ namespace ldso {
 		// trace new keyframe
 		traceNewCoarse(fh);
 
+		for (int i = 0; i < fh->imuDataSinceLastFrame.size(); i++) {
+			imuDataHistory.push_back(fh->imuDataSinceLastFrame[i]);
+		}
+		fh->imuDataSinceLastFrame.clear();
+		for (int i = 0; i < imuDataHistory.size(); i++) {
+			fh->imuDataSinceLastFrame.push_back(imuDataHistory[i]);
+		}
+		imuDataHistory.clear();
+
 		unique_lock<mutex> lock(mapMutex);
 
 		// == flag frames to be marginalized  == //
@@ -442,11 +464,29 @@ namespace ldso {
 			fh->idx = frames.size();
 			frames.push_back(fh->frame);
 			fh->frame->kfId = fh->frameID = globalMap->NumFrames();
+
+			shared_ptr<inertial::InertialHessian> inertialHessian = shared_ptr<inertial::InertialHessian>(new inertial::InertialHessian());
+
+			fh->toInertialHessian = inertialHessian;
+			inertialHessian->toFrameHessian = fh;
+			inertialHessian->fromFrameHessian = frames[fh->idx - 1]->frameHessian;
+			inertialHessian->fromFrameHessian->fromInertialHessian = inertialHessian;
+
 			LOG(INFO) << "frame " << fh->frame->id << " is key frame: " << fh->frame->kfId << endl;
 		}
 
 		ef->insertFrame(fh, Hcalib->mpCH);
 		setPrecalcValues();
+
+		//Debug
+		for (auto fht : frames)
+		{
+			LOG(INFO) << "KFID: " << fht->kfId << endl;
+			if (fht->frameHessian && fht->frameHessian->fromInertialHessian)
+				LOG(INFO) << "FROM: " << fht->frameHessian->fromInertialHessian->fromFrameHessian->frame->kfId << " -> " << fht->frameHessian->fromInertialHessian->toFrameHessian->frame->kfId << endl;
+			if (fht->frameHessian && fht->frameHessian->toInertialHessian)
+				LOG(INFO) << "TO: " << fht->frameHessian->toInertialHessian->fromFrameHessian->frame->kfId << " -> " << fht->frameHessian->toInertialHessian->toFrameHessian->frame->kfId << endl;
+		}
 
 		// =========================== add new residuals for old points =========================
 		LOG(INFO) << "adding new residuals" << endl;
@@ -601,12 +641,21 @@ namespace ldso {
 		LOG(INFO) << "make keyframe done" << endl;
 	}
 
-	void FullSystem::makeNonKeyFrame(shared_ptr<FrameHessian> &fh) {
+	void FullSystem::makeNonKeyFrame(shared_ptr<FrameHessian> &fh, bool fast) {
 		{
 			unique_lock<mutex> crlock(shellPoseMutex);
 			fh->setEvalPT_scaled(fh->frame->getPose(), fh->frame->aff_g2l);
 		}
-		traceNewCoarse(fh);
+
+		if (!fast)
+		{
+			traceNewCoarse(fh);
+		}
+
+		for (int i = 0; i < fh->imuDataSinceLastFrame.size(); i++) {
+			imuDataHistory.push_back(fh->imuDataSinceLastFrame[i]);
+		}
+
 		fh->frame->ReleaseAll();  // no longer needs it
 	}
 
@@ -1885,18 +1934,14 @@ namespace ldso {
 			if (unmappedTrackedFrames.size() > 0) {
 				// if there are other frames to track, do that first.
 				lock.unlock();
-				makeNonKeyFrame(fh);
+				makeNonKeyFrame(fh, false);
 				lock.lock();
 
 				if (needToKetchupMapping && unmappedTrackedFrames.size() > 0) {
 					auto fr = unmappedTrackedFrames.front();
 					shared_ptr<FrameHessian> fh = fr->frameHessian;
 					unmappedTrackedFrames.pop_front();
-					{
-						unique_lock<mutex> crlock(shellPoseMutex);
-						fh->setEvalPT_scaled(fr->getPose(), fh->frame->aff_g2l);
-					}
-					fr->ReleaseAll();
+					makeNonKeyFrame(fh, true);
 				}
 			}
 			else {
@@ -1905,7 +1950,7 @@ namespace ldso {
 				if (unmappedTrackedFramesNeedKeyFrameIndicator.size() > 0)
 				{
 					unsigned long nextNeedKF = unmappedTrackedFramesNeedKeyFrameIndicator.front();
-					while (fr->id >= nextNeedKF) 
+					while (fr->id >= nextNeedKF)
 					{
 						unmappedTrackedFramesNeedKeyFrameIndicator.pop_front();
 
@@ -1930,7 +1975,7 @@ namespace ldso {
 				}
 				else {
 					lock.unlock();
-					makeNonKeyFrame(fh);
+					makeNonKeyFrame(fh, false);
 					lock.lock();
 				}
 			}
