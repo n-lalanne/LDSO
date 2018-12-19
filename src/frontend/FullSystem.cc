@@ -691,6 +691,22 @@ namespace ldso {
 			}
 		}
 
+		//remove InertialHessian
+		if (frame->frameHessian->fromInertialHessian) {
+			frame->frameHessian->fromInertialHessian->toFrameHessian->toInertialHessian = nullptr;
+			frame->frameHessian->fromInertialHessian->toFrameHessian = nullptr;
+			frame->frameHessian->fromInertialHessian->fromFrameHessian = nullptr;
+			frame->frameHessian->fromInertialHessian = nullptr;
+		}
+
+		if (frame->frameHessian->toInertialHessian) {
+			frame->frameHessian->toInertialHessian->fromFrameHessian->fromInertialHessian = nullptr;
+			frame->frameHessian->toInertialHessian->fromFrameHessian = nullptr;
+			frame->frameHessian->toInertialHessian->toFrameHessian = nullptr;
+			frame->frameHessian->toInertialHessian = nullptr;
+		}
+
+
 		// remove this frame from recorded frames
 		frame->ReleaseAll();    // release all things in this frame
 		deleteOutOrder<shared_ptr<Frame>>
