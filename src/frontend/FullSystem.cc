@@ -54,6 +54,7 @@ namespace ldso {
 			LOG(INFO) << "loop closing is disabled" << endl;
 		}
 
+		Hinertial = shared_ptr<inertial::InertialHessian>(new inertial::InertialHessian());
 
 	}
 
@@ -173,7 +174,7 @@ namespace ldso {
 			}
 
 			for (shared_ptr<OutputWrapper> ow : viewers)
-				ow->publishCamPose(fh->frame, Hcalib->mpCH);
+				ow->publishCamPose(fh->frame, Hcalib->mpCH, Hinertial);
 
 			lock.unlock();
 			LOG(INFO) << "deliver frame " << fh->frame->id << endl;
@@ -465,7 +466,7 @@ namespace ldso {
 			frames.push_back(fh->frame);
 			fh->frame->kfId = fh->frameID = globalMap->NumFrames();
 
-			shared_ptr<inertial::InertialHessian> inertialHessian = shared_ptr<inertial::InertialHessian>(new inertial::InertialHessian());
+			shared_ptr<inertial::InertialFrameHessian> inertialHessian = shared_ptr<inertial::InertialFrameHessian>(new inertial::InertialFrameHessian());
 
 			fh->toInertialHessian = inertialHessian;
 			inertialHessian->toFrameHessian = fh;
@@ -619,7 +620,7 @@ namespace ldso {
 
 		// visualization
 		for (shared_ptr<OutputWrapper> ow : viewers)
-			ow->publishKeyframes(frames, false, Hcalib->mpCH);
+			ow->publishKeyframes(frames, false, Hcalib->mpCH, Hinertial);
 
 		// =========================== Marginalize Frames =========================
 		{
@@ -1497,6 +1498,36 @@ namespace ldso {
 			newFrame->setEvalPT_scaled(newFrame->frame->getPose(), newFrame->frame->aff_g2l);
 		}
 
+		// =============== Visual Inertial - Estimate gravity direction
+
+		Vec3 w_g(0, 0, 1);
+		Vec3 b_g(0, 0, 0);
+
+		for (int n = 0; n < setting_vi_nMeanFilterGravityDirection && n < newFrame->imuDataSinceLastFrame.size(); n++)
+		{
+			inertial::ImuData imu = newFrame->imuDataSinceLastFrame.at(newFrame->imuDataSinceLastFrame.size() - n - 1);
+			b_g += Vec3(imu.ax, imu.ay, imu.az);
+		}
+
+		b_g /= b_g.norm();
+
+		Vec3 axis = b_g.cross(w_g);
+
+		double axis_abs = axis.norm();
+		double theta = acos(b_g.dot(w_g));
+
+		if (abs(axis_abs) < Sophus::Constants<double>::epsilon())
+		{
+			Hinertial->setEvalPT(SO3::exp(Vec3(0, 0, pow(-1, round(sin(theta / 2))))), Vec4());
+		}
+		else
+		{
+			axis /= axis.norm();
+			Hinertial->setEvalPT(SO3::exp(axis*theta), Vec4());
+		}
+
+		// ===============
+
 		initialized = true;
 		globalMap->AddKeyFrame(fr);
 		LOG(INFO) << "Initialized from initializer, points: " << firstFrame->frame->features.size() << endl;
@@ -1695,12 +1726,12 @@ namespace ldso {
 
 				//LOG(INFO) << "fh->step:" << fh->step;
 
-				fh->setState(fh->state_backup + pstepfac.cwiseProduct(fh->step));
+				//fh->setState(fh->state_backup + pstepfac.cwiseProduct(fh->step));
 
-				//Sophus::Vector<double, 6> se3step = (SE3::exp(pstepfac.head<6>().cwiseProduct(fh->step.head<6>()))*SE3::exp(fh->state_backup.head<6>())).log();
-				//Vec10 step = fh->state_backup + pstepfac.cwiseProduct(fh->step);
-				//step.head<6>() = se3step;
-				//fh->setState(step);
+				Sophus::Vector<double, 6> se3step = (SE3::exp(pstepfac.head<6>().cwiseProduct(fh->step.head<6>()))*SE3::exp(fh->state_backup.head<6>())).log();
+				Vec10 step = fh->state_backup + pstepfac.cwiseProduct(fh->step);
+				step.head<6>() = se3step;
+				fh->setState(step);
 
 				sumA += fh->step[6] * fh->step[6];
 				sumB += fh->step[7] * fh->step[7];
@@ -2044,7 +2075,7 @@ namespace ldso {
 		fin.close();
 
 		for (shared_ptr<OutputWrapper> ow : viewers)
-			ow->publishKeyframes(allKFs, false, Hcalib->mpCH);
+			ow->publishKeyframes(allKFs, false, Hcalib->mpCH, Hinertial);
 
 		frames = allKFs;
 		for (auto &kf : allKFs) {

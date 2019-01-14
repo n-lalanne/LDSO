@@ -17,7 +17,7 @@
 namespace ldso {
 
 
-	void KeyFrameDisplay::setFromKF(shared_ptr<FrameHessian> fh, shared_ptr<CalibHessian> HCalib)
+	void KeyFrameDisplay::setFromKF(shared_ptr<FrameHessian> fh, shared_ptr<CalibHessian> HCalib, shared_ptr<inertial::InertialHessian> HInertial)
 	{
 
 		if (fh->frame) {
@@ -69,7 +69,7 @@ namespace ldso {
 		needRefresh = true;
 	}
 
-	void KeyFrameDisplay::setFromF(shared_ptr<Frame> fs, shared_ptr<CalibHessian> HCalib) {
+	void KeyFrameDisplay::setFromF(shared_ptr<Frame> fs, shared_ptr<CalibHessian> HCalib, shared_ptr<inertial::InertialHessian> HInertial) {
 
 		id = fs->id;
 		fx = HCalib->fxl();

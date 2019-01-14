@@ -123,9 +123,9 @@ namespace ldso {
 
 		void close();
 
-		virtual void publishKeyframes(std::vector<shared_ptr<Frame>> &frames, bool final, shared_ptr<CalibHessian> HCalib);
+		virtual void publishKeyframes(std::vector<shared_ptr<Frame>> &frames, bool final, shared_ptr<CalibHessian> HCalib, shared_ptr<inertial::InertialHessian> HInertial);
 
-		virtual void publishCamPose(shared_ptr<Frame> frame, shared_ptr<CalibHessian> HCalib);
+		virtual void publishCamPose(shared_ptr<Frame> frame, shared_ptr<CalibHessian> HCalib, shared_ptr<inertial::InertialHessian> HInertial);
 
 		virtual void setMap(shared_ptr<Map> m) {
 			globalMap = m;

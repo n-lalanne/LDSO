@@ -23,6 +23,7 @@
 
 #include "inertial/ImuData.h"
 #include "inertial/InertialHessian.h"
+#include "inertial/InertialFrameHessian.h"
 
 using namespace std;
 using namespace ldso;
@@ -321,15 +322,22 @@ namespace ldso {
 		bool runMapping = true;
 		bool needToKetchupMapping = false;
 
-		//VI
 
+		// ========================== Visual inertial ==================================== //
+
+	private:
 		vector<ldso::inertial::ImuData> imuDataHistory;
+		shared_ptr<ldso::inertial::InertialHessian> Hinertial = nullptr;
+	public:
+		inline void setImuToCamTransformation(const SE3 &imuToCam)
+		{
+			this->Hinertial->setImuToCamTransformation(imuToCam);
+		}
 
+		// ========================== loop closing ==================================== //
 	public:
 		shared_ptr<Map> globalMap = nullptr;    // global map
 		FeatureDetector detector;   // feature detector
-		// ========================== loop closing ==================================== //
-	public:
 		shared_ptr<ORBVocabulary> vocab = nullptr;  // vocabulary
 		shared_ptr<LoopClosing> loopClosing = nullptr;  // loop closing
 

@@ -129,6 +129,13 @@ namespace ldso {
     bool setting_fastLoopClosing = true;
     bool setting_showLoopClosing = false;
 
+	//==================== Visual Inertial Settings
+	int setting_vi_nMeanFilterGravityDirection = 40;
+
+
+
+	//=======================
+
     void handleKey(char k) {
         char kkk = k;
         switch (kkk) {

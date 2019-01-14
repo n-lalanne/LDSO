@@ -31,7 +31,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Glog REQUIRED)
-find_package(Pangolin REQUIRED)
+#find_package(Pangolin REQUIRED)
 find_package(G2O REQUIRED)
 find_package(DBoW3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
@@ -66,7 +66,7 @@ include_directories(
         ${EIGEN3_INCLUDE_DIR}
         ${OpenCV_INCLUDE_DIR}
         ${GLOG_INCLUDE_DIR}
-        ${Pangolin_INCLUDE_DIRS}
+       # ${Pangolin_INCLUDE_DIRS}
 		${G2O_INCLUDE_DIR}
 		${DBoW3_INCLUDE_DIRS}
 		${Boost_INCLUDE_DIR}
@@ -78,7 +78,7 @@ include_directories(
 set( THIRD_PARTY_LIBS
         ${OpenCV_LIBS}
         ${GLOG_LIBRARY}
-        ${Pangolin_LIBRARIES}
+      #  ${Pangolin_LIBRARIES}
 
 		${G2O_CORE_LIBRARY}
 		${G2O_STUFF_LIBRARY}
