@@ -6,6 +6,7 @@ using namespace std;
 
 #include "NumTypes.h"
 #include "internal/FrameHessian.h"
+#include "inertial/PreIntegration.h"
 
 namespace ldso {
 	namespace internal {
@@ -17,6 +18,7 @@ namespace ldso {
 			shared_ptr<internal::FrameHessian> fromFrameHessian;
 			shared_ptr<internal::FrameHessian> toFrameHessian;
 		private:
+			shared_ptr<inertial::PreIntegration> preIntegration;
 		};
 	}
 }

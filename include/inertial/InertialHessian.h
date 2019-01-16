@@ -39,7 +39,7 @@ namespace ldso {
 
 			EIGEN_STRONG_INLINE const SO3 &get_worldToWorldDSO_PRE() const {
 				//TODO::
-				return R_WD_evalPT;
+				return R_DW_evalPT;
 			}
 
 		private:

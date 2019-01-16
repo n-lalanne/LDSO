@@ -163,9 +163,13 @@ namespace ldso {
 
 	//==================== Visual Inertial Settings
 	extern int setting_vi_nMeanFilterGravityDirection; // the number of messurements to go back for estimating the initial gravity direction
+	
+	extern int setting_vi_nMaxIterationsIIRInitialization; // max iterations for IIR initialization
+	extern double setting_vi_epsilonIIRInitialization; // epsilon for IIR initialization
+	extern double setting_vi_hasMovementThreshold; // threshold for movemed detection
+	extern int setting_vi_hasMovementResetPeriod; // threshold for movemed detection
 
-
-
+	extern bool setting_vi_enable; // enable or disable data fusion inertial
 	//=======================
 
     const int patternNum = 8;

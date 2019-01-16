@@ -1516,15 +1516,21 @@ namespace ldso {
 		double axis_abs = axis.norm();
 		double theta = acos(b_g.dot(w_g));
 
+		SO3 R_wb;
+		SO3 R_cwd = firstToNew.so3();
+		SO3 R_bc = Hinertial->get_CamToImu().so3();
+
 		if (abs(axis_abs) < Sophus::Constants<double>::epsilon())
 		{
-			Hinertial->setEvalPT(SO3::exp(Vec3(0, 0, pow(-1, round(sin(theta / 2))))), Vec4());
+			R_wb = SO3::exp(Vec3(0, 0, pow(-1, round(sin(theta / 2)))));
 		}
 		else
 		{
 			axis /= axis.norm();
-			Hinertial->setEvalPT(SO3::exp(axis*theta), Vec4());
+			R_wb = SO3::exp(axis*theta);
 		}
+
+		Hinertial->setEvalPT((R_wb*R_bc*R_cwd).inverse(), Vec4());
 
 		// ===============
 
