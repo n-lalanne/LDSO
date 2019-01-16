@@ -23,13 +23,17 @@ add_library(ldso
         frontend/CoarseTracker.cc
         frontend/CoarseInitializer.cc
         frontend/FullSystem.cc
-        frontend/DSOViewer.cc
+       # frontend/DSOViewer.cc
         frontend/FeatureDetector.cc
         frontend/FeatureMatcher.cc
         frontend/LoopClosing.cc
         frontend/PixelSelector2.cc
         frontend/Undistort.cc
         frontend/ImageRW_OpenCV.cc
+
+		inertial/InertialFrameHessian.cc
+		inertial/InertialHessian.cc
+		inertial/PreIntegration.cc
 )
 
 target_link_libraries(

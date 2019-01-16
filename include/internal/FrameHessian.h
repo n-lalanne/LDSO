@@ -11,13 +11,14 @@
 #include "internal/FrameFramePrecalc.h"
 #include "inertial/ImuData.h"
 #include "inertial/InertialHessian.h"
+#include "inertial/InertialFrameHessian.h"
 
 using namespace std;
 
 namespace ldso {
 
 	namespace inertial {
-		class InertialHessian;
+		class InertialFrameHessian;
 	}
 
 	namespace internal {
@@ -220,8 +221,8 @@ namespace ldso {
 
 			// Visual Inertial 
 			vector<inertial::ImuData> imuDataSinceLastFrame;
-			shared_ptr<inertial::InertialHessian> fromInertialHessian;
-			shared_ptr<inertial::InertialHessian> toInertialHessian;
+			shared_ptr<inertial::InertialFrameHessian> fromInertialHessian;
+			shared_ptr<inertial::InertialFrameHessian> toInertialHessian;
 		};
 	}
 }

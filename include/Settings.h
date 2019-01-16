@@ -160,6 +160,18 @@ namespace ldso {
     extern bool setting_pause;
     extern int setting_pointSelection;      // 0-DSO's selection. 1-LDSO's selection, 2-Random selection
 
+
+	//==================== Visual Inertial Settings
+	extern int setting_vi_nMeanFilterGravityDirection; // the number of messurements to go back for estimating the initial gravity direction
+	
+	extern int setting_vi_nMaxIterationsIIRInitialization; // max iterations for IIR initialization
+	extern double setting_vi_epsilonIIRInitialization; // epsilon for IIR initialization
+	extern double setting_vi_hasMovementThreshold; // threshold for movemed detection
+	extern int setting_vi_hasMovementResetPeriod; // threshold for movemed detection
+
+	extern bool setting_vi_enable; // enable or disable data fusion inertial
+	//=======================
+
     const int patternNum = 8;
     const int patternPadding = 2;
 
