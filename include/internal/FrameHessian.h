@@ -34,12 +34,7 @@ namespace ldso {
 		public:
 			EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-			FrameHessian(shared_ptr<Frame> frame, vector<ldso::inertial::ImuData> imuData) {
-				this->frame = frame;
-				this->inertialFrameHessian = shared_ptr<ldso::inertial::InertialFrameHessian>(new ldso::inertial::InertialFrameHessian());
-				for (int i = 0; i < imuData.size(); i++)
-					this->inertialFrameHessian->imuDataHistory.push_back(imuData[i]);
-			}
+			FrameHessian(shared_ptr<Frame> frame, vector<ldso::inertial::ImuData> imuData);
 
 			~FrameHessian();
 
