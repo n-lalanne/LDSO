@@ -5,15 +5,36 @@
 using namespace std;
 
 #include "NumTypes.h"
-#include "inertial/InertialUtility.h"
 #include "inertial/ImuData.h"
 
 namespace ldso {
 	namespace inertial {
 		class PreIntegration {
 		public:
+
+			PreIntegration();
+
 			void addImuData(vector<ImuData> imuData);
 			void reEvaluate();
+
+			Vec3 lin_bias_g;
+			Vec3 lin_bias_a;
+
+			Vec3 delta_p_ij;
+			Vec3 delta_v_ij;
+			SO3 delta_R_ij;
+
+			Mat33 d_delta_p_ij_dg;
+			Mat33 d_delta_p_ij_da;
+
+			Mat33 d_delta_v_ij_dg;
+			Mat33 d_delta_v_ij_da;
+
+			Mat33 d_delta_R_ij_dg;
+
+			Mat99 Sigma_ij;
+			Mat66 Sigma_eta;
+			static double delta_t;
 		private:
 			vector<ImuData> imuDataHistory;
 			void reset();
