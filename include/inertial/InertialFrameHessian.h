@@ -5,20 +5,23 @@
 using namespace std;
 
 #include "NumTypes.h"
-#include "internal/FrameHessian.h"
 #include "inertial/PreIntegration.h"
+#include "inertial/InertialFrameFrameHessian.h"
+#include "internal/FrameHessian.h"
 
 namespace ldso {
-	namespace internal {
+	namespace inernal {
 		class FrameHessian;
 	}
 	namespace inertial {
-		class InertialFrameHessian {
+		class InertialFrameFrameHessian;
+		class InertialFrameHessian
+		{
 		public:
-			shared_ptr<internal::FrameHessian> fromFrameHessian;
-			shared_ptr<internal::FrameHessian> toFrameHessian;
-		private:
-			shared_ptr<inertial::PreIntegration> preIntegration;
+			shared_ptr<internal::FrameHessian> fh;
+			vector<inertial::ImuData> imuDataHistory;
+			shared_ptr<inertial::InertialFrameFrameHessian> from;
+			shared_ptr<inertial::InertialFrameFrameHessian> to;
 		};
 	}
 }

@@ -31,7 +31,7 @@ add_library(ldso
         frontend/Undistort.cc
         frontend/ImageRW_OpenCV.cc
 
-		inertial/InertialFrameHessian.cc
+		inertial/InertialFrameFrameHessian.cc
 		inertial/InertialHessian.cc
 		inertial/PreIntegration.cc
 )
