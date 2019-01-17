@@ -88,6 +88,7 @@ namespace ldso {
 
 		// ==== make images ==== //
 		shared_ptr<FrameHessian> fh = frame->frameHessian;
+		fh->inertialFrameHessian->fh = fh;
 		fh->ab_exposure = image->exposure_time;
 		fh->makeImages(image->image, Hcalib->mpCH);
 
@@ -100,12 +101,12 @@ namespace ldso {
 			else if (coarseInitializer->trackFrame(fh)) {
 				// init succeeded
 
-				for (int i = 0; i < fh->imuDataSinceLastFrame.size(); i++) {
-					imuDataHistory.push_back(fh->imuDataSinceLastFrame[i]);
+				for (int i = 0; i < fh->inertialFrameHessian->imuDataHistory.size(); i++) {
+					imuDataHistory.push_back(fh->inertialFrameHessian->imuDataHistory[i]);
 				}
-				fh->imuDataSinceLastFrame.clear();
+				fh->inertialFrameHessian->imuDataHistory.clear();
 				for (int i = 0; i < imuDataHistory.size(); i++) {
-					fh->imuDataSinceLastFrame.push_back(imuDataHistory[i]);
+					fh->inertialFrameHessian->imuDataHistory.push_back(imuDataHistory[i]);
 				}
 				imuDataHistory.clear();
 
@@ -116,10 +117,10 @@ namespace ldso {
 			}
 			else {
 				// still initializing
-				for (int i = 0; i < fh->imuDataSinceLastFrame.size(); i++) {
-					imuDataHistory.push_back(fh->imuDataSinceLastFrame[i]);
+				for (int i = 0; i < fh->inertialFrameHessian->imuDataHistory.size(); i++) {
+					imuDataHistory.push_back(fh->inertialFrameHessian->imuDataHistory[i]);
 				}
-				fh->imuDataSinceLastFrame.clear();
+				fh->inertialFrameHessian->imuDataHistory.clear();
 				frame->poseValid = false;
 				frame->ReleaseAll();        // don't need this frame, release all the internal
 			}
@@ -445,14 +446,7 @@ namespace ldso {
 		// trace new keyframe
 		traceNewCoarse(fh);
 
-		for (int i = 0; i < fh->imuDataSinceLastFrame.size(); i++) {
-			imuDataHistory.push_back(fh->imuDataSinceLastFrame[i]);
-		}
-		fh->imuDataSinceLastFrame.clear();
-		for (int i = 0; i < imuDataHistory.size(); i++) {
-			fh->imuDataSinceLastFrame.push_back(imuDataHistory[i]);
-		}
-		imuDataHistory.clear();
+		nextKeyFramePreIntegration->addImuData(fh->inertialFrameHessian->imuDataHistory);
 
 		unique_lock<mutex> lock(mapMutex);
 
@@ -466,12 +460,13 @@ namespace ldso {
 			frames.push_back(fh->frame);
 			fh->frame->kfId = fh->frameID = globalMap->NumFrames();
 
-			shared_ptr<inertial::InertialFrameHessian> inertialHessian = shared_ptr<inertial::InertialFrameHessian>(new inertial::InertialFrameHessian());
+			shared_ptr<inertial::InertialFrameFrameHessian> inertialHessian = shared_ptr<inertial::InertialFrameFrameHessian>(new inertial::InertialFrameFrameHessian(nextKeyFramePreIntegration));
+			nextKeyFramePreIntegration = shared_ptr<inertial::PreIntegration>(new inertial::PreIntegration());
 
-			fh->toInertialHessian = inertialHessian;
-			inertialHessian->toFrameHessian = fh;
-			inertialHessian->fromFrameHessian = frames[fh->idx - 1]->frameHessian;
-			inertialHessian->fromFrameHessian->fromInertialHessian = inertialHessian;
+			fh->inertialFrameHessian->to = inertialHessian;
+			inertialHessian->to = fh->inertialFrameHessian;
+			inertialHessian->from = frames[fh->idx - 1]->frameHessian->inertialFrameHessian;
+			inertialHessian->from->from = inertialHessian;
 
 			LOG(INFO) << "frame " << fh->frame->id << " is key frame: " << fh->frame->kfId << endl;
 		}
@@ -483,10 +478,10 @@ namespace ldso {
 		for (auto fht : frames)
 		{
 			LOG(INFO) << "KFID: " << fht->kfId << endl;
-			if (fht->frameHessian && fht->frameHessian->fromInertialHessian)
-				LOG(INFO) << "FROM: " << fht->frameHessian->fromInertialHessian->fromFrameHessian->frame->kfId << " -> " << fht->frameHessian->fromInertialHessian->toFrameHessian->frame->kfId << endl;
-			if (fht->frameHessian && fht->frameHessian->toInertialHessian)
-				LOG(INFO) << "TO: " << fht->frameHessian->toInertialHessian->fromFrameHessian->frame->kfId << " -> " << fht->frameHessian->toInertialHessian->toFrameHessian->frame->kfId << endl;
+			if (fht->frameHessian && fht->frameHessian->inertialFrameHessian && fht->frameHessian->inertialFrameHessian->from)
+				LOG(INFO) << "FROM: " << fht->frameHessian->inertialFrameHessian->from->from->fh->frame->kfId << " -> " << fht->frameHessian->inertialFrameHessian->from->to->fh->frame->kfId << endl;
+			if (fht->frameHessian &&  fht->frameHessian->inertialFrameHessian && fht->frameHessian->inertialFrameHessian->to)
+				LOG(INFO) << "TO: " << fht->frameHessian->inertialFrameHessian->to->from->fh->frame->kfId << " -> " << fht->frameHessian->inertialFrameHessian->to->to->fh->frame->kfId << endl;
 		}
 
 		// =========================== add new residuals for old points =========================
@@ -648,13 +643,11 @@ namespace ldso {
 			fh->setEvalPT_scaled(fh->frame->getPose(), fh->frame->aff_g2l);
 		}
 
+		nextKeyFramePreIntegration->addImuData(fh->inertialFrameHessian->imuDataHistory);
+
 		if (!fast)
 		{
 			traceNewCoarse(fh);
-		}
-
-		for (int i = 0; i < fh->imuDataSinceLastFrame.size(); i++) {
-			imuDataHistory.push_back(fh->imuDataSinceLastFrame[i]);
 		}
 
 		fh->frame->ReleaseAll();  // no longer needs it
@@ -691,22 +684,6 @@ namespace ldso {
 				}
 			}
 		}
-
-		//remove InertialHessian
-		if (frame->frameHessian->fromInertialHessian) {
-			frame->frameHessian->fromInertialHessian->toFrameHessian->toInertialHessian = nullptr;
-			frame->frameHessian->fromInertialHessian->toFrameHessian = nullptr;
-			frame->frameHessian->fromInertialHessian->fromFrameHessian = nullptr;
-			frame->frameHessian->fromInertialHessian = nullptr;
-		}
-
-		if (frame->frameHessian->toInertialHessian) {
-			frame->frameHessian->toInertialHessian->fromFrameHessian->fromInertialHessian = nullptr;
-			frame->frameHessian->toInertialHessian->fromFrameHessian = nullptr;
-			frame->frameHessian->toInertialHessian->toFrameHessian = nullptr;
-			frame->frameHessian->toInertialHessian = nullptr;
-		}
-
 
 		// remove this frame from recorded frames
 		frame->ReleaseAll();    // release all things in this frame
@@ -1498,14 +1475,20 @@ namespace ldso {
 			newFrame->setEvalPT_scaled(newFrame->frame->getPose(), newFrame->frame->aff_g2l);
 		}
 
+
+		// =============== Visual Inertial 
+		nextKeyFramePreIntegration = shared_ptr<inertial::PreIntegration>(new inertial::PreIntegration());
+
 		// =============== Visual Inertial - Estimate gravity direction
 
 		Vec3 w_g(0, 0, 1);
 		Vec3 b_g(0, 0, 0);
 
-		for (int n = 0; n < setting_vi_nMeanFilterGravityDirection && n < newFrame->imuDataSinceLastFrame.size(); n++)
+		int historySize = newFrame->inertialFrameHessian->imuDataHistory.size();
+
+		for (int n = 0; n < setting_vi_nMeanFilterGravityDirection && n < historySize; n++)
 		{
-			inertial::ImuData imu = newFrame->imuDataSinceLastFrame.at(newFrame->imuDataSinceLastFrame.size() - n - 1);
+			inertial::ImuData imu = newFrame->inertialFrameHessian->imuDataHistory[historySize - n - 1];
 			b_g += Vec3(imu.ax, imu.ay, imu.az);
 		}
 

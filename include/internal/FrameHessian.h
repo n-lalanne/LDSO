@@ -16,11 +16,9 @@
 using namespace std;
 
 namespace ldso {
-
 	namespace inertial {
 		class InertialFrameHessian;
 	}
-
 	namespace internal {
 
 		class PointHessian;
@@ -38,8 +36,9 @@ namespace ldso {
 
 			FrameHessian(shared_ptr<Frame> frame, vector<ldso::inertial::ImuData> imuData) {
 				this->frame = frame;
+				this->inertialFrameHessian = shared_ptr<ldso::inertial::InertialFrameHessian>(new ldso::inertial::InertialFrameHessian());
 				for (int i = 0; i < imuData.size(); i++)
-					this->imuDataSinceLastFrame.push_back(imuData[i]);
+					this->inertialFrameHessian->imuDataHistory.push_back(imuData[i]);
 			}
 
 			~FrameHessian();
@@ -220,9 +219,7 @@ namespace ldso {
 			int idx = 0;                         // the id in the sliding window, used for constructing matricies
 
 			// Visual Inertial 
-			vector<inertial::ImuData> imuDataSinceLastFrame;
-			shared_ptr<inertial::InertialFrameHessian> fromInertialHessian;
-			shared_ptr<inertial::InertialFrameHessian> toInertialHessian;
+			shared_ptr<ldso::inertial::InertialFrameHessian> inertialFrameHessian = nullptr;
 		};
 	}
 }

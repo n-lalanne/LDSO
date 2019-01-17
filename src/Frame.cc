@@ -23,14 +23,27 @@ namespace ldso {
 
 	void Frame::ReleaseFH() {
 		if (frameHessian) {
-			if (frameHessian->fromInertialHessian) {
-				frameHessian->fromInertialHessian->fromFrameHessian = nullptr;
-				frameHessian->fromInertialHessian = nullptr;
+
+			//remove InertialHessian
+			if (frameHessian->inertialFrameHessian &&  frameHessian->inertialFrameHessian->from) {
+				frameHessian->inertialFrameHessian->from->to->to = nullptr;
+				frameHessian->inertialFrameHessian->from->to = nullptr;
+				frameHessian->inertialFrameHessian->from->from = nullptr;
+				frameHessian->inertialFrameHessian->from = nullptr;
 			}
-			if (frameHessian->toInertialHessian) {
-				frameHessian->toInertialHessian->toFrameHessian = nullptr;
-				frameHessian->toInertialHessian = nullptr;
+
+			if (frameHessian->inertialFrameHessian && frameHessian->inertialFrameHessian->to) {
+				frameHessian->inertialFrameHessian->to->from->from = nullptr;
+				frameHessian->inertialFrameHessian->to->from = nullptr;
+				frameHessian->inertialFrameHessian->to->to = nullptr;
+				frameHessian->inertialFrameHessian->to = nullptr;
 			}
+
+			if (frameHessian->inertialFrameHessian) {
+				frameHessian->inertialFrameHessian->fh = nullptr;
+				frameHessian->inertialFrameHessian = nullptr;
+			}
+
 			frameHessian->frame = nullptr;
 			frameHessian = nullptr;
 		}

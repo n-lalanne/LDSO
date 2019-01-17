@@ -24,6 +24,7 @@
 #include "inertial/ImuData.h"
 #include "inertial/InertialHessian.h"
 #include "inertial/InertialFrameHessian.h"
+#include "inertial/PreIntegration.h"
 
 using namespace std;
 using namespace ldso;
@@ -328,6 +329,7 @@ namespace ldso {
 	private:
 		vector<ldso::inertial::ImuData> imuDataHistory;
 		shared_ptr<ldso::inertial::InertialHessian> Hinertial = nullptr;
+		shared_ptr<ldso::inertial::PreIntegration> nextKeyFramePreIntegration = nullptr;
 	public:
 		inline void setImuToCamTransformation(const SE3 &imuToCam)
 		{
