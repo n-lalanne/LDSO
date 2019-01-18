@@ -8,6 +8,8 @@ namespace ldso {
 	namespace inertial {
 
 		double PreIntegration::delta_t = 1.0 / 200.0;
+		Mat66 PreIntegration::Sigma_eta;
+		Mat66 PreIntegration::Sigma_bd;
 
 		PreIntegration::PreIntegration()
 		{
@@ -42,6 +44,8 @@ namespace ldso {
 
 			A.setZero();
 			B.setZero();
+
+			dt_ij += delta_t;
 
 			Vec3 omega_corr(data.gx, data.gy, data.gz);
 			Vec3 alpha_corr(data.ax, data.ay, data.az);
@@ -100,6 +104,8 @@ namespace ldso {
 			d_delta_R_ij_dg.setZero();
 
 			Sigma_ij.setZero();
+
+			dt_ij = 0;
 		}
 	}
 }

@@ -1501,7 +1501,7 @@ namespace ldso {
 
 		SO3 R_wb;
 		SO3 R_cwd = firstToNew.so3();
-		SO3 R_bc = Hinertial->get_CamToImu().so3();
+		SO3 R_bc = Hinertial->T_BC.so3();
 
 		if (abs(axis_abs) < Sophus::Constants<double>::epsilon())
 		{
@@ -1513,7 +1513,7 @@ namespace ldso {
 			R_wb = SO3::exp(axis*theta);
 		}
 
-		Hinertial->setEvalPT((R_wb*R_bc*R_cwd).inverse(), Vec4());
+		Hinertial->setEvalPT((R_wb*R_bc*R_cwd).inverse());
 
 		// ===============
 

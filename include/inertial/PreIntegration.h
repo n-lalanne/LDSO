@@ -32,8 +32,12 @@ namespace ldso {
 
 			Mat33 d_delta_R_ij_dg;
 
+			double dt_ij;
+
 			Mat99 Sigma_ij;
-			Mat66 Sigma_eta;
+
+			static Mat66 Sigma_eta;
+			static Mat66 Sigma_bd;
 			static double delta_t;
 		private:
 			vector<ImuData> imuDataHistory;

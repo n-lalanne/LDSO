@@ -15,39 +15,36 @@ namespace ldso {
 				this->T_BC = imuToCam.inverse();
 			}
 
-			inline void setEvalPT(const SO3 &worldDSOToWorld_evalPT, const Vec4 &state) {
+			inline void setEvalPT(const SO3 &worldDSOToWorld_evalPT) {
 				this->R_DW_evalPT = worldDSOToWorld_evalPT;
 				this->R_WD_evalPT = worldDSOToWorld_evalPT.inverse();
+
+				this->R_WD_PRE = R_WD_evalPT;
+				this->R_DW_PRE = R_DW_evalPT;
 			};
 
-			EIGEN_STRONG_INLINE const SE3 &get_imuToCam() const {
-				return T_CB;
+			inline void setState(Vec4 x_new) {
+				x = x_new;
+				this->R_DW_PRE = SO3::exp(x.block<3, 1>(0, 0))* R_DW_evalPT;
+				this->R_WD_PRE = this->R_DW_PRE.inverse();
+				scale_PRE = scale_evalPT + x[4];
 			}
 
-			EIGEN_STRONG_INLINE const SE3 &get_CamToImu() const {
-				return T_BC;
-			}
-
-			EIGEN_STRONG_INLINE const SO3 &get_worldDSOToWorld_evalPT() const {
-				return R_WD_evalPT;
-			}
-
-			EIGEN_STRONG_INLINE const SO3 &get_worldDSOToWorld_PRE() const {
-				//TODO::
-				return R_WD_evalPT;
-			}
-
-			EIGEN_STRONG_INLINE const SO3 &get_worldToWorldDSO_PRE() const {
-				//TODO::
-				return R_DW_evalPT;
-			}
-
-		private:
 			SE3 T_BC;
 			SE3 T_CB;
-			double scale_evalPT;
+
+			double scale_evalPT = 1;
+			double scale_PRE;
+
 			SO3 R_DW_evalPT;
 			SO3 R_WD_evalPT;
+
+			SO3 R_WD_PRE;
+			SO3 R_DW_PRE;
+
+			//0-2: w, 3: s
+			Vec4 x;
+		private:
 		};
 	}
 }

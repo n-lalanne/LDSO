@@ -32,6 +32,7 @@ add_library(ldso
         frontend/ImageRW_OpenCV.cc
 
 		inertial/InertialFrameFrameHessian.cc
+		inertial/InertialFrameHessian.cc
 		inertial/InertialHessian.cc
 		inertial/PreIntegration.cc
 )

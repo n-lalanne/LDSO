@@ -170,6 +170,9 @@ namespace ldso {
 	extern int setting_vi_hasMovementResetPeriod; // threshold for movemed detection
 
 	extern bool setting_vi_enable; // enable or disable data fusion inertial
+	
+	extern double setting_vi_lambda_rot; // lambda for rotation weight
+	extern double setting_vi_lambda_trans; // lambda for rotation weight
 	//=======================
 
     const int patternNum = 8;

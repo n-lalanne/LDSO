@@ -139,6 +139,9 @@ namespace ldso {
 
 	bool setting_vi_enable = true;
 
+	double setting_vi_lambda_rot = 1.0; // lambda for rotation weight
+	double setting_vi_lambda_trans = 1.0; // lambda for rotation weight
+
 	//=======================
 
 	void handleKey(char k) {
