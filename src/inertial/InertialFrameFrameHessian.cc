@@ -12,12 +12,7 @@ namespace ldso {
 
 		void InertialFrameFrameHessian::linearize()
 		{
-			//0-2: r_R, 3-5: r_v, 6-8: r_p, 9-11: r_bg, 12-14: r_ba
-			Vec15 r;
-
-			Mat1515 J_from;
-			Mat1515 J_to;
-
+			r.setZero();
 			J_from.setZero();
 			J_to.setZero();
 
@@ -25,7 +20,7 @@ namespace ldso {
 
 			Vec3 d_dRij_ = preIntegration->d_delta_R_ij_dg * from->db_g_PRE;
 			Vec3 dvij_g = to->W_v_B_PRE - from->W_v_B_PRE - g * preIntegration->dt_ij;
-			Vec3 dpij_g = to->T_WB_PRE.translation() - from->T_BW_PRE.translation() - (from->W_v_B_PRE - 0.5 * g * preIntegration->dt_ij)*preIntegration->dt_ij;
+			Vec3 dpij_g = to->T_WB_PRE.translation() - from->T_WB_PRE.translation() - (from->W_v_B_PRE - 0.5 * g * preIntegration->dt_ij)*preIntegration->dt_ij;
 
 			SO3 dR_tilde_and_bias_inv = (preIntegration->delta_R_ij*SO3::exp(d_dRij_)).inverse();
 
@@ -44,7 +39,7 @@ namespace ldso {
 			//dr_R_dw_i
 			J_from.block<3, 3>(0, 3) = dR_dwi;
 			//dr_R_dbg_i
-			J_from.block<3, 3>(0, 9) = Jr_inv * SO3::exp(-r.block<3, 1>(0, 0)).matrix()*InertialUtility::Jr(d_dRij_)*preIntegration->d_delta_R_ij_dg;
+			J_from.block<3, 3>(0, 9) = -Jr_inv * SO3::exp(r.block<3, 1>(0, 0)).matrix()*InertialUtility::Jr(d_dRij_)*preIntegration->d_delta_R_ij_dg;
 
 
 			//dr_v_dw_i
@@ -69,10 +64,10 @@ namespace ldso {
 			J_from.block<3, 3>(6, 12) = -preIntegration->d_delta_p_ij_da;
 
 			//dr_bg_dbg_i
-			J_from.block<3, 3>(6, 9) = Mat33::Identity();
+			J_from.block<3, 3>(9, 9) = Mat33::Identity();
 
 			//dr_ba_dba_i
-			J_from.block<3, 3>(6, 12) = Mat33::Identity();
+			J_from.block<3, 3>(12, 12) = Mat33::Identity();
 
 
 			//dr_R_dw_j
@@ -91,10 +86,10 @@ namespace ldso {
 
 
 			//dr_bg_dbg_j
-			J_to.block<3, 3>(6, 9) = -Mat33::Identity();
+			J_to.block<3, 3>(9, 9) = -Mat33::Identity();
 
 			//dr_ba_dba_j
-			J_to.block<3, 3>(6, 12) = -Mat33::Identity();
+			J_to.block<3, 3>(12, 12) = -Mat33::Identity();
 
 			Mat1515 W;
 

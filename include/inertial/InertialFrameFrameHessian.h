@@ -32,6 +32,13 @@ namespace ldso {
 			// b: go to this frame, j
 			Vec15 b_to;
 
+			//0-2: r_R, 3-5: r_v, 6-8: r_p, 9-11: r_bg, 12-14: r_ba
+			Vec15 r;
+
+			//0-2: r_R, 3-5: r_v, 6-8: r_p, 9-11: r_bg, 12-14: r_ba
+			Mat1515 J_from;
+			Mat1515 J_to;
+
 		private:
 			shared_ptr<inertial::PreIntegration> preIntegration;
 		};

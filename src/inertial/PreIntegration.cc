@@ -93,7 +93,7 @@ namespace ldso {
 		{
 			delta_p_ij.setZero();
 			delta_v_ij.setZero();
-			delta_R_ij.setQuaternion(Eigen::Quaternion<double>(1, 0, 0, 0));
+			delta_R_ij.setQuaternion(Eigen::Quaternion<double>::Identity());
 
 			d_delta_p_ij_dg.setZero();
 			d_delta_p_ij_da.setZero();

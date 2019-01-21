@@ -74,5 +74,18 @@ namespace ldso {
 			H += J.transpose() * W.asDiagonal() * J;
 			b += - J.transpose() * W.asDiagonal() * r;
 		}
+
+		void InertialFrameHessian::setState(Vec15 x_new)
+		{
+			x = x_new;
+
+			W_v_B_PRE = W_v_B_EvalPT + x.block<3,1>(6,0);
+
+			T_WB_PRE = SE3::exp(x.block<6, 1>(0, 0)) * T_WB_EvalPT;
+			T_BW_PRE = T_WB_PRE.inverse();
+
+			db_g_PRE = db_g_EvalPT + x.block<3, 1>(9, 0);
+			db_a_PRE = db_a_EvalPT + x.block<3, 1>(12, 0);
+		}
 	}
 }

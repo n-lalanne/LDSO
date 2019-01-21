@@ -20,6 +20,8 @@ namespace ldso {
 		public:
 			void linearize(shared_ptr<InertialHessian> inertialHessian);
 
+			void setState(Vec15 x_new);
+
 			Mat2525 H;
 			Vec25 b;
 
@@ -50,8 +52,6 @@ namespace ldso {
 			// 0-2: u, 3-5: w, 6-8: v, 9-11: b_g, 12-14: b_a
 			Vec15 x;
 
-			Vec3 lin_b_g;
-			Vec3 lin_b_a;
 		};
 	}
 }
