@@ -9,6 +9,9 @@ namespace ldso {
 		{
 			H.setZero();
 			b.setZero();
+			J.setZero();
+			r.setZero();
+
 			if (from)
 			{
 				from->linearize();
@@ -22,11 +25,11 @@ namespace ldso {
 				b.block<15, 1>(10, 0) += to->b_to;
 			}
 
-			Vec3 dr_p_ds = -exp(inertialHessian->scale_PRE)*(inertialHessian->R_WD_PRE*(fh->PRE_camToWorld *inertialHessian->T_CB.translation()));
+			Vec3 dr_p_ds = -exp(inertialHessian->scale_PRE)*(inertialHessian->R_WD_PRE*(fh->PRE_camToWorld * inertialHessian->T_CB.translation()));
 			Mat33 dr_p_da1 = exp(inertialHessian->scale_PRE)*inertialHessian->R_WD_PRE.matrix();
 			Mat33 dr_p_dq = dr_p_da1 * fh->PRE_camToWorld.so3().matrix();
 
-			Vec6 r;
+			
 			r.block<3,1>(0,0) = (T_WB_PRE.so3()*inertialHessian->T_BC.so3()*fh->PRE_worldToCam.so3()*inertialHessian->R_DW_PRE).log();
 			r.block<3, 1>(3, 0) = T_WB_PRE.translation() + dr_p_ds;
 
@@ -34,8 +37,6 @@ namespace ldso {
 
 			Mat33 dr_R_dphi = inertialHessian->R_WD_PRE.matrix() * fh->PRE_camToWorld.so3().matrix();
 			Mat33 dr_R_dw = dr_R_dphi * (inertialHessian->T_CB.so3() * T_BW_PRE.so3()).matrix();
-
-			Mat625 J;
 
 			//dr_R_dq
 			J.block<3, 3>(0, 0) = Mat33::Zero();

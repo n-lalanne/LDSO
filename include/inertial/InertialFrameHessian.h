@@ -51,6 +51,8 @@ namespace ldso {
 
 			// 0-2: u, 3-5: w, 6-8: v, 9-11: b_g, 12-14: b_a
 			Vec15 x;
+			Vec6 r;
+			Mat625 J;
 
 		};
 	}
