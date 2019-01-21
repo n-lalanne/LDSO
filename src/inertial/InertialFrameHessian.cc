@@ -38,16 +38,16 @@ namespace ldso {
 			Mat33 dr_R_dphi = inertialHessian->R_WD_PRE.matrix() * fh->PRE_camToWorld.so3().matrix();
 			Mat33 dr_R_dw = dr_R_dphi * (inertialHessian->T_CB.so3() * T_BW_PRE.so3()).matrix();
 
-			//dr_R_dq
-			J.block<3, 3>(0, 0) = Mat33::Zero();
+			////dr_R_dq
+			//J.block<3, 3>(0, 0) = Mat33::Zero();
 			//dr_R_dphi
 			J.block<3, 3>(0, 3) = JrInv * dr_R_dphi;
 			//dr_R_da
 			J.block<3, 3>(0, 6) = JrInv * inertialHessian->R_WD_PRE.matrix();
-			//dr_R_ds
-			J.block<3, 1>(0, 9) = Vec3::Zero();
-			//dr_R_du
-			J.block<3, 3>(0, 10) = Mat33::Zero();
+			////dr_R_ds
+			//J.block<3, 1>(0, 9) = Vec3::Zero();
+			////dr_R_du
+			//J.block<3, 3>(0, 10) = Mat33::Zero();
 			//dr_R_dw
 			J.block<3, 3>(0, 13) = JrInv * dr_R_dw; 
 
@@ -66,7 +66,7 @@ namespace ldso {
 			J.block<3, 3>(3, 13) = -SO3::hat(T_WB_PRE.translation()); 
 
 
-			J.block<9, 3>(22, 0) = Mat93::Zero();
+			//J.block<9, 3>(22, 0) = Mat93::Zero();
 
 			Vec6 W;
 			W.block<3, 1>(0, 0) = Vec3(setting_vi_lambda_rot, setting_vi_lambda_rot, setting_vi_lambda_rot);

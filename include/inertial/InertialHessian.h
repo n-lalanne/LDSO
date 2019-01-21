@@ -27,7 +27,7 @@ namespace ldso {
 				x = x_new;
 				this->R_DW_PRE = SO3::exp(x.block<3, 1>(0, 0))* R_DW_evalPT;
 				this->R_WD_PRE = this->R_DW_PRE.inverse();
-				scale_PRE = scale_evalPT + x[4];
+				scale_PRE = scale_evalPT + x[3];
 			}
 
 			SE3 T_BC;
