@@ -20,7 +20,7 @@ namespace ldso {
 
 			Vec3 d_dRij_ = preIntegration->d_delta_R_ij_dg * from->db_g_PRE;
 			Vec3 dvij_g = to->W_v_B_PRE - from->W_v_B_PRE - g * preIntegration->dt_ij;
-			Vec3 dpij_g = to->T_WB_PRE.translation() - from->T_WB_PRE.translation() - (from->W_v_B_PRE - 0.5 * g * preIntegration->dt_ij)*preIntegration->dt_ij;
+			Vec3 dpij_g = to->T_WB_PRE.translation() - from->T_WB_PRE.translation() - (from->W_v_B_PRE + 0.5 * g * preIntegration->dt_ij)*preIntegration->dt_ij;
 
 			SO3 dR_tilde_and_bias_inv = (preIntegration->delta_R_ij*SO3::exp(d_dRij_)).inverse();
 
