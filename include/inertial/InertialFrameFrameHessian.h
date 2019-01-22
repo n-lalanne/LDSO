@@ -5,7 +5,6 @@
 using namespace std;
 
 #include "NumTypes.h"
-#include "internal/FrameHessian.h"
 #include "inertial/InertialFrameHessian.h"
 #include "inertial/PreIntegration.h"
 

@@ -41,3 +41,6 @@ target_link_libraries(
         ldso
         ${THIRD_PARTY_LIBS}
 )
+if (MSVC)
+cotire(ldso)
+endif (MSVC)

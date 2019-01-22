@@ -30,7 +30,7 @@ namespace ldso {
 			Mat33 dr_p_dq = dr_p_da1 * fh->PRE_camToWorld.so3().matrix();
 
 			
-			r.block<3,1>(0,0) = (T_WB_PRE.so3()*inertialHessian->T_BC.so3()*fh->PRE_worldToCam.so3()*inertialHessian->R_DW_PRE).log();
+			r.block<3, 1>(0,0) = (T_WB_PRE.so3()*inertialHessian->T_BC.so3()*fh->PRE_worldToCam.so3()*inertialHessian->R_DW_PRE).log();
 			r.block<3, 1>(3, 0) = T_WB_PRE.translation() + dr_p_ds;
 
 			Mat33 JrInv = InertialUtility::JrInv(r.block<3, 1>(0, 0));

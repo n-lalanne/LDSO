@@ -23,6 +23,10 @@ endif()
 # costum modules
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+IF(MSVC)
+	include(cotire)
+ENDIF()
+
 # TODO: change this to not output outside build dir
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
