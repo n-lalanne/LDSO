@@ -53,6 +53,7 @@ namespace ldso {
 			Vec15 x;
 			Vec6 r;
 			Mat625 J;
+			double energy;
 
 		};
 	}

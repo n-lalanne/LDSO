@@ -38,6 +38,8 @@ namespace ldso {
 			Mat1515 J_from;
 			Mat1515 J_to;
 
+			double energy;
+
 		private:
 			shared_ptr<inertial::PreIntegration> preIntegration;
 		};

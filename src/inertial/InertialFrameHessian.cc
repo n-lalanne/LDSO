@@ -74,6 +74,8 @@ namespace ldso {
 
 			H += J.transpose() * W.asDiagonal() * J;
 			b += - J.transpose() * W.asDiagonal() * r;
+
+			energy = r.transpose() * W.asDiagonal() * r;
 		}
 
 		void InertialFrameHessian::setState(Vec15 x_new)

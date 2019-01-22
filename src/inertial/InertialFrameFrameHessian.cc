@@ -25,7 +25,7 @@ namespace ldso {
 			SO3 dR_tilde_and_bias_inv = (preIntegration->delta_R_ij*SO3::exp(d_dRij_)).inverse();
 
 			r.block<3, 1>(0, 0) = (dR_tilde_and_bias_inv * from->T_BW_PRE.so3()*to->T_WB_PRE.so3()).log();
-			r.block<3, 1>(3, 0) = from->T_BW_PRE.so3()*dvij_g-(preIntegration->delta_v_ij + preIntegration->d_delta_v_ij_dg * from->db_g_PRE + preIntegration->d_delta_v_ij_da*from->db_a_PRE);
+			r.block<3, 1>(3, 0) = from->T_BW_PRE.so3()*dvij_g - (preIntegration->delta_v_ij + preIntegration->d_delta_v_ij_dg * from->db_g_PRE + preIntegration->d_delta_v_ij_da*from->db_a_PRE);
 			r.block<3, 1>(6, 0) = from->T_BW_PRE.so3() * dpij_g - (preIntegration->delta_p_ij + preIntegration->d_delta_p_ij_dg * from->db_g_PRE + preIntegration->d_delta_p_ij_da*from->db_a_PRE);
 			r.block<3, 1>(9, 0) = from->db_g_PRE - to->db_g_PRE;
 			r.block<3, 1>(12, 0) = from->db_a_PRE - to->db_a_PRE;
@@ -101,6 +101,8 @@ namespace ldso {
 
 			b_to = -J_to.transpose() * W * r;
 			b_from = -J_to.transpose() * W * r;
+
+			energy = r.transpose() * W * r;
 		}
 	}
 }

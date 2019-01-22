@@ -1553,6 +1553,15 @@ namespace ldso {
 		ef->setDeltaF(Hcalib->mpCH);
 	}
 
+	double FullSystem::linearizeInertial()
+	{
+		double energy = 0;
+		for (auto &fr : frames) {
+			fr->frameHessian->inertialFrameHessian->linearize(Hinertial);
+			energy += fr->frameHessian->inertialFrameHessian->energy;
+		}
+	}
+
 	void FullSystem::solveSystem(int iteration, double lambda) {
 		ef->lastNullspaces_forLogging = getNullspaces(
 			ef->lastNullspaces_pose,
@@ -1933,7 +1942,7 @@ namespace ldso {
 	void FullSystem::printOptRes(const Vec3 &res, double resL, double resM, double resPrior, double LExact, float a,
 		float b) {
 		char buff[256] = {};
-		sprintf(buff, "A(%f)=(AV %.3f). Num: A(%'d) + M(%'d); ab %f %f!\n",
+		sprintf(buff, "A(%f)=(AV %.3f). Num: A(%d) + M(%d); ab %f %f!\n",
 			res[0],
 			sqrtf((float)(res[0] / (patternNum * ef->resInA))),
 			ef->resInA,

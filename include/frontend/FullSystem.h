@@ -330,6 +330,9 @@ namespace ldso {
 		vector<ldso::inertial::ImuData> imuDataHistory;
 		shared_ptr<ldso::inertial::InertialHessian> Hinertial = nullptr;
 		shared_ptr<ldso::inertial::PreIntegration> nextKeyFramePreIntegration = nullptr;
+
+		double linearizeInertial();
+
 	public:
 		inline void setImuToCamTransformation(const SE3 &imuToCam)
 		{
