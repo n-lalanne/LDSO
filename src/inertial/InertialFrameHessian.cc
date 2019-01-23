@@ -11,10 +11,12 @@ namespace ldso {
 			b.setZero();
 			J.setZero();
 			r.setZero();
+			energy = 0;
 
 			if (from)
 			{
 				from->linearize();
+				energy += from->energy;
 				H.block<15, 15>(10, 10) += from->H_from;
 				b.block<15, 1>(10, 0) += from->b_from;
 			}
@@ -75,7 +77,7 @@ namespace ldso {
 			H += J.transpose() * W.asDiagonal() * J;
 			b += -J.transpose() * W.asDiagonal() * r;
 
-			energy = r.transpose() * W.asDiagonal() * r;
+			energy += r.transpose() * W.asDiagonal() * r;
 		}
 
 		void InertialFrameHessian::setState(Vec15 x_new)
@@ -90,11 +92,7 @@ namespace ldso {
 			db_g_PRE = db_g_EvalPT + x.block<3, 1>(9, 0);
 			db_a_PRE = db_a_EvalPT + x.block<3, 1>(12, 0);
 
-			std::cout << "InertialFrameHessian STATS: " << fh->frameID << std::endl;
-			std::cout << "v: " << std::endl << W_v_B_PRE << std::endl;
-			std::cout << "bg: " << std::endl << db_g_PRE << std::endl;
-			std::cout << "ba: " << std::endl << db_a_PRE << std::endl;
-			std::cout << "T_WB: " << std::endl << T_WB_PRE.matrix() << std::endl;
+			LOG(INFO) << "Inertial Frame Hessian (" << fh->frameID << ") u: [" << T_WB_PRE.log().transpose().segment<3>(0) << "]; omega: [" << T_WB_PRE.log().transpose().segment<3>(3) << "]; v: ["  << W_v_B_PRE.transpose() << "]; bg: [" << db_g_PRE.transpose() << "]; ba: [" << db_a_PRE.transpose() << "];";
 		}
 	}
 }

@@ -2,6 +2,9 @@
 #include "internal/OptimizationBackend/EnergyFunctional.h"
 #include "internal/GlobalFuncs.h"
 
+#include <glog/logging.h>
+
+
 namespace ldso {
 
 	namespace internal {
@@ -754,7 +757,7 @@ namespace ldso {
 				Hbb_I.block<4, 4>(0, 0) += f->inertialFrameHessian->H.block<4, 4>(6, 6);
 				Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * index) += f->inertialFrameHessian->H.block<15, 15>(10, 10);
 				Hbb_I.block<4, 15>(0, 4 + 15 * index) += f->inertialFrameHessian->H.block<4, 15>(6, 10);
-				Hbb_I.block<15, 4>(4 + 15 * index, 0) += f->inertialFrameHessian->H.block<15, 4>(10, 4);
+				Hbb_I.block<15, 4>(4 + 15 * index, 0) += f->inertialFrameHessian->H.block<15, 4>(10, 6);
 
 				bb_I.block<4, 1>(0, 0) += f->inertialFrameHessian->b.block<4, 1>(6, 0);
 				bb_I.block<15, 1>(4 + 15 * index, 0) += f->inertialFrameHessian->b.block<15, 1>(10, 0);
@@ -763,6 +766,10 @@ namespace ldso {
 				Hab_I.block<6, 15>(CPARS + 8 * index, 4 + 15 * index) += f->inertialFrameHessian->H.block<6, 15>(0, 10);
 				index++;
 			}
+
+			/*std::cout << std::endl << Haa_I << std::endl;
+			std::cout << std::endl << Hbb_I << std::endl;
+			std::cout << std::endl << Hab_I << std::endl;*/
 
 			Hbb_I_inv = Hbb_I.inverse();
 
@@ -777,13 +784,32 @@ namespace ldso {
 		{
 			int index = 0;
 
+			LOG(INFO) << "Delta energy: " << 2 * x.transpose() * (b_I - b_I_sc) + x.transpose() * (H_I - H_I_sc)* x;
+
 			VecX xb = Hbb_I_inv * (bb_I + Hab_I.transpose() * G * x);
+
+			MatXX H = MatXX::Zero(CPARS + 4 + (8 + 15) * nFrames, CPARS + 4 + (8 + 15) * nFrames);
+			VecX b = VecX::Zero(CPARS + 4 + (8 + 15) * nFrames);
+			VecX xa = VecX::Zero(CPARS + 4 + (8 + 15) * nFrames);
+
+			xa.block(0, 0, CPARS + 8 * nFrames, 1) = -G * x;
+			xa.block(CPARS + 8 * nFrames, 0, 4 + 15 * nFrames, 1) = xb;
+
+			b.block(0, 0, CPARS + 8 * nFrames, 1) = ba_I;
+			b.block(CPARS + 8 * nFrames, 0, 4 + 15 * nFrames, 1) = bb_I;
+
+			H.block(0, 0, CPARS + 8 * nFrames, CPARS + 8 * nFrames) = Haa_I;
+			H.block(CPARS + 8 * nFrames, CPARS + 8 * nFrames, 4 + 15 * nFrames, 4 + 15 * nFrames) = Hbb_I;
+			H.block(0, CPARS + 8 * nFrames, CPARS + 8 * nFrames, 4 + 15 * nFrames) = Hab_I;
+			H.block(CPARS + 8 * nFrames, 0, 4 + 15 * nFrames, CPARS + 8 * nFrames) = Hab_I.transpose();
+
+			LOG(INFO) << "Delta energy: " << 2 * xa.transpose() * b + xa.transpose() * H * xa;
 
 			HInertial->x_step = xb.block<4, 1>(0, 0);
 
 			for (auto f : frames)
 			{
-				f->inertialFrameHessian->x_step = xb.block<15, 1>(8 * index, 0);
+				f->inertialFrameHessian->x_step = xb.block<15, 1>(4 + 8 * index, 0);
 				index++;
 			}
 		}

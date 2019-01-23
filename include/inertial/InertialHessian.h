@@ -23,16 +23,8 @@ namespace ldso {
 				this->R_DW_PRE = R_DW_evalPT;
 			};
 
-			inline void setState(Vec4 x_new) {
-				x = x_new;
-				this->R_DW_PRE = SO3::exp(x.block<3, 1>(0, 0))* R_DW_evalPT;
-				this->R_WD_PRE = this->R_DW_PRE.inverse();
-				scale_PRE = scale_evalPT + x[3];
-
-				std::cout << "InertialHessian STATS: " << std::endl;
-				std::cout << "R_WD_PRE: " << std::endl << R_WD_PRE.matrix() << std::endl;
-				std::cout << "s: " << std::endl << scale_PRE << std::endl;
-			}
+			void setState(Vec4 x_new);
+			
 
 			SE3 T_BC;
 			SE3 T_CB;

@@ -16,7 +16,7 @@ namespace ldso {
 			J_from.setZero();
 			J_to.setZero();
 
-			Vec3 g(0, 0, 1);
+			Vec3 g(0, 0, -9.81);
 
 			Vec3 d_dRij_ = preIntegration->d_delta_R_ij_dg * from->db_g_PRE;
 			Vec3 dvij_g = to->W_v_B_PRE - from->W_v_B_PRE - g * preIntegration->dt_ij;
@@ -33,8 +33,6 @@ namespace ldso {
 			Mat33 Jr_inv = InertialUtility::JrInv(r.block<3, 1>(0, 0));
 
 			Mat33 dR_dwi = -Jr_inv * to->T_BW_PRE.so3().matrix();
-
-
 
 			//dr_R_dw_i
 			J_from.block<3, 3>(0, 3) = dR_dwi;
@@ -92,6 +90,7 @@ namespace ldso {
 			J_to.block<3, 3>(12, 12) = -Mat33::Identity();
 
 			Mat1515 W;
+			W.setZero();
 
 			W.block<9, 9>(0, 0) = preIntegration->Sigma_ij;
 			W.block<6, 6>(9, 9) = preIntegration->Sigma_bd * preIntegration->dt_ij;
@@ -102,7 +101,7 @@ namespace ldso {
 			b_to = -J_to.transpose() * W * r;
 			b_from = -J_to.transpose() * W * r;
 
-			energy = r.transpose() * W * r;
+ 			energy = r.transpose() * W * r;
 		}
 	}
 }
