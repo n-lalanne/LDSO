@@ -815,6 +815,7 @@ namespace ldso {
 		LOG(INFO) << "active residuals: " << activeResiduals.size() << endl;
 
 		Vec3 lastEnergy = linearizeAll(false);
+		double lastInertialEnergy = linearizeInertial();
 		double lastEnergyL = calcLEnergy();
 		double lastEnergyM = calcMEnergy();
 
@@ -826,7 +827,7 @@ namespace ldso {
 			applyRes_Reductor(true, 0, activeResiduals.size(), 0, 0);
 
 		printOptRes(lastEnergy, lastEnergyL, lastEnergyM, 0, 0, frames.back()->frameHessian->aff_g2l().a,
-			frames.back()->frameHessian->aff_g2l().b);
+			frames.back()->frameHessian->aff_g2l().b, lastInertialEnergy);
 
 		double lambda = 1e-1;
 		float stepsize = 1;
@@ -861,11 +862,12 @@ namespace ldso {
 
 			// eval new energy!
 			Vec3 newEnergy = linearizeAll(false);
+			double newInertialEnergy = linearizeInertial();
 			double newEnergyL = calcLEnergy();
 			double newEnergyM = calcMEnergy();
 
 			printOptRes(newEnergy, newEnergyL, newEnergyM, 0, 0, frames.back()->frameHessian->aff_g2l().a,
-				frames.back()->frameHessian->aff_g2l().b);
+				frames.back()->frameHessian->aff_g2l().b, newInertialEnergy);
 
 			// control the lambda in LM
 			if (setting_forceAceptStep || (newEnergy[0] + newEnergy[1] + newEnergyL + newEnergyM <
@@ -908,6 +910,7 @@ namespace ldso {
 		setPrecalcValues();
 
 		lastEnergy = linearizeAll(true);    // fix all the linearizations
+		lastInertialEnergy = linearizeInertial();
 
 		if (!std::isfinite((double)lastEnergy[0]) || !std::isfinite((double)lastEnergy[1]) ||
 			!std::isfinite((double)lastEnergy[2])) {
@@ -1515,6 +1518,21 @@ namespace ldso {
 
 		Hinertial->setEvalPT((R_wb*R_bc*R_cwd).inverse());
 
+		firstFrame->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
+		firstFrame->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
+		firstFrame->inertialFrameHessian->T_BW_EvalPT = Hinertial->T_BC * firstFrame->worldToCam_evalPT * SE3(Hinertial->R_DW_evalPT, Vec3::Zero());
+		firstFrame->inertialFrameHessian->T_WB_EvalPT = firstFrame->inertialFrameHessian->T_BW_EvalPT.inverse();
+		firstFrame->inertialFrameHessian->W_v_B_EvalPT = Vec3::Zero();
+		firstFrame->inertialFrameHessian->setState(Vec15::Zero());
+
+
+		newFrame->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
+		newFrame->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
+		newFrame->inertialFrameHessian->T_BW_EvalPT = Hinertial->T_BC * newFrame->worldToCam_evalPT * SE3(Hinertial->R_DW_evalPT, Vec3::Zero());
+		newFrame->inertialFrameHessian->T_WB_EvalPT = newFrame->inertialFrameHessian->T_BW_EvalPT.inverse();
+		newFrame->inertialFrameHessian->W_v_B_EvalPT = Vec3::Zero();
+		newFrame->inertialFrameHessian->setState(Vec15::Zero());
+
 		// ===============
 
 		initialized = true;
@@ -1560,6 +1578,7 @@ namespace ldso {
 			fr->frameHessian->inertialFrameHessian->linearize(Hinertial);
 			energy += fr->frameHessian->inertialFrameHessian->energy;
 		}
+		return energy;
 	}
 
 	void FullSystem::solveSystem(int iteration, double lambda) {
@@ -1568,7 +1587,7 @@ namespace ldso {
 			ef->lastNullspaces_scale,
 			ef->lastNullspaces_affA,
 			ef->lastNullspaces_affB);
-		ef->solveSystemF(iteration, lambda, Hcalib->mpCH);
+		ef->solveSystemF(iteration, lambda, Hcalib->mpCH, Hinertial);
 	}
 
 	Vec3 FullSystem::linearizeAll(bool fixLinearization) {
@@ -1719,6 +1738,12 @@ namespace ldso {
 		}
 		else {
 			Hcalib->mpCH->setValue(Hcalib->mpCH->value_backup + stepfacC * Hcalib->mpCH->step);
+
+			Vec4 stepInertial;
+			stepInertial.block<3, 1>(0, 0) = (SO3::exp(Hinertial->x_step.block<3, 1>(0, 0))*SO3::exp(Hinertial->x.block<3, 1>(0, 0))).log();
+			stepInertial.block<1, 1>(3, 0) = Hinertial->x_step.block<1, 1>(3, 0) + Hinertial->x.block<1, 1>(3, 0);
+			Hinertial->setState(stepInertial);
+
 			for (auto &fr : frames) {
 				auto fh = fr->frameHessian;
 
@@ -1730,6 +1755,11 @@ namespace ldso {
 				Vec10 step = fh->state_backup + pstepfac.cwiseProduct(fh->step);
 				step.head<6>() = se3step;
 				fh->setState(step);
+
+				Vec15 stepFrameInertial;
+				stepFrameInertial.block<6, 1>(0, 0) = (SE3::exp(fh->inertialFrameHessian->x_step.block<6, 1>(0, 0))*SE3::exp(fh->inertialFrameHessian->x.block<6, 1>(0, 0))).log();
+				stepFrameInertial.block<9, 1>(6, 0) = fh->inertialFrameHessian->x_step.block<9, 1>(6, 0) + fh->inertialFrameHessian->x.block<9, 1>(6, 0);
+				fh->inertialFrameHessian->setState(stepFrameInertial);
 
 				sumA += fh->step[6] * fh->step[6];
 				sumB += fh->step[7] * fh->step[7];
@@ -1940,15 +1970,17 @@ namespace ldso {
 	}
 
 	void FullSystem::printOptRes(const Vec3 &res, double resL, double resM, double resPrior, double LExact, float a,
-		float b) {
+		float b, double resInertial) {
 		char buff[256] = {};
-		sprintf(buff, "A(%f)=(AV %.3f). Num: A(%d) + M(%d); ab %f %f!\n",
+		sprintf(buff, "A(%f)=(AV %.3f). Num: A(%d) + M(%d); ab %f %f; Inertial: %f (%f)!\n",
 			res[0],
 			sqrtf((float)(res[0] / (patternNum * ef->resInA))),
 			ef->resInA,
 			ef->resInM,
 			a,
-			b
+			b,
+			resInertial,
+			sqrtf(resInertial / ef->nFrames)
 		);
 		LOG(INFO) << string(buff) << endl;
 	}

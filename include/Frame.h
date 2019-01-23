@@ -126,7 +126,7 @@ namespace ldso {
         // poses
         // access them by getPose and getPoseOpti function
         mutex poseMutex;            // need to lock this pose since we have multiple threads reading and writing them
-        SE3 Tcw;           // pose from world to camera, estimated by DSO (nobody wants to touch DSO's backend except Jakob)
+        SE3 Tcw = SE3(Eigen::Quaterniond::Identity(), Vec3::Zero());;           // pose from world to camera, estimated by DSO (nobody wants to touch DSO's backend except Jakob)
         Sim3 TcwOpti;     // pose from world to camera optimized by global pose graph (with scale)
 
     public:

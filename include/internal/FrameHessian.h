@@ -186,7 +186,7 @@ namespace ldso {
 			Vec6 nullspaces_scale = Vec6::Zero();
 
 			// variable info.
-			SE3 worldToCam_evalPT;  // Tcw (in ORB-SLAM's framework)
+			SE3 worldToCam_evalPT = SE3(Eigen::Quaterniond::Identity(), Vec3::Zero());  // Tcw (in ORB-SLAM's framework)
 
 			// state variable，[0-5] is se3, 6-7 is light param a,b
 			Vec10 state;        // [0-5: worldToCam-leftEps. 6-7: a,b]

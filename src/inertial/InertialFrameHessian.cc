@@ -29,8 +29,8 @@ namespace ldso {
 			Mat33 dr_p_da1 = exp(inertialHessian->scale_PRE)*inertialHessian->R_WD_PRE.matrix();
 			Mat33 dr_p_dq = dr_p_da1 * fh->PRE_camToWorld.so3().matrix();
 
-			
-			r.block<3, 1>(0,0) = (T_WB_PRE.so3()*inertialHessian->T_BC.so3()*fh->PRE_worldToCam.so3()*inertialHessian->R_DW_PRE).log();
+
+			r.block<3, 1>(0, 0) = (T_WB_PRE.so3()*inertialHessian->T_BC.so3()*fh->PRE_worldToCam.so3()*inertialHessian->R_DW_PRE).log();
 			r.block<3, 1>(3, 0) = T_WB_PRE.translation() + dr_p_ds;
 
 			Mat33 JrInv = InertialUtility::JrInv(r.block<3, 1>(0, 0));
@@ -49,7 +49,7 @@ namespace ldso {
 			////dr_R_du
 			//J.block<3, 3>(0, 10) = Mat33::Zero();
 			//dr_R_dw
-			J.block<3, 3>(0, 13) = JrInv * dr_R_dw; 
+			J.block<3, 3>(0, 13) = JrInv * dr_R_dw;
 
 
 			//dr_p_dq
@@ -63,7 +63,7 @@ namespace ldso {
 			//dr_p_du
 			J.block<3, 3>(3, 10) = Mat33::Identity();
 			//dr_p_dw
-			J.block<3, 3>(3, 13) = -SO3::hat(T_WB_PRE.translation()); 
+			J.block<3, 3>(3, 13) = -SO3::hat(T_WB_PRE.translation());
 
 
 			//J.block<9, 3>(22, 0) = Mat93::Zero();
@@ -73,7 +73,7 @@ namespace ldso {
 			W.block<3, 1>(3, 0) = Vec3(setting_vi_lambda_trans, setting_vi_lambda_trans, setting_vi_lambda_trans);
 
 			H += J.transpose() * W.asDiagonal() * J;
-			b += - J.transpose() * W.asDiagonal() * r;
+			b += -J.transpose() * W.asDiagonal() * r;
 
 			energy = r.transpose() * W.asDiagonal() * r;
 		}
@@ -82,13 +82,19 @@ namespace ldso {
 		{
 			x = x_new;
 
-			W_v_B_PRE = W_v_B_EvalPT + x.block<3,1>(6,0);
+			W_v_B_PRE = W_v_B_EvalPT + x.block<3, 1>(6, 0);
 
 			T_WB_PRE = SE3::exp(x.block<6, 1>(0, 0)) * T_WB_EvalPT;
 			T_BW_PRE = T_WB_PRE.inverse();
 
 			db_g_PRE = db_g_EvalPT + x.block<3, 1>(9, 0);
 			db_a_PRE = db_a_EvalPT + x.block<3, 1>(12, 0);
+
+			std::cout << "InertialFrameHessian STATS: " << fh->frameID << std::endl;
+			std::cout << "v: " << std::endl << W_v_B_PRE << std::endl;
+			std::cout << "bg: " << std::endl << db_g_PRE << std::endl;
+			std::cout << "ba: " << std::endl << db_a_PRE << std::endl;
+			std::cout << "T_WB: " << std::endl << T_WB_PRE.matrix() << std::endl;
 		}
 	}
 }

@@ -149,8 +149,8 @@ namespace ldso {
 				inc *= extrapFac;
 
 				Vec8 incScaled = inc;
-				incScaled.segment<3>(0) *= SCALE_XI_ROT;
-				incScaled.segment<3>(3) *= SCALE_XI_TRANS;
+				incScaled.segment<3>(0) *= SCALE_XI_TRANS;
+				incScaled.segment<3>(3) *= SCALE_XI_ROT;
 				incScaled.segment<1>(6) *= SCALE_A;
 				incScaled.segment<1>(7) *= SCALE_B;
 
@@ -658,16 +658,16 @@ namespace ldso {
 		H_out = acc.H.topLeftCorner<8, 8>().cast<double>() * (1.0f / n);
 		b_out = acc.H.topRightCorner<8, 1>().cast<double>() * (1.0f / n);
 
-		H_out.block<8, 3>(0, 0) *= SCALE_XI_ROT;
-		H_out.block<8, 3>(0, 3) *= SCALE_XI_TRANS;
+		H_out.block<8, 3>(0, 0) *= SCALE_XI_TRANS;
+		H_out.block<8, 3>(0, 3) *= SCALE_XI_ROT;
 		H_out.block<8, 1>(0, 6) *= SCALE_A;
 		H_out.block<8, 1>(0, 7) *= SCALE_B;
-		H_out.block<3, 8>(0, 0) *= SCALE_XI_ROT;
-		H_out.block<3, 8>(3, 0) *= SCALE_XI_TRANS;
+		H_out.block<3, 8>(0, 0) *= SCALE_XI_TRANS;
+		H_out.block<3, 8>(3, 0) *= SCALE_XI_ROT;
 		H_out.block<1, 8>(6, 0) *= SCALE_A;
 		H_out.block<1, 8>(7, 0) *= SCALE_B;
-		b_out.segment<3>(0) *= SCALE_XI_ROT;
-		b_out.segment<3>(3) *= SCALE_XI_TRANS;
+		b_out.segment<3>(0) *= SCALE_XI_TRANS;
+		b_out.segment<3>(3) *= SCALE_XI_ROT;
 		b_out.segment<1>(6) *= SCALE_A;
 		b_out.segment<1>(7) *= SCALE_B;
 	}
