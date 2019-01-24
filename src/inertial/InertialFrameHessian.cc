@@ -71,8 +71,8 @@ namespace ldso {
 			//J.block<9, 3>(22, 0) = Mat93::Zero();
 
 			Vec6 W;
-			W.block<3, 1>(0, 0) = Vec3(setting_vi_lambda_rot, setting_vi_lambda_rot, setting_vi_lambda_rot);
-			W.block<3, 1>(3, 0) = Vec3(setting_vi_lambda_trans, setting_vi_lambda_trans, setting_vi_lambda_trans);
+			W.block<3, 1>(0, 0) = setting_vi_lambda_overall * Vec3(setting_vi_lambda_rot, setting_vi_lambda_rot, setting_vi_lambda_rot);
+			W.block<3, 1>(3, 0) = setting_vi_lambda_overall * Vec3(setting_vi_lambda_trans, setting_vi_lambda_trans, setting_vi_lambda_trans);
 
 			H += J.transpose() * W.asDiagonal() * J;
 			b += -J.transpose() * W.asDiagonal() * r;
@@ -92,7 +92,7 @@ namespace ldso {
 			db_g_PRE = db_g_EvalPT + x.block<3, 1>(9, 0);
 			db_a_PRE = db_a_EvalPT + x.block<3, 1>(12, 0);
 
-			LOG(INFO) << "Inertial Frame Hessian (" << fh->frameID << ") u: [" << T_WB_PRE.log().transpose().segment<3>(0) << "]; omega: [" << T_WB_PRE.log().transpose().segment<3>(3) << "]; v: ["  << W_v_B_PRE.transpose() << "]; bg: [" << db_g_PRE.transpose() << "]; ba: [" << db_a_PRE.transpose() << "];";
+			LOG(INFO) << "Inertial Frame Hessian (" << fh->frameID << ") u: [" << T_WB_PRE.log().transpose().segment<3>(0).format(setting_vi_format) << "]; omega: [" << T_WB_PRE.log().transpose().segment<3>(3).format(setting_vi_format) << "]; v: [" << W_v_B_PRE.transpose().format(setting_vi_format) << "]; bg: [" << db_g_PRE.transpose().format(setting_vi_format) << "]; ba: [" << db_a_PRE.transpose().format(setting_vi_format) << "];";
 		}
 	}
 }

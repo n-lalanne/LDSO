@@ -139,8 +139,12 @@ namespace ldso {
 
 	bool setting_vi_enable = true;
 
-	double setting_vi_lambda_rot = 1e6; // lambda for rotation weight
-	double setting_vi_lambda_trans = 1e4; // lambda for rotation weight
+	double setting_vi_lambda_rot = 1e-8; // lambda for rotation weight
+	double setting_vi_lambda_trans = 5e-9; // lambda for translation weight
+
+	double setting_vi_lambda_overall = 1e14;
+
+	Eigen::IOFormat setting_vi_format(3, Eigen::DontAlignCols, "\t", " ", "", "", "", "");
 
 	//=======================
 

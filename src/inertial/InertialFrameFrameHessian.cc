@@ -92,16 +92,16 @@ namespace ldso {
 			Mat1515 W;
 			W.setZero();
 
-			W.block<9, 9>(0, 0) = preIntegration->Sigma_ij;
-			W.block<6, 6>(9, 9) = preIntegration->Sigma_bd * preIntegration->dt_ij;
+			W.block<9, 9>(0, 0) = setting_vi_lambda_overall * preIntegration->Sigma_ij;
+			W.block<6, 6>(9, 9) = setting_vi_lambda_overall * preIntegration->Sigma_bd * preIntegration->dt_ij;
 
 			H_to = J_to.transpose() * W * J_to;
 			H_from = J_from.transpose() * W * J_from;
 
 			b_to = -J_to.transpose() * W * r;
-			b_from = -J_to.transpose() * W * r;
+			b_from = -J_from.transpose() * W * r;
 
- 			energy = r.transpose() * W * r;
+			energy = r.transpose() * W * r;
 		}
 	}
 }

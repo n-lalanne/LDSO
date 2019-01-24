@@ -258,8 +258,7 @@ namespace ldso {
 			VecX ba_I = VecX::Zero(CPARS);
 			VecX bb_I = VecX::Zero(0);
 
-			MatXX G = MatXX::Zero(CPARS, CPARS);
-			Vec8 g;
+			Mat2525 S = Mat2525::Zero();
 
 			void combineInertialHessians();
 			void resubstituteInertial(VecX x, shared_ptr<inertial::InertialHessian> HInertial);

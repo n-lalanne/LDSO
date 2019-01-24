@@ -1574,10 +1574,14 @@ namespace ldso {
 	double FullSystem::linearizeInertial()
 	{
 		double energy = 0;
+		double energyInertialOnly = 0;
 		for (auto &fr : frames) {
 			fr->frameHessian->inertialFrameHessian->linearize(Hinertial);
 			energy += fr->frameHessian->inertialFrameHessian->energy;
+			if (fr->frameHessian->inertialFrameHessian->from)
+				energyInertialOnly += fr->frameHessian->inertialFrameHessian->from->energy;
 		}
+		LOG(INFO) << "Energy Inertial: " << energy << " (" << energyInertialOnly << ")";
 		return energy;
 	}
 
