@@ -23,14 +23,14 @@ namespace ldso {
     const int SOLVER_ORTHOGONALIZE_X_LATER = 2048;
 
     // constants to scale the parameters in optimization
-    const float SCALE_IDEPTH = 1.0f;       // scales internal value to idepth.
-    const float SCALE_XI_ROT = 1.0f;       //
-    const float SCALE_XI_TRANS = 0.5f;     //
-    const float SCALE_F = 50.0f;
-    const float SCALE_C = 50.0f;
-    const float SCALE_W = 1.0f;
-    const float SCALE_A = 10.0f;           //
-    const float SCALE_B = 1000.0f;         //
+	const float SCALE_IDEPTH = 1.0f; //1.0f;       // scales internal value to idepth.
+	const float SCALE_XI_ROT = 1.0f; //1.0f;       //
+	const float SCALE_XI_TRANS = 1.0f; //0.5f;     //
+	const float SCALE_F = 1.0f; //50.0f;
+	const float SCALE_C = 1.0f; //50.0f;
+	const float SCALE_W = 1.0f; //1.0f;
+	const float SCALE_A = 1.0f; //10.0f;           //
+	const float SCALE_B = 1.0f; //1000.0f;         //
 
     // inverse version
     const float SCALE_IDEPTH_INVERSE = (1.0f / SCALE_IDEPTH);

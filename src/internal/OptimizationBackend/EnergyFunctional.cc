@@ -740,6 +740,7 @@ namespace ldso {
 
 		void EnergyFunctional::combineInertialHessians()
 		{
+#define CPARS 0
 			Hab_I = MatXX::Zero(CPARS + 8 * nFrames, 4 + 15 * nFrames);
 			Haa_I = MatXX::Zero(CPARS + 8 * nFrames, CPARS + 8 * nFrames);
 			Hbb_I = MatXX::Zero(4 + 15 * nFrames, 4 + 15 * nFrames);
@@ -765,26 +766,75 @@ namespace ldso {
 				Hab_I.block<6, 4>(CPARS + 8 * index, 0) += f->inertialFrameHessian->H.block<6, 4>(0, 6);
 				Hab_I.block<6, 15>(CPARS + 8 * index, 4 + 15 * index) += f->inertialFrameHessian->H.block<6, 15>(0, 10);
 				index++;
+
+				//std::cout << std::endl << f->inertialFrameHessian->H << std::endl;
+				//std::cout << std::endl << f->inertialFrameHessian->b << std::endl;
 			}
 
 			/*std::cout << std::endl << Haa_I << std::endl;
 			std::cout << std::endl << Hbb_I << std::endl;
 			std::cout << std::endl << Hab_I << std::endl;*/
 
-			Hbb_I_inv = Hbb_I.inverse();
+			std::cout << "det(Hbb_I): " << Hbb_I.determinant() << std::endl;
+
+			Hbb_I_inv = (Hbb_I + VecX::Constant(Hbb_I.cols(), 0.0000001).asDiagonal().toDenseMatrix()).inverse();
 
 			H_I = G * Haa_I * G;
 			H_I_sc = G * Hab_I * Hbb_I_inv * Hab_I.transpose() * G;
 
-			b_I = -G * ba_I;
-			b_I_sc = -G * Hab_I * Hbb_I_inv * bb_I;
+			b_I = G * ba_I;
+			b_I_sc = G * Hab_I * Hbb_I_inv * bb_I;
+
+			MatXX H;
+			VecX b;
+			VecX SVecI;
+
+			H = Haa_I - Hab_I * Hbb_I_inv * Hab_I.transpose();
+			b = ba_I - Hab_I * Hbb_I_inv * bb_I;
+
+			SVecI = (H.diagonal().cwiseAbs() + VecX::Constant(H.cols(), 10)).cwiseSqrt().cwiseInverse();
+			VecX x1 = SVecI.asDiagonal()*((SVecI.asDiagonal()*H*SVecI.asDiagonal()).ldlt().solve(SVecI.asDiagonal()*b));
+
+			std::cout << std::endl << (SVecI.asDiagonal()*H*SVecI.asDiagonal()).eigenvalues() << std::endl;
+
+
+			H = MatXX::Zero(CPARS + 4 + (8 + 15) * nFrames, CPARS + 4 + (8 + 15) * nFrames);
+			b = VecX::Zero(CPARS + 4 + (8 + 15) * nFrames);
+
+			b.block(0, 0, CPARS + 8 * nFrames, 1) = ba_I;
+			b.block(CPARS + 8 * nFrames, 0, 4 + 15 * nFrames, 1) = bb_I;
+
+			H.block(0, 0, CPARS + 8 * nFrames, CPARS + 8 * nFrames) = Haa_I;
+			H.block(CPARS + 8 * nFrames, CPARS + 8 * nFrames, 4 + 15 * nFrames, 4 + 15 * nFrames) = Hbb_I;
+			H.block(0, CPARS + 8 * nFrames, CPARS + 8 * nFrames, 4 + 15 * nFrames) = Hab_I;
+			H.block(CPARS + 8 * nFrames, 0, 4 + 15 * nFrames, CPARS + 8 * nFrames) = Hab_I.transpose();
+
+			//std::cout << std::endl << H.eigenvalues() << std::endl;
+			//std::cout << std::endl << (Haa_I - Hab_I * Hbb_I_inv * Hab_I.transpose()).eigenvalues() << std::endl;
+
+			//std::cout << std::endl << b << std::endl;
+
+			SVecI = (H.diagonal().cwiseAbs() + VecX::Constant(H.cols(), 10)).cwiseSqrt().cwiseInverse();
+			VecX x12 = SVecI.asDiagonal()*((SVecI.asDiagonal()*H*SVecI.asDiagonal()).ldlt().solve(SVecI.asDiagonal()*b));
+			std::cout << std::endl << (SVecI.asDiagonal()*H*SVecI.asDiagonal()).eigenvalues() << std::endl;
+			LOG(INFO) << "Delta energy: " << -2 * x12.transpose() * (b)+x12.transpose() * (H)* x12;
+			LOG(INFO) << "Delta energy: " << -2 * x1.transpose() * (b_I - b_I_sc) + x1.transpose() * (H_I - H_I_sc)* x1;
+
+			LOG(INFO) << "det(H-H'): " << (H - H.transpose()).determinant();
+
+			LOG(INFO) << "Hx-b: " << (H * x12 - b).norm();
+			LOG(INFO) << "Hx-b: " << ((Haa_I - Hab_I * Hbb_I_inv * Hab_I.transpose()) * x1 - (ba_I - Hab_I * Hbb_I_inv * bb_I)).norm();
+
+			LOG(INFO) << "x - x11: " << (x12.block(0, 0, CPARS + 8 * nFrames, 1) - x1).norm();
 		}
 
 		void EnergyFunctional::resubstituteInertial(VecX x, shared_ptr<inertial::InertialHessian> HInertial)
 		{
 			int index = 0;
 
-			LOG(INFO) << "Delta energy: " << 2 * x.transpose() * (b_I - b_I_sc) + x.transpose() * (H_I - H_I_sc)* x;
+			LOG(INFO) << "Delta energy: " << -2 * x.transpose() * (b_I - b_I_sc) + x.transpose() * (H_I - H_I_sc)* x;
+			LOG(INFO) << "Delta energy (only b): " << -2 * x.transpose() * (b_I - b_I_sc);
+			LOG(INFO) << "Delta energy (only H): " << x.transpose() * (H_I - H_I_sc) * x;
 
 			VecX xb = Hbb_I_inv * (bb_I + Hab_I.transpose() * G * x);
 
@@ -803,7 +853,9 @@ namespace ldso {
 			H.block(0, CPARS + 8 * nFrames, CPARS + 8 * nFrames, 4 + 15 * nFrames) = Hab_I;
 			H.block(CPARS + 8 * nFrames, 0, 4 + 15 * nFrames, CPARS + 8 * nFrames) = Hab_I.transpose();
 
-			LOG(INFO) << "Delta energy: " << 2 * xa.transpose() * b + xa.transpose() * H * xa;
+			LOG(INFO) << "Delta energy: " << -2 * xa.transpose() * b + xa.transpose() * H * xa;
+			LOG(INFO) << "Delta energy (only b): " << -2 * xa.transpose() * b;
+			LOG(INFO) << "Delta energy (only H): " << xa.transpose() * H * xa;
 
 			HInertial->x_step = xb.block<4, 1>(0, 0);
 
