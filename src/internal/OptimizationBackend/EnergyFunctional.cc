@@ -766,7 +766,10 @@ namespace ldso {
 				index++;
 			}
 
-			Hbb_I_inv = Hbb_I.inverse();
+			if (Hbb_I.determinant() < 1e-5)
+				Hbb_I_inv = (Hbb_I + VecX::Constant(Hbb_I.cols(), 10e-5).asDiagonal().toDenseMatrix()).inverse();
+			else
+				Hbb_I_inv = Hbb_I.inverse();
 
 			H_I = Haa_I;
 			H_I_sc = Hab_I * Hbb_I_inv * Hab_I.transpose();

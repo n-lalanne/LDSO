@@ -29,7 +29,7 @@ namespace ldso {
 			SE3 T_BC;
 			SE3 T_CB;
 
-			double scale_evalPT = 1;
+			double scale_evalPT = 0;
 			double scale_PRE;
 
 			SO3 R_DW_evalPT;
