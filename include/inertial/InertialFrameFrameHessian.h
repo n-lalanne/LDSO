@@ -39,9 +39,9 @@ namespace ldso {
 			Mat1515 J_to;
 
 			double energy;
-
-		private:
 			shared_ptr<inertial::PreIntegration> preIntegration;
+		private:
+			
 		};
 	}
 }

@@ -1,4 +1,4 @@
-using namespace std;
+﻿using namespace std;
 
 #include "inertial/InertialFrameHessian.h"
 #include "inertial/InertialUtility.h"
@@ -19,6 +19,8 @@ namespace ldso {
 				energy += from->energy;
 				H.block<15, 15>(10, 10) += from->H_from;
 				b.block<15, 1>(10, 0) += from->b_from;
+
+				LOG(INFO) << "Inertial Pre-Integration (" << fh->frameID << ") dR: [" << (from->preIntegration->delta_R_ij*SO3::exp(from->preIntegration->d_delta_R_ij_dg* db_g_PRE)).log().transpose().format(setting_vi_format) << "]; dv: [" << (from->preIntegration->delta_v_ij + from->preIntegration->d_delta_v_ij_dg * db_g_PRE + from->preIntegration->d_delta_v_ij_da *db_a_PRE).transpose().format(setting_vi_format) << "]; dp: [" << (from->preIntegration->delta_p_ij + from->preIntegration->d_delta_p_ij_dg * db_g_PRE + from->preIntegration->d_delta_p_ij_da *db_a_PRE).transpose().format(setting_vi_format) << "]; dt: " << from->preIntegration->dt_ij << ";";
 			}
 
 			if (to)

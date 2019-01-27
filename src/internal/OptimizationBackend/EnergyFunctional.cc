@@ -788,7 +788,7 @@ namespace ldso {
 
 			for (auto f : frames)
 			{
-				f->inertialFrameHessian->x_step = -S.block<15, 15>(10, 10) * xb.block<15, 1>(4 + 8 * index, 0);
+				f->inertialFrameHessian->x_step = -S.block<15, 15>(10, 10) * xb.block<15, 1>(4 + 15 * index, 0);
 				index++;
 			}
 		}
