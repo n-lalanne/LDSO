@@ -234,7 +234,7 @@ namespace ldso {
 		void backupState(bool backupLastStep);
 
 		/// load from the backup state
-		void loadSateBackup();
+		void loadStateBackup();
 
 		/// energy computing functions, called in optimization
 		double calcLEnergy();

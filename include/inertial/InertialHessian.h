@@ -39,8 +39,9 @@ namespace ldso {
 			SO3 R_DW_PRE;
 
 			//0-2: w, 3: s
-			Vec4 x;
-			Vec4 x_step;
+			Vec4 x = Vec4::Zero();
+			Vec4 x_step = Vec4::Zero();
+			Vec4 x_backup = Vec4::Zero();
 		private:
 		};
 	}

@@ -50,8 +50,9 @@ namespace ldso {
 			Vec3 db_g_PRE;
 
 			// 0-2: u, 3-5: w, 6-8: v, 9-11: b_g, 12-14: b_a
-			Vec15 x;
-			Vec15 x_step;
+			Vec15 x = Vec15::Zero();
+			Vec15 x_step = Vec15::Zero();
+			Vec15 x_backup = Vec15::Zero();
 
 			Vec6 r;
 			Mat625 J;

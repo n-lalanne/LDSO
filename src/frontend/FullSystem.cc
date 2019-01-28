@@ -214,14 +214,16 @@ namespace ldso {
 
 		shared_ptr<FrameHessian> lastF = coarseTracker->lastRef;
 		CHECK(coarseTracker->lastRef->frame != nullptr);
+		shared_ptr<inertial::PreIntegration> preIntegration = shared_ptr<inertial::PreIntegration>(new inertial::PreIntegration());
+
+		preIntegration->addImuData(fh->inertialFrameHessian->imuDataHistory);
 
 		AffLight aff_last_2_l = AffLight(0, 0);
 
 		// try a lot of pose values and see which is the best
-		std::vector<SE3, Eigen::aligned_allocator<SE3>>
-			lastF_2_fh_tries;
+		std::vector<SE3, Eigen::aligned_allocator<SE3>> lastF_2_fh_tries;
 		if (allFrameHistory.size() == 2)
-			for (unsigned int i = 0; i < lastF_2_fh_tries.size(); i++)  // TODO: maybe wrong, size is obviously zero
+			for (unsigned int i = 0; i < lastF_2_fh_tries.size() + 1; i++)
 				lastF_2_fh_tries.push_back(SE3());  // use identity
 		else {
 
@@ -460,13 +462,13 @@ namespace ldso {
 			frames.push_back(fh->frame);
 			fh->frame->kfId = fh->frameID = globalMap->NumFrames();
 
-			shared_ptr<inertial::InertialFrameFrameHessian> inertialHessian = shared_ptr<inertial::InertialFrameFrameHessian>(new inertial::InertialFrameFrameHessian(nextKeyFramePreIntegration));
+			shared_ptr<inertial::InertialFrameFrameHessian> inertialFrameHessian = shared_ptr<inertial::InertialFrameFrameHessian>(new inertial::InertialFrameFrameHessian(nextKeyFramePreIntegration));
 			nextKeyFramePreIntegration = shared_ptr<inertial::PreIntegration>(new inertial::PreIntegration());
 
-			fh->inertialFrameHessian->to = inertialHessian;
-			inertialHessian->to = fh->inertialFrameHessian;
-			inertialHessian->from = frames[fh->idx - 1]->frameHessian->inertialFrameHessian;
-			inertialHessian->from->from = inertialHessian;
+			fh->inertialFrameHessian->to = inertialFrameHessian;
+			inertialFrameHessian->to = fh->inertialFrameHessian;
+			inertialFrameHessian->from = frames[fh->idx - 1]->frameHessian->inertialFrameHessian;
+			inertialFrameHessian->from->from = inertialFrameHessian;
 
 			LOG(INFO) << "frame " << fh->frame->id << " is key frame: " << fh->frame->kfId << endl;
 		}
@@ -871,8 +873,8 @@ namespace ldso {
 				frames.back()->frameHessian->aff_g2l().b, newInertialEnergy);
 
 			// control the lambda in LM
-			if (setting_forceAceptStep || (newEnergy[0] + newEnergy[1] + newEnergyL + newEnergyM <
-				lastEnergy[0] + lastEnergy[1] + lastEnergyL + lastEnergyM)) {
+			if (setting_forceAceptStep || (newEnergy[0] + newEnergy[1] + newEnergyL + newEnergyM + newInertialEnergy <
+				lastEnergy[0] + lastEnergy[1] + lastEnergyL + lastEnergyM + lastInertialEnergy)) {
 
 				// energy is decreasing
 				if (multiThreading)
@@ -884,13 +886,15 @@ namespace ldso {
 				lastEnergy = newEnergy;
 				lastEnergyL = newEnergyL;
 				lastEnergyM = newEnergyM;
+				lastInertialEnergy = newInertialEnergy;
 
 				lambda *= 0.25;
 			}
 			else {
 				// energy increases, reload the backup state and increase lambda
-				loadSateBackup();
+				loadStateBackup();
 				lastEnergy = linearizeAll(false);
+				lastInertialEnergy = linearizeInertial(lastEnergy[2]);
 				lastEnergyL = calcLEnergy();
 				lastEnergyM = calcMEnergy();
 				lambda *= 1e2;
@@ -1750,8 +1754,8 @@ namespace ldso {
 			Hcalib->mpCH->setValue(Hcalib->mpCH->value_backup + stepfacC * Hcalib->mpCH->step);
 
 			Vec4 stepInertial;
-			stepInertial.block<3, 1>(0, 0) = (SO3::exp(Hinertial->x_step.block<3, 1>(0, 0))*SO3::exp(Hinertial->x.block<3, 1>(0, 0))).log();
-			stepInertial.block<1, 1>(3, 0) = Hinertial->x_step.block<1, 1>(3, 0) + Hinertial->x.block<1, 1>(3, 0);
+			stepInertial.block<3, 1>(0, 0) = (SO3::exp(Hinertial->x_step.block<3, 1>(0, 0))*SO3::exp(Hinertial->x_backup.block<3, 1>(0, 0))).log();
+			stepInertial.block<1, 1>(3, 0) = Hinertial->x_step.block<1, 1>(3, 0) + Hinertial->x_backup.block<1, 1>(3, 0);
 			Hinertial->setState(stepInertial);
 
 			for (auto &fr : frames) {
@@ -1761,14 +1765,13 @@ namespace ldso {
 
 				//fh->setState(fh->state_backup + pstepfac.cwiseProduct(fh->step));
 
-				Sophus::Vector<double, 6> se3step = (SE3::exp(pstepfac.head<6>().cwiseProduct(fh->step.head<6>()))*SE3::exp(fh->state_backup.head<6>())).log();
 				Vec10 step = fh->state_backup + pstepfac.cwiseProduct(fh->step);
-				step.head<6>() = se3step;
+				step.head<6>() = (SE3::exp(pstepfac.head<6>().cwiseProduct(fh->step.head<6>()))*SE3::exp(fh->state_backup.head<6>())).log();
 				fh->setState(step);
 
 				Vec15 stepFrameInertial;
-				stepFrameInertial.block<6, 1>(0, 0) = (SE3::exp(fh->inertialFrameHessian->x_step.block<6, 1>(0, 0))*SE3::exp(fh->inertialFrameHessian->x.block<6, 1>(0, 0))).log();
-				stepFrameInertial.block<9, 1>(6, 0) = fh->inertialFrameHessian->x_step.block<9, 1>(6, 0) + fh->inertialFrameHessian->x.block<9, 1>(6, 0);
+				stepFrameInertial.block<6, 1>(0, 0) = (SE3::exp(fh->inertialFrameHessian->x_step.block<6, 1>(0, 0))*SE3::exp(fh->inertialFrameHessian->x_backup.block<6, 1>(0, 0))).log();
+				stepFrameInertial.block<9, 1>(6, 0) = fh->inertialFrameHessian->x_step.block<9, 1>(6, 0) + fh->inertialFrameHessian->x_backup.block<9, 1>(6, 0);
 				fh->inertialFrameHessian->setState(stepFrameInertial);
 
 				sumA += fh->step[6] * fh->step[6];
@@ -1829,6 +1832,7 @@ namespace ldso {
 			else {
 				Hcalib->mpCH->step_backup.setZero();
 				Hcalib->mpCH->value_backup = Hcalib->mpCH->value;
+
 				for (auto &fr : frames) {
 					auto fh = fr->frameHessian;
 					fh->step_backup.setZero();
@@ -1845,9 +1849,11 @@ namespace ldso {
 		}
 		else {
 			Hcalib->mpCH->value_backup = Hcalib->mpCH->value;
+			Hinertial->x_backup = Hinertial->x;
 			for (auto &fr : frames) {
 				auto fh = fr->frameHessian;
 				fh->state_backup = fh->get_state();
+				fh->inertialFrameHessian->x_backup = fh->inertialFrameHessian->x;
 				for (auto feat : fr->features) {
 					if (feat->status == Feature::FeatureStatus::VALID &&
 						feat->point->status == Point::PointStatus::ACTIVE) {
@@ -1859,12 +1865,14 @@ namespace ldso {
 		}
 	}
 
-	void FullSystem::loadSateBackup() {
+	void FullSystem::loadStateBackup() {
 
 		Hcalib->mpCH->setValue(Hcalib->mpCH->value_backup);
+		Hinertial->setState(Hinertial->x_backup);
 		for (auto fr : frames) {
 			auto fh = fr->frameHessian;
 			fh->setState(fh->state_backup);
+			fh->inertialFrameHessian->setState(fh->inertialFrameHessian->x_backup);
 			for (auto feat : fr->features) {
 				if (feat->point && feat->point->status == Point::PointStatus::ACTIVE) {
 					auto ph = feat->point->mpPH;

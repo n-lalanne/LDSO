@@ -38,7 +38,7 @@ namespace ldso {
 	const float SCALE_VI_ROT = 0.1f;      //
 	const float SCALE_VI_TRANS = 0.05f;         //
 	const float SCALE_VI_B = 0.01f;        //
-	const float SCALE_VI_S = 0.001f;         //
+	const float SCALE_VI_S = 0.000001f;         //
 
 	// inverse version
 	const float SCALE_IDEPTH_INVERSE = (1.0f / SCALE_IDEPTH);
