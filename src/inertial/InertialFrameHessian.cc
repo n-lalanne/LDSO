@@ -5,7 +5,7 @@
 
 namespace ldso {
 	namespace inertial {
-		void InertialFrameHessian::linearize(shared_ptr<InertialHessian> inertialHessian)
+		void InertialFrameHessian::linearize(shared_ptr<InertialHessian> inertialHessian, double visualWeight)
 		{
 			H.setZero();
 			b.setZero();
@@ -15,7 +15,7 @@ namespace ldso {
 
 			if (from)
 			{
-				from->linearize();
+				from->linearize(visualWeight);
 				energy += from->energy;
 				H.block<15, 15>(10, 10) += from->H_from;
 				b.block<15, 1>(10, 0) += from->b_from;
@@ -73,8 +73,8 @@ namespace ldso {
 			//J.block<9, 3>(22, 0) = Mat93::Zero();
 
 			Vec6 W;
-			W.block<3, 1>(0, 0) = setting_vi_lambda_overall * Vec3(setting_vi_lambda_rot, setting_vi_lambda_rot, setting_vi_lambda_rot);
-			W.block<3, 1>(3, 0) = setting_vi_lambda_overall * Vec3(setting_vi_lambda_trans, setting_vi_lambda_trans, setting_vi_lambda_trans);
+			W.block<3, 1>(0, 0) = visualWeight * Vec3(setting_vi_lambda_rot * setting_vi_lambda_rot, setting_vi_lambda_rot* setting_vi_lambda_rot, setting_vi_lambda_rot*setting_vi_lambda_rot);
+			W.block<3, 1>(3, 0) = visualWeight * Vec3(setting_vi_lambda_trans*setting_vi_lambda_trans, setting_vi_lambda_trans*setting_vi_lambda_trans, setting_vi_lambda_trans*setting_vi_lambda_trans);
 
 			H += J.transpose() * W.asDiagonal() * J;
 			b += -J.transpose() * W.asDiagonal() * r;

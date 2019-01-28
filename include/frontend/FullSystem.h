@@ -331,7 +331,7 @@ namespace ldso {
 		shared_ptr<ldso::inertial::InertialHessian> Hinertial = nullptr;
 		shared_ptr<ldso::inertial::PreIntegration> nextKeyFramePreIntegration = nullptr;
 
-		double linearizeInertial();
+		double linearizeInertial(double activeVisualResiduals);
 
 	public:
 		inline void setImuToCamTransformation(const SE3 &imuToCam)

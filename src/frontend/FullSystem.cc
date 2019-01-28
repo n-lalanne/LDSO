@@ -812,10 +812,9 @@ namespace ldso {
 			}
 		}
 
-		LOG(INFO) << "active residuals: " << activeResiduals.size() << endl;
-
 		Vec3 lastEnergy = linearizeAll(false);
-		double lastInertialEnergy = linearizeInertial();
+		LOG(INFO) << "active residuals: " << lastEnergy[2] << endl;
+		double lastInertialEnergy = linearizeInertial(lastEnergy[2]);
 		double lastEnergyL = calcLEnergy();
 		double lastEnergyM = calcMEnergy();
 
@@ -862,9 +861,11 @@ namespace ldso {
 
 			// eval new energy!
 			Vec3 newEnergy = linearizeAll(false);
-			double newInertialEnergy = linearizeInertial();
+			double newInertialEnergy = linearizeInertial(newEnergy[2]);
 			double newEnergyL = calcLEnergy();
 			double newEnergyM = calcMEnergy();
+
+			LOG(INFO) << "active residuals: " << newEnergy[2] << endl;
 
 			printOptRes(newEnergy, newEnergyL, newEnergyM, 0, 0, frames.back()->frameHessian->aff_g2l().a,
 				frames.back()->frameHessian->aff_g2l().b, newInertialEnergy);
@@ -910,7 +911,7 @@ namespace ldso {
 		setPrecalcValues();
 
 		lastEnergy = linearizeAll(true);    // fix all the linearizations
-		lastInertialEnergy = linearizeInertial();
+		lastInertialEnergy = linearizeInertial(lastEnergy[2]);
 
 		if (!std::isfinite((double)lastEnergy[0]) || !std::isfinite((double)lastEnergy[1]) ||
 			!std::isfinite((double)lastEnergy[2])) {
@@ -1571,12 +1572,13 @@ namespace ldso {
 		ef->setDeltaF(Hcalib->mpCH);
 	}
 
-	double FullSystem::linearizeInertial()
+	double FullSystem::linearizeInertial(double activeVisualResiduals)
 	{
 		double energy = 0;
 		double energyInertialOnly = 0;
+		double visualWeight = activeVisualResiduals * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
 		for (auto &fr : frames) {
-			fr->frameHessian->inertialFrameHessian->linearize(Hinertial);
+			fr->frameHessian->inertialFrameHessian->linearize(Hinertial, visualWeight);
 			energy += fr->frameHessian->inertialFrameHessian->energy;
 			if (fr->frameHessian->inertialFrameHessian->from)
 				energyInertialOnly += fr->frameHessian->inertialFrameHessian->from->energy;
@@ -1610,11 +1612,13 @@ namespace ldso {
 				bind(&FullSystem::linearizeAll_Reductor, this, fixLinearization, toRemove, _1, _2, _3, _4),
 				0, activeResiduals.size(), 0);
 			lastEnergyP = threadReduce.stats[0];
+			num = threadReduce.stats[1];
 		}
 		else {
-			Vec10 stats;
+			Vec10 stats = Vec10::Zero();
 			linearizeAll_Reductor(fixLinearization, toRemove, 0, activeResiduals.size(), &stats, 0);
 			lastEnergyP = stats[0];
+			num = stats[1];
 		}
 
 		setNewFrameEnergyTH();
@@ -1665,6 +1669,8 @@ namespace ldso {
 			(*stats)[0] += r->
 				linearize(Hcalib
 					->mpCH);
+			if (r->state_NewState == ResState::IN)
+				(*stats)[1] += 1;
 
 			if (fixLinearization) {
 				r->applyRes(true);
@@ -1984,7 +1990,7 @@ namespace ldso {
 			a,
 			b,
 			resInertial,
-			sqrtf(resInertial / ef->nFrames)
+			sqrtf(resInertial / (patternNum * ef->resInA))
 		);
 		LOG(INFO) << string(buff) << endl;
 	}

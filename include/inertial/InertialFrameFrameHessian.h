@@ -15,7 +15,7 @@ namespace ldso {
 		class InertialFrameFrameHessian {
 		public:
 			InertialFrameFrameHessian(shared_ptr<inertial::PreIntegration> preIntegration);
-			void linearize();
+			void linearize(double visualWeight);
 			// start at this frame, i
 			shared_ptr<InertialFrameHessian> from;
 			// go to this frame, j

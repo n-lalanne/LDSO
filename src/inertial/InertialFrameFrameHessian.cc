@@ -10,7 +10,7 @@ namespace ldso {
 			this->preIntegration = preIntegration;
 		}
 
-		void InertialFrameFrameHessian::linearize()
+		void InertialFrameFrameHessian::linearize(double visualWeight)
 		{
 			r.setZero();
 			J_from.setZero();
@@ -92,8 +92,9 @@ namespace ldso {
 			Mat1515 W;
 			W.setZero();
 
-			W.block<9, 9>(0, 0) = setting_vi_lambda_overall * preIntegration->Sigma_ij;
-			W.block<6, 6>(9, 9) = setting_vi_lambda_overall * preIntegration->Sigma_bd * preIntegration->dt_ij;
+			W.block<9, 9>(0, 0) = preIntegration->Sigma_ij;
+			W.block<6, 6>(9, 9) = preIntegration->Sigma_bd * preIntegration->dt_ij;
+			W = visualWeight * W.inverse();
 
 			H_to = J_to.transpose() * W * J_to;
 			H_from = J_from.transpose() * W * J_from;

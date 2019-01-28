@@ -18,7 +18,7 @@ namespace ldso {
 		class InertialFrameHessian
 		{
 		public:
-			void linearize(shared_ptr<InertialHessian> inertialHessian);
+			void linearize(shared_ptr<InertialHessian> inertialHessian, double visualWeight);
 
 			void setState(Vec15 x_new);
 
