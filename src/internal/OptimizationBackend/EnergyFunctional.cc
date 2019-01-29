@@ -737,32 +737,32 @@ namespace ldso {
 		void EnergyFunctional::combineInertialHessians()
 		{
 			Hab_I = MatXX::Zero(CPARS + 8 * nFrames, 4 + 15 * nFrames);
-			Haa_I = MatXX::Zero(CPARS + 8 * nFrames, CPARS + 8 * nFrames);
 			Hbb_I = MatXX::Zero(4 + 15 * nFrames, 4 + 15 * nFrames);
-
-			ba_I = VecX::Zero(CPARS + nFrames * 8);
 			bb_I = VecX::Zero(4 + 15 * nFrames);
 
 			int index = 0;
 
 			for (auto f : frames)
 			{
-				Mat2525 H = S * f->inertialFrameHessian->H * S;
-				Vec25 b = S * f->inertialFrameHessian->b;
+				if (f->inertialFrameHessian->from != nullptr || f->inertialFrameHessian->to != nullptr)
+				{
+					Mat2525 H = S * f->inertialFrameHessian->H * S;
+					Vec25 b = S * f->inertialFrameHessian->b;
 
-				Haa_I.block<6, 6>(CPARS + 8 * index, CPARS + 8 * index) += H.block<6, 6>(0, 0);
-				ba_I.block<6, 1>(CPARS + 8 * index, 0) -= b.block<6, 1>(0, 0);
+					H_I.block<6, 6>(CPARS + 8 * index, CPARS + 8 * index) += H.block<6, 6>(0, 0);
+					b_I.block<6, 1>(CPARS + 8 * index, 0) -= b.block<6, 1>(0, 0);
 
-				Hbb_I.block<4, 4>(0, 0) += H.block<4, 4>(6, 6);
-				Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * index) += H.block<15, 15>(10, 10);
-				Hbb_I.block<4, 15>(0, 4 + 15 * index) += H.block<4, 15>(6, 10);
-				Hbb_I.block<15, 4>(4 + 15 * index, 0) += H.block<15, 4>(10, 6);
+					Hbb_I.block<4, 4>(0, 0) += H.block<4, 4>(6, 6);
+					Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * index) += H.block<15, 15>(10, 10);
+					Hbb_I.block<4, 15>(0, 4 + 15 * index) += H.block<4, 15>(6, 10);
+					Hbb_I.block<15, 4>(4 + 15 * index, 0) += H.block<15, 4>(10, 6);
 
-				bb_I.block<4, 1>(0, 0) -= b.block<4, 1>(6, 0);
-				bb_I.block<15, 1>(4 + 15 * index, 0) -= b.block<15, 1>(10, 0);
+					bb_I.block<4, 1>(0, 0) -= b.block<4, 1>(6, 0);
+					bb_I.block<15, 1>(4 + 15 * index, 0) -= b.block<15, 1>(10, 0);
 
-				Hab_I.block<6, 4>(CPARS + 8 * index, 0) += H.block<6, 4>(0, 6);
-				Hab_I.block<6, 15>(CPARS + 8 * index, 4 + 15 * index) += H.block<6, 15>(0, 10);
+					Hab_I.block<6, 4>(CPARS + 8 * index, 0) += H.block<6, 4>(0, 6);
+					Hab_I.block<6, 15>(CPARS + 8 * index, 4 + 15 * index) += H.block<6, 15>(0, 10);
+				}
 				index++;
 			}
 
@@ -771,11 +771,8 @@ namespace ldso {
 			else
 				Hbb_I_inv = Hbb_I.inverse();
 
-			H_I = Haa_I;
-			H_I_sc = Hab_I * Hbb_I_inv * Hab_I.transpose();
-
-			b_I = ba_I;
-			b_I_sc = Hab_I * Hbb_I_inv * bb_I;
+			H_I_sc.noalias() = Hab_I * Hbb_I_inv * Hab_I.transpose();
+			b_I_sc.noalias() = Hab_I * Hbb_I_inv * bb_I;
 		}
 
 		void EnergyFunctional::resubstituteInertial(VecX x, shared_ptr<inertial::InertialHessian> HInertial)

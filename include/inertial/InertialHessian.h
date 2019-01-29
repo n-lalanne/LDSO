@@ -16,11 +16,11 @@ namespace ldso {
 			}
 
 			inline void setEvalPT(const SO3 &worldDSOToWorld_evalPT) {
-				this->R_DW_evalPT = worldDSOToWorld_evalPT;
-				this->R_WD_evalPT = worldDSOToWorld_evalPT.inverse();
+				this->R_DW_EvalPT = worldDSOToWorld_evalPT;
+				this->R_WD_EvalPT = worldDSOToWorld_evalPT.inverse();
 
-				this->R_WD_PRE = R_WD_evalPT;
-				this->R_DW_PRE = R_DW_evalPT;
+				this->R_WD_PRE = R_WD_EvalPT;
+				this->R_DW_PRE = R_DW_EvalPT;
 			};
 
 			void setState(Vec4 x_new);
@@ -29,11 +29,11 @@ namespace ldso {
 			SE3 T_BC;
 			SE3 T_CB;
 
-			double scale_evalPT = 0;
+			double scale_EvalPT = 0;
 			double scale_PRE;
 
-			SO3 R_DW_evalPT;
-			SO3 R_WD_evalPT;
+			SO3 R_DW_EvalPT;
+			SO3 R_WD_EvalPT;
 
 			SO3 R_WD_PRE;
 			SO3 R_DW_PRE;

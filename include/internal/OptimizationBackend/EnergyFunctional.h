@@ -251,11 +251,9 @@ namespace ldso {
 			VecX b_I_sc = VecX::Zero(CPARS);
 
 			MatXX Hab_I = MatXX::Zero(CPARS, 0);
-			MatXX Haa_I = MatXX::Zero(CPARS, CPARS);
 			MatXX Hbb_I = MatXX::Zero(0, 0);
 			MatXX Hbb_I_inv = MatXX::Zero(0, 0);
 
-			VecX ba_I = VecX::Zero(CPARS);
 			VecX bb_I = VecX::Zero(0);
 
 			Mat2525 S = Mat2525::Zero();

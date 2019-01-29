@@ -816,7 +816,7 @@ namespace ldso {
 
 		Vec3 lastEnergy = linearizeAll(false);
 		LOG(INFO) << "active residuals: " << lastEnergy[2] << endl;
-		double lastInertialEnergy = linearizeInertial(lastEnergy[2]);
+		double lastInertialEnergy = linearizeInertial(lastEnergy[2], true);
 		double lastEnergyL = calcLEnergy();
 		double lastEnergyM = calcMEnergy();
 
@@ -863,7 +863,7 @@ namespace ldso {
 
 			// eval new energy!
 			Vec3 newEnergy = linearizeAll(false);
-			double newInertialEnergy = linearizeInertial(newEnergy[2]);
+			double newInertialEnergy = linearizeInertial(newEnergy[2], false);
 			double newEnergyL = calcLEnergy();
 			double newEnergyM = calcMEnergy();
 
@@ -894,7 +894,7 @@ namespace ldso {
 				// energy increases, reload the backup state and increase lambda
 				loadStateBackup();
 				lastEnergy = linearizeAll(false);
-				lastInertialEnergy = linearizeInertial(lastEnergy[2]);
+				lastInertialEnergy = linearizeInertial(lastEnergy[2], false);
 				lastEnergyL = calcLEnergy();
 				lastEnergyM = calcMEnergy();
 				lambda *= 1e2;
@@ -915,7 +915,7 @@ namespace ldso {
 		setPrecalcValues();
 
 		lastEnergy = linearizeAll(true);    // fix all the linearizations
-		lastInertialEnergy = linearizeInertial(lastEnergy[2]);
+		lastInertialEnergy = linearizeInertial(lastEnergy[2], false);
 
 		if (!std::isfinite((double)lastEnergy[0]) || !std::isfinite((double)lastEnergy[1]) ||
 			!std::isfinite((double)lastEnergy[2])) {
@@ -1525,7 +1525,7 @@ namespace ldso {
 
 		firstFrame->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
 		firstFrame->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
-		firstFrame->inertialFrameHessian->T_BW_EvalPT = Hinertial->T_BC * firstFrame->worldToCam_evalPT * SE3(Hinertial->R_DW_evalPT, Vec3::Zero());
+		firstFrame->inertialFrameHessian->T_BW_EvalPT = Hinertial->T_BC * firstFrame->worldToCam_evalPT * SE3(Hinertial->R_DW_EvalPT, Vec3::Zero());
 		firstFrame->inertialFrameHessian->T_WB_EvalPT = firstFrame->inertialFrameHessian->T_BW_EvalPT.inverse();
 		firstFrame->inertialFrameHessian->W_v_B_EvalPT = Vec3::Zero();
 		firstFrame->inertialFrameHessian->setState(Vec15::Zero());
@@ -1533,7 +1533,7 @@ namespace ldso {
 
 		newFrame->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
 		newFrame->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
-		newFrame->inertialFrameHessian->T_BW_EvalPT = Hinertial->T_BC * newFrame->worldToCam_evalPT * SE3(Hinertial->R_DW_evalPT, Vec3::Zero());
+		newFrame->inertialFrameHessian->T_BW_EvalPT = Hinertial->T_BC * newFrame->worldToCam_evalPT * SE3(Hinertial->R_DW_EvalPT, Vec3::Zero());
 		newFrame->inertialFrameHessian->T_WB_EvalPT = newFrame->inertialFrameHessian->T_BW_EvalPT.inverse();
 		newFrame->inertialFrameHessian->W_v_B_EvalPT = Vec3::Zero();
 		newFrame->inertialFrameHessian->setState(Vec15::Zero());
@@ -1576,13 +1576,13 @@ namespace ldso {
 		ef->setDeltaF(Hcalib->mpCH);
 	}
 
-	double FullSystem::linearizeInertial(double activeVisualResiduals)
+	double FullSystem::linearizeInertial(double activeVisualResiduals, bool force)
 	{
 		double energy = 0;
 		double energyInertialOnly = 0;
 		double visualWeight = activeVisualResiduals * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
 		for (auto &fr : frames) {
-			fr->frameHessian->inertialFrameHessian->linearize(Hinertial, visualWeight);
+			fr->frameHessian->inertialFrameHessian->linearize(Hinertial, visualWeight, force);
 			energy += fr->frameHessian->inertialFrameHessian->energy;
 			if (fr->frameHessian->inertialFrameHessian->from)
 				energyInertialOnly += fr->frameHessian->inertialFrameHessian->from->energy;

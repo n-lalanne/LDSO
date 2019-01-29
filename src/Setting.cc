@@ -138,6 +138,8 @@ namespace ldso {
 	int setting_vi_hasMovementResetPeriod = 200 * 0.2;
 
 	bool setting_vi_enable = true;
+	bool setting_vi_fej_window_optimization = false;
+	bool setting_vi_debug = true;
 
 	double setting_vi_lambda_rot = 1; // lambda for rotation weight
 	double setting_vi_lambda_trans = 0.5; // lambda for translation weight

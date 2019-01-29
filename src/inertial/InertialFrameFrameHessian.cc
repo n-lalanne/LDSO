@@ -10,7 +10,7 @@ namespace ldso {
 			this->preIntegration = preIntegration;
 		}
 
-		void InertialFrameFrameHessian::computeJacobianAndResidual(Vec15 &r, Mat1515 &J_from, Mat1515 &J_to, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj)
+		void InertialFrameFrameHessian::computeJacobian(Mat1515 &J_from, Mat1515 &J_to, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj)
 		{
 			Vec3 g(0, 0, -9.81);
 
@@ -19,21 +19,16 @@ namespace ldso {
 			Vec3 dpij_g = pj - pi - (vi + 0.5 * g * preIntegration->dt_ij)*preIntegration->dt_ij;
 
 			SO3 dR_tilde_and_bias_inv = (preIntegration->delta_R_ij*SO3::exp(d_dRij_)).inverse();
+			Vec3 r = (dR_tilde_and_bias_inv * Riw * Rwj).log();
 
-			r.block<3, 1>(0, 0) = (dR_tilde_and_bias_inv * Riw * Rwj).log();
-			r.block<3, 1>(3, 0) = Riw * dvij_g - (preIntegration->delta_v_ij + preIntegration->d_delta_v_ij_dg * bgi + preIntegration->d_delta_v_ij_da*bai);
-			r.block<3, 1>(6, 0) = Riw * dpij_g - (preIntegration->delta_p_ij + preIntegration->d_delta_p_ij_dg * bgi + preIntegration->d_delta_p_ij_da*bai);
-			r.block<3, 1>(9, 0) = bgi - bgj;
-			r.block<3, 1>(12, 0) = bai - baj;
-
-			Mat33 Jr_inv = InertialUtility::JrInv(r.block<3, 1>(0, 0));
+			Mat33 Jr_inv = InertialUtility::JrInv(r);
 
 			Mat33 dR_dwi = -Jr_inv * Rjw.matrix();
 
 			//dr_R_dw_i
 			J_from.block<3, 3>(0, 3) = dR_dwi;
 			//dr_R_dbg_i
-			J_from.block<3, 3>(0, 9) = -Jr_inv * SO3::exp(r.block<3, 1>(0, 0)).matrix()*InertialUtility::Jr(d_dRij_)*preIntegration->d_delta_R_ij_dg;
+			J_from.block<3, 3>(0, 9) = -Jr_inv * SO3::exp(r).matrix()*InertialUtility::Jr(d_dRij_)*preIntegration->d_delta_R_ij_dg;
 
 
 			//dr_v_dw_i
@@ -103,28 +98,35 @@ namespace ldso {
 			r.block<3, 1>(12, 0) = bai - baj;
 		}
 
-		void InertialFrameFrameHessian::linearize(double visualWeight)
+		void InertialFrameFrameHessian::linearize(double visualWeight, bool force)
 		{
 			r.setZero();
-			J_from.setZero();
-			J_to.setZero();
 
-			computeJacobianAndResidual(r, J_from, J_to, preIntegration, from->T_WB_PRE.translation(), to->T_WB_PRE.translation(), from->T_BW_PRE.so3(), to->T_BW_PRE.so3(), to->T_WB_PRE.so3(), from->W_v_B_PRE, to->W_v_B_PRE, from->db_g_PRE, to->db_g_PRE, from->db_a_PRE, to->db_a_PRE);
+			computeResidual(r, preIntegration, from->T_WB_PRE.translation(), to->T_WB_PRE.translation(), from->T_BW_PRE.so3(), to->T_BW_PRE.so3(), to->T_WB_PRE.so3(), from->W_v_B_PRE, to->W_v_B_PRE, from->db_g_PRE, to->db_g_PRE, from->db_a_PRE, to->db_a_PRE);
 
-			Mat1515 W;
-			W.setZero();
+			if (!setting_vi_fej_window_optimization || force)
+			{
+				J_from.setZero();
+				J_to.setZero();
 
-			W.block<9, 9>(0, 0) = preIntegration->Sigma_ij;
-			W.block<6, 6>(9, 9) = preIntegration->Sigma_bd * preIntegration->dt_ij;
-			W = visualWeight * W.inverse();
+				W.setZero();
+				W.block<9, 9>(0, 0) = preIntegration->Sigma_ij;
+				W.block<6, 6>(9, 9) = preIntegration->Sigma_bd * preIntegration->dt_ij;
+				W = W.inverse();
 
-			H_to = J_to.transpose() * W * J_to;
-			H_from = J_from.transpose() * W * J_from;
+				if (setting_vi_fej_window_optimization)
+					computeJacobian(J_from, J_to, preIntegration, from->T_WB_EvalPT.translation(), to->T_WB_EvalPT.translation(), from->T_BW_EvalPT.so3(), to->T_BW_EvalPT.so3(), to->T_WB_EvalPT.so3(), from->W_v_B_EvalPT, to->W_v_B_EvalPT, from->db_g_EvalPT, to->db_g_EvalPT, from->db_a_EvalPT, to->db_a_EvalPT);
+				else
+					computeJacobian(J_from, J_to, preIntegration, from->T_WB_PRE.translation(), to->T_WB_PRE.translation(), from->T_BW_PRE.so3(), to->T_BW_PRE.so3(), to->T_WB_PRE.so3(), from->W_v_B_PRE, to->W_v_B_PRE, from->db_g_PRE, to->db_g_PRE, from->db_a_PRE, to->db_a_PRE);
 
-			b_to = -J_to.transpose() * W * r;
-			b_from = -J_from.transpose() * W * r;
+				H_to = J_to.transpose() * visualWeight * W * J_to;
+				H_from = J_from.transpose() * visualWeight * W * J_from;
+			}
 
-			energy = r.transpose() * W * r;
+			b_to = -J_to.transpose() * visualWeight * W * r;
+			b_from = -J_from.transpose() * visualWeight * W * r;
+
+			energy = r.transpose() * visualWeight * W * r;
 		}
 	}
 }

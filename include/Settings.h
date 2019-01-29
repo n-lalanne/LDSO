@@ -184,6 +184,10 @@ namespace ldso {
 
 	extern double setting_vi_lambda_overall; // lambda for inertial weight
 
+	extern bool setting_vi_debug;
+
+	extern bool setting_vi_fej_window_optimization;
+
 	extern Eigen::IOFormat setting_vi_format;
 	//=======================
 
