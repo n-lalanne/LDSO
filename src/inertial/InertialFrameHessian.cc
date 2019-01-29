@@ -29,48 +29,7 @@ namespace ldso {
 				b.block<15, 1>(10, 0) += to->b_to;
 			}
 
-			Vec3 dr_p_ds = -exp(inertialHessian->scale_PRE)*(inertialHessian->R_WD_PRE*(fh->PRE_camToWorld * inertialHessian->T_CB.translation()));
-			Mat33 dr_p_da1 = exp(inertialHessian->scale_PRE)*inertialHessian->R_WD_PRE.matrix();
-			Mat33 dr_p_dq = dr_p_da1 * fh->PRE_camToWorld.so3().matrix();
-
-
-			r.block<3, 1>(0, 0) = (T_WB_PRE.so3()*inertialHessian->T_BC.so3()*fh->PRE_worldToCam.so3()*inertialHessian->R_DW_PRE).log();
-			r.block<3, 1>(3, 0) = T_WB_PRE.translation() + dr_p_ds;
-
-			Mat33 JrInv = InertialUtility::JrInv(r.block<3, 1>(0, 0));
-
-			Mat33 dr_R_dphi = inertialHessian->R_WD_PRE.matrix() * fh->PRE_camToWorld.so3().matrix();
-			Mat33 dr_R_dw = dr_R_dphi * (inertialHessian->T_CB.so3() * T_BW_PRE.so3()).matrix();
-
-			////dr_R_dq
-			//J.block<3, 3>(0, 0) = Mat33::Zero();
-			//dr_R_dphi
-			J.block<3, 3>(0, 3) = JrInv * dr_R_dphi;
-			//dr_R_da
-			J.block<3, 3>(0, 6) = JrInv * inertialHessian->R_WD_PRE.matrix();
-			////dr_R_ds
-			//J.block<3, 1>(0, 9) = Vec3::Zero();
-			////dr_R_du
-			//J.block<3, 3>(0, 10) = Mat33::Zero();
-			//dr_R_dw
-			J.block<3, 3>(0, 13) = JrInv * dr_R_dw;
-
-
-			//dr_p_dq
-			J.block<3, 3>(3, 0) = dr_p_dq;
-			//dr_p_dphi
-			J.block<3, 3>(3, 3) = -dr_p_dq * SO3::hat(inertialHessian->T_CB.translation());
-			//dr_p_da
-			J.block<3, 3>(3, 6) = -dr_p_da1 * SO3::hat(fh->PRE_camToWorld * inertialHessian->T_CB.translation());
-			//dr_p_ds
-			J.block<3, 1>(3, 9) = dr_p_ds;
-			//dr_p_du
-			J.block<3, 3>(3, 10) = Mat33::Identity();
-			//dr_p_dw
-			J.block<3, 3>(3, 13) = -SO3::hat(T_WB_PRE.translation());
-
-
-			//J.block<9, 3>(22, 0) = Mat93::Zero();
+			computeJacobianAndResidual(r, J, inertialHessian->scale_PRE, T_WB_PRE.so3(), T_BW_PRE.so3(), inertialHessian->T_CB.so3(), inertialHessian->T_BC.so3(), fh->PRE_worldToCam.so3(), fh->PRE_camToWorld.so3(), inertialHessian->R_DW_PRE, inertialHessian->R_WD_PRE, T_WB_PRE.translation(), inertialHessian->T_CB.translation(), fh->PRE_camToWorld);
 
 			Vec6 W;
 			W.block<3, 1>(0, 0) = visualWeight * Vec3(setting_vi_lambda_rot * setting_vi_lambda_rot, setting_vi_lambda_rot* setting_vi_lambda_rot, setting_vi_lambda_rot*setting_vi_lambda_rot);
@@ -80,6 +39,43 @@ namespace ldso {
 			b += -J.transpose() * W.asDiagonal() * r;
 
 			energy += r.transpose() * W.asDiagonal() * r;
+		}
+
+		void InertialFrameHessian::computeJacobianAndResidual(Vec6 &r, Mat625 &J, double s, SO3 Rwb, SO3 Rbw, SO3 Rcb, SO3 Rbc, SO3 Rcd, SO3 Rdc, SO3 Rdw, SO3 Rwd, Vec3 pw, Vec3 pc, SE3 Tdc)
+		{
+			Vec3 dr_p_ds = -exp(s) * (Rwd * (Tdc * pc));
+			Mat33 dr_p_da1 = exp(s) * Rwd.matrix();
+			Mat33 dr_p_dq = dr_p_da1 * Rdc.matrix();
+
+
+			r.block<3, 1>(0, 0) = (Rwb*Rbc*Rcd*Rdw).log();
+			r.block<3, 1>(3, 0) = pw + dr_p_ds;
+
+			Mat33 JrInv = InertialUtility::JrInv(r.block<3, 1>(0, 0));
+
+			Mat33 dr_R_dphi = (Rwd * Rdc).matrix();
+			Mat33 dr_R_dw = dr_R_dphi * (Rcb * Rbw).matrix();
+
+			//dr_R_dphi
+			J.block<3, 3>(0, 3) = JrInv * dr_R_dphi;
+			//dr_R_da
+			J.block<3, 3>(0, 6) = JrInv * Rwd.matrix();
+			//dr_R_dw
+			J.block<3, 3>(0, 13) = JrInv * dr_R_dw;
+
+
+			//dr_p_dq
+			J.block<3, 3>(3, 0) = dr_p_dq;
+			//dr_p_dphi
+			J.block<3, 3>(3, 3) = -dr_p_dq * SO3::hat(pc);
+			//dr_p_da
+			J.block<3, 3>(3, 6) = -dr_p_da1 * SO3::hat(Tdc * pc);
+			//dr_p_ds
+			J.block<3, 1>(3, 9) = dr_p_ds;
+			//dr_p_du
+			J.block<3, 3>(3, 10) = Mat33::Identity();
+			//dr_p_dw
+			J.block<3, 3>(3, 13) = -SO3::hat(pw);
 		}
 
 		void InertialFrameHessian::setState(Vec15 x_new)

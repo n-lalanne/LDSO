@@ -16,6 +16,8 @@ namespace ldso {
 		public:
 			InertialFrameFrameHessian(shared_ptr<inertial::PreIntegration> preIntegration);
 			void linearize(double visualWeight);
+			static void computeJacobianAndResidual(Vec15 &r, Mat1515 &J_from, Mat1515 &J_to, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj);
+			static void computeResidual(Vec15 &r, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj);
 			// start at this frame, i
 			shared_ptr<InertialFrameHessian> from;
 			// go to this frame, j
