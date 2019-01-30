@@ -83,10 +83,14 @@ namespace ldso {
 		for (int lvl = coarsestLvl; lvl >= 0; lvl--) {
 			Mat88 H;
 			Vec8 b;
+
 			float levelCutoffRepeat = 1;
 
 			// compute the residual and adjust the huber threshold
 			Vec6 resOld = calcRes(lvl, refToNew_current, aff_g2l_current, setting_coarseCutoffTH * levelCutoffRepeat);
+
+			double visualWeight = resOld[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
+
 			while (resOld[5] > 0.6 && levelCutoffRepeat < 50) {
 				// more than 60% is over than threshold, then increate the cut off threshold
 				levelCutoffRepeat *= 2;
@@ -97,6 +101,7 @@ namespace ldso {
 
 			// Compute H and b
 			calcGSSSE(lvl, H, b, refToNew_current, aff_g2l_current);
+			inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_current);
 
 			float lambda = 0.01;
 
@@ -114,9 +119,10 @@ namespace ldso {
 
 			// L-M iteration
 			for (int iteration = 0; iteration < maxIterations[lvl]; iteration++) {
-				Mat88 Hl = H;
+				Mat88 Hl = H + inertialCoarseTrackerHessian->H_I;
 				for (int i = 0; i < 8; i++) Hl(i, i) *= (1 + lambda);
-				Vec8 inc = Hl.ldlt().solve(-b);
+				Hl -= (inertialCoarseTrackerHessian->H_I_sc) * (1.0f / (1 + lambda));
+				Vec8 inc = Hl.ldlt().solve(-b + inertialCoarseTrackerHessian->b_I - inertialCoarseTrackerHessian->b_I_sc);
 
 				// depends on the mode, if a,b is fixed, don't estimate them
 				if (setting_affineOptModeA < 0 && setting_affineOptModeB < 0)    // fix a, b
@@ -162,8 +168,11 @@ namespace ldso {
 				aff_g2l_new.a += incScaled[6];
 				aff_g2l_new.b += incScaled[7];
 
+				inertialCoarseTrackerHessian->update(inc);
+
 				// calculate new residual after this update step
 				Vec6 resNew = calcRes(lvl, refToNew_new, aff_g2l_new, setting_coarseCutoffTH * levelCutoffRepeat);
+				inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_current);
 
 				// decide whether to accept this step
 				// res[0]/res[1] is the average energy
@@ -853,8 +862,8 @@ namespace ldso {
 					}
 				}
 			}
+		}
 	}
-}
 
 	void CoarseDistanceMap::addIntoDistFinal(int u, int v) {
 		if (w[0] == 0) return;

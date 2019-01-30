@@ -215,8 +215,12 @@ namespace ldso {
 		shared_ptr<FrameHessian> lastF = coarseTracker->lastRef;
 		CHECK(coarseTracker->lastRef->frame != nullptr);
 		shared_ptr<inertial::PreIntegration> preIntegration = shared_ptr<inertial::PreIntegration>(new inertial::PreIntegration());
-		if (setting_vi_enable)
+		if (setting_vi_enable) {
+			preIntegration->lin_bias_g = lastF->inertialFrameHessian->db_g_PRE;
+			preIntegration->lin_bias_a = lastF->inertialFrameHessian->db_a_PRE;
 			preIntegration->addImuData(fh->inertialFrameHessian->imuDataHistory);
+			coarseTracker->inertialCoarseTrackerHessian->preIntegration = preIntegration;
+		}
 
 		AffLight aff_last_2_l = AffLight(0, 0);
 
@@ -354,6 +358,8 @@ namespace ldso {
 
 		//Vec5 achievedRes = Vec5::Constant(NAN);
 
+		coarseTracker->inertialCoarseTrackerHessian->backup();
+
 		Vec5 achievedRes = Vec5::Constant(INFINITY);
 		bool haveOneGood = false;
 		int tryIterations = 0;
@@ -361,6 +367,8 @@ namespace ldso {
 
 			AffLight aff_g2l_this = aff_last_2_l;
 			SE3 lastF_2_fh_this = lastF_2_fh_tries[i];
+
+			coarseTracker->inertialCoarseTrackerHessian->reset();
 
 			// use coarse tracker to solve the iteration
 			bool trackingIsGood = coarseTracker->trackNewestCoarse(
@@ -416,6 +424,8 @@ namespace ldso {
 
 		LOG(INFO) << "Coarse Tracker tracked ab = " << aff_g2l.a << " " << aff_g2l.b << " (exp " << fh->ab_exposure
 			<< " ). Res " << achievedRes[0] << endl;
+
+		coarseTracker->inertialCoarseTrackerHessian->fix_i = false;
 
 		return Vec4(achievedRes[0], flowVecs[0], flowVecs[1], flowVecs[2]);
 	}
@@ -555,6 +565,9 @@ namespace ldso {
 		// =========================== REMOVE OUTLIER =========================
 		removeOutliers();
 
+		nextKeyFramePreIntegration->lin_bias_g = fh->inertialFrameHessian->db_g_PRE;
+		nextKeyFramePreIntegration->lin_bias_a = fh->inertialFrameHessian->db_a_PRE;
+
 		// swap the coarse Tracker for new kf
 		{
 			unique_lock<mutex> crlock(coarseTrackerSwapMutex);
@@ -562,6 +575,7 @@ namespace ldso {
 			vector<shared_ptr<FrameHessian >> fhs;
 			for (auto &f : frames) fhs.push_back(f->frameHessian);
 			coarseTracker_forNewKF->setCoarseTrackingRef(fhs);
+			coarseTracker_forNewKF->inertialCoarseTrackerHessian->setValues(fhs, Hinertial);
 		}
 
 		// =========================== (Activate-)Marginalize Points =========================
@@ -1584,7 +1598,7 @@ namespace ldso {
 	{
 		double energy = 0;
 		double energyInertialOnly = 0;
-		if (setting_vi_enable) 
+		if (setting_vi_enable)
 		{
 			double visualWeight = activeVisualResiduals * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
 			for (auto &fr : frames) {
