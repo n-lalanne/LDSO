@@ -215,8 +215,8 @@ namespace ldso {
 		shared_ptr<FrameHessian> lastF = coarseTracker->lastRef;
 		CHECK(coarseTracker->lastRef->frame != nullptr);
 		shared_ptr<inertial::PreIntegration> preIntegration = shared_ptr<inertial::PreIntegration>(new inertial::PreIntegration());
-
-		preIntegration->addImuData(fh->inertialFrameHessian->imuDataHistory);
+		if (setting_vi_enable)
+			preIntegration->addImuData(fh->inertialFrameHessian->imuDataHistory);
 
 		AffLight aff_last_2_l = AffLight(0, 0);
 
@@ -448,7 +448,8 @@ namespace ldso {
 		// trace new keyframe
 		traceNewCoarse(fh);
 
-		nextKeyFramePreIntegration->addImuData(fh->inertialFrameHessian->imuDataHistory);
+		if (setting_vi_enable)
+			nextKeyFramePreIntegration->addImuData(fh->inertialFrameHessian->imuDataHistory);
 
 		unique_lock<mutex> lock(mapMutex);
 
@@ -462,14 +463,15 @@ namespace ldso {
 			frames.push_back(fh->frame);
 			fh->frame->kfId = fh->frameID = globalMap->NumFrames();
 
-			shared_ptr<inertial::InertialFrameFrameHessian> inertialFrameHessian = shared_ptr<inertial::InertialFrameFrameHessian>(new inertial::InertialFrameFrameHessian(nextKeyFramePreIntegration));
-			nextKeyFramePreIntegration = shared_ptr<inertial::PreIntegration>(new inertial::PreIntegration());
+			if (setting_vi_enable) {
+				shared_ptr<inertial::InertialFrameFrameHessian> inertialFrameHessian = shared_ptr<inertial::InertialFrameFrameHessian>(new inertial::InertialFrameFrameHessian(nextKeyFramePreIntegration));
+				nextKeyFramePreIntegration = shared_ptr<inertial::PreIntegration>(new inertial::PreIntegration());
 
-			fh->inertialFrameHessian->to = inertialFrameHessian;
-			inertialFrameHessian->to = fh->inertialFrameHessian;
-			inertialFrameHessian->from = frames[fh->idx - 1]->frameHessian->inertialFrameHessian;
-			inertialFrameHessian->from->from = inertialFrameHessian;
-
+				fh->inertialFrameHessian->to = inertialFrameHessian;
+				inertialFrameHessian->to = fh->inertialFrameHessian;
+				inertialFrameHessian->from = frames[fh->idx - 1]->frameHessian->inertialFrameHessian;
+				inertialFrameHessian->from->from = inertialFrameHessian;
+			}
 			LOG(INFO) << "frame " << fh->frame->id << " is key frame: " << fh->frame->kfId << endl;
 		}
 
@@ -477,15 +479,16 @@ namespace ldso {
 		setPrecalcValues();
 
 		//Debug
-		for (auto fht : frames)
-		{
-			LOG(INFO) << "KFID: " << fht->kfId << endl;
-			if (fht->frameHessian && fht->frameHessian->inertialFrameHessian && fht->frameHessian->inertialFrameHessian->from)
-				LOG(INFO) << "FROM: " << fht->frameHessian->inertialFrameHessian->from->from->fh->frame->kfId << " -> " << fht->frameHessian->inertialFrameHessian->from->to->fh->frame->kfId << endl;
-			if (fht->frameHessian &&  fht->frameHessian->inertialFrameHessian && fht->frameHessian->inertialFrameHessian->to)
-				LOG(INFO) << "TO: " << fht->frameHessian->inertialFrameHessian->to->from->fh->frame->kfId << " -> " << fht->frameHessian->inertialFrameHessian->to->to->fh->frame->kfId << endl;
+		if (setting_vi_enable) {
+			for (auto fht : frames)
+			{
+				LOG(INFO) << "KFID: " << fht->kfId << endl;
+				if (fht->frameHessian && fht->frameHessian->inertialFrameHessian && fht->frameHessian->inertialFrameHessian->from)
+					LOG(INFO) << "FROM: " << fht->frameHessian->inertialFrameHessian->from->from->fh->frame->kfId << " -> " << fht->frameHessian->inertialFrameHessian->from->to->fh->frame->kfId << endl;
+				if (fht->frameHessian &&  fht->frameHessian->inertialFrameHessian && fht->frameHessian->inertialFrameHessian->to)
+					LOG(INFO) << "TO: " << fht->frameHessian->inertialFrameHessian->to->from->fh->frame->kfId << " -> " << fht->frameHessian->inertialFrameHessian->to->to->fh->frame->kfId << endl;
+			}
 		}
-
 		// =========================== add new residuals for old points =========================
 		LOG(INFO) << "adding new residuals" << endl;
 		int numFwdResAdde = 0;
@@ -645,7 +648,8 @@ namespace ldso {
 			fh->setEvalPT_scaled(fh->frame->getPose(), fh->frame->aff_g2l);
 		}
 
-		nextKeyFramePreIntegration->addImuData(fh->inertialFrameHessian->imuDataHistory);
+		if (setting_vi_enable)
+			nextKeyFramePreIntegration->addImuData(fh->inertialFrameHessian->imuDataHistory);
 
 		if (!fast)
 		{
@@ -1580,14 +1584,17 @@ namespace ldso {
 	{
 		double energy = 0;
 		double energyInertialOnly = 0;
-		double visualWeight = activeVisualResiduals * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
-		for (auto &fr : frames) {
-			fr->frameHessian->inertialFrameHessian->linearize(Hinertial, visualWeight, force);
-			energy += fr->frameHessian->inertialFrameHessian->energy;
-			if (fr->frameHessian->inertialFrameHessian->from)
-				energyInertialOnly += fr->frameHessian->inertialFrameHessian->from->energy;
+		if (setting_vi_enable) 
+		{
+			double visualWeight = activeVisualResiduals * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
+			for (auto &fr : frames) {
+				fr->frameHessian->inertialFrameHessian->linearize(Hinertial, visualWeight, force);
+				energy += fr->frameHessian->inertialFrameHessian->energy;
+				if (fr->frameHessian->inertialFrameHessian->from)
+					energyInertialOnly += fr->frameHessian->inertialFrameHessian->from->energy;
+			}
+			LOG(INFO) << "Energy Inertial: " << energy << " (" << energyInertialOnly << ")";
 		}
-		LOG(INFO) << "Energy Inertial: " << energy << " (" << energyInertialOnly << ")";
 		return energy;
 	}
 

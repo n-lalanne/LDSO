@@ -262,7 +262,8 @@ namespace ldso {
 			accumulateLF_MT(HL_top, bL_top, multiThreading);
 			accumulateSCF_MT(H_sc, b_sc, multiThreading);
 
-			combineInertialHessians();
+			if (setting_vi_enable)
+				combineInertialHessians();
 
 			bM_top = (bM + HM * getStitchedDeltaF());
 
@@ -291,15 +292,27 @@ namespace ldso {
 					HFinal_top(i, i) *= (1 + lambda);
 			}
 			else {
-				HFinal_top = HL_top + HM + HA_top + H_I;
-				bFinal_top = bL_top + bM_top + bA_top - b_sc + b_I - b_I_sc;
+				HFinal_top = HL_top + HM + HA_top;
+				bFinal_top = bL_top + bM_top + bA_top - b_sc;
 
 				lastHS = HFinal_top - H_sc - H_I_sc;
+
+				if (setting_vi_enable) {
+					HFinal_top += H_I;
+					bFinal_top += b_I - b_I_sc;
+					lastHS -= H_I_sc;
+				}
+
+
 				lastbS = bFinal_top;
 
 				for (int i = 0; i < 8 * nFrames + CPARS; i++)
 					HFinal_top(i, i) *= (1 + lambda);
-				HFinal_top -= (H_sc + H_I_sc) * (1.0f / (1 + lambda));
+
+				if (setting_vi_enable)
+					HFinal_top -= (H_sc + H_I_sc) * (1.0f / (1 + lambda));
+				else
+					HFinal_top -= (H_sc) * (1.0f / (1 + lambda));
 			}
 
 			// get the result
@@ -357,7 +370,8 @@ namespace ldso {
 
 			lastX = x;
 
-			resubstituteInertial(x, HInertial);
+			if (setting_vi_enable)
+				resubstituteInertial(x, HInertial);
 
 			currentLambda = lambda;
 			resubstituteF_MT(x, HCalib, multiThreading);

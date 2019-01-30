@@ -35,6 +35,7 @@ add_library(ldso
 		inertial/InertialFrameHessian.cc
 		inertial/InertialHessian.cc
 		inertial/PreIntegration.cc
+		inertial/InertialCoarseTrackerHessian.cc
 )
 
 target_link_libraries(
