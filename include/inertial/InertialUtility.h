@@ -10,6 +10,8 @@ namespace ldso {
 	namespace inertial {
 		class InertialUtility {
 		public:
+			EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 			inline static Sophus::Matrix3d Jr(Sophus::Vector3d omega) {
 				double theta = omega.norm();
 				double theta2 = theta * theta;

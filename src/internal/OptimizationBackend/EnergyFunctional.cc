@@ -739,6 +739,8 @@ namespace ldso {
 			Hab_I = MatXX::Zero(CPARS + 8 * nFrames, 4 + 15 * nFrames);
 			Hbb_I = MatXX::Zero(4 + 15 * nFrames, 4 + 15 * nFrames);
 			bb_I = VecX::Zero(4 + 15 * nFrames);
+			H_I = MatXX::Zero(CPARS + 8 * nFrames, CPARS + 8 * nFrames);
+			b_I = VecX::Zero(CPARS + 8 * nFrames);
 
 			int index = 0;
 
@@ -769,10 +771,13 @@ namespace ldso {
 			if (Hbb_I.determinant() < 1e-8)
 				Hbb_I_inv = (Hbb_I + VecX::Constant(Hbb_I.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
 			else
-				Hbb_I_inv = Hbb_I.inverse();
+				Hbb_I_inv.noalias() = Hbb_I.inverse();
 
-			H_I_sc.noalias() = Hab_I * Hbb_I_inv * Hab_I.transpose();
-			b_I_sc.noalias() = Hab_I * Hbb_I_inv * bb_I;
+			MatXX HabHbbinv;
+			HabHbbinv.noalias() = Hab_I * Hbb_I_inv;
+
+			H_I_sc.noalias() = HabHbbinv * Hab_I.transpose();
+			b_I_sc.noalias() = HabHbbinv * bb_I;
 		}
 
 		void EnergyFunctional::resubstituteInertial(VecX x, shared_ptr<inertial::InertialHessian> HInertial)

@@ -14,6 +14,8 @@ namespace ldso {
 
 		class InertialFrameFrameHessian {
 		public:
+			EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 			InertialFrameFrameHessian(shared_ptr<inertial::PreIntegration> preIntegration);
 			void linearize(double visualWeight, bool force);
 			static void computeJacobian(Mat1515 &J_from, Mat1515 &J_to, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj);

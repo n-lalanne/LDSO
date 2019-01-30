@@ -11,6 +11,7 @@ namespace ldso {
 	namespace inertial {
 		class PreIntegration {
 		public:
+			EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
 			PreIntegration();
 

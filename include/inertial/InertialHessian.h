@@ -10,6 +10,8 @@ namespace ldso {
 	namespace inertial {
 		class InertialHessian {
 		public:
+			EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 			inline void setImuToCamTransformation(const SE3 &imuToCam) {
 				this->T_CB = imuToCam;
 				this->T_BC = imuToCam.inverse();

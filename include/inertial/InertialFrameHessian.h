@@ -18,6 +18,8 @@ namespace ldso {
 		class InertialFrameHessian
 		{
 		public:
+			EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 			void linearize(shared_ptr<InertialHessian> inertialHessian, double visualWeight, bool force);
 			static void computeJacobian(Mat625 &J, double s, SO3 Rwb, SO3 Rbw, SO3 Rcb, SO3 Rbc, SO3 Rcd, SO3 Rdc, SO3 Rdw, SO3 Rwd, Vec3 pw, Vec3 pc, SE3 Tdc);
 			static void computeResidual(Vec6 &r, double s, SO3 Rwb, SO3 Rbw, SO3 Rcb, SO3 Rbc, SO3 Rcd, SO3 Rdc, SO3 Rdw, SO3 Rwd, Vec3 pw, Vec3 pc, SE3 Tdc);
