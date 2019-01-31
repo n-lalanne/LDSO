@@ -11,7 +11,16 @@ namespace ldso {
 		{
 			Vec25 s;
 			s << SCALE_XI_TRANS, SCALE_XI_TRANS, SCALE_XI_TRANS, SCALE_XI_ROT, SCALE_XI_ROT, SCALE_XI_ROT, SCALE_VI_ROT, SCALE_VI_ROT, SCALE_VI_ROT, SCALE_VI_S, SCALE_VI_TRANS, SCALE_VI_TRANS, SCALE_VI_TRANS, SCALE_VI_ROT, SCALE_VI_ROT, SCALE_VI_ROT, SCALE_VI_V, SCALE_VI_V, SCALE_VI_V, SCALE_VI_B, SCALE_VI_B, SCALE_VI_B, SCALE_VI_B, SCALE_VI_B, SCALE_VI_B;
-			S = s.asDiagonal();
+			S = s.asDiagonal().toDenseMatrix();
+		}
+
+		void InertialCoarseTrackerHessian::marginalize() 
+		{
+			fix_i = false;
+			Tw_i = Tw_j;
+			v_i = v_j;
+			bg_i = bg_j;
+			ba_i = ba_j;
 		}
 
 		void InertialCoarseTrackerHessian::compute(double visualWeight, SE3 T_id, SE3 T_ji) {
@@ -49,19 +58,21 @@ namespace ldso {
 				J_j = J_j * S.block<15, 15>(10, 10);
 				Hbb_inv = MatXX::Zero(15, 15);
 				bb = VecX::Zero(15);
-				Hab = VecX::Zero(8, 15);
+				Hab = MatXX::Zero(8, 15);
 
 				Mat1515 Hj;
 
 				Hj = J_j.transpose() * visualWeight * W * J_j;
+				Hj.block<6, 6>(0, 0) += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
 
 				if (Hj.determinant() < 1e-8)
-					Hbb_inv = (Hj + VecX::Constant(Hj.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
+					Hbb_inv += (Hj + VecX::Constant(Hj.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
 				else
-					Hbb_inv.noalias() = Hj.inverse();
+					Hbb_inv += Hj.inverse();
 
-				bb = -J_j.transpose() * visualWeight * W * r_pr;
-				Hab.block<6, 15>(0, 15) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 15>(0, 10);
+				bb += -J_j.transpose() * visualWeight * W * r_pr;
+				bb += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
+				Hab.block<6, 15>(0, 0) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 15>(0, 10);
 			}
 			else
 			{
@@ -69,13 +80,14 @@ namespace ldso {
 				J_j = J_j * S.block<15, 15>(10, 10);
 				Hbb_inv = MatXX::Zero(30, 30);
 				bb = VecX::Zero(30);
-				Hab = VecX::Zero(8, 30);
+				Hab = MatXX::Zero(8, 30);
 
 				Mat1515 Hi;
 				Mat1515 Hj;
 
 				Hi = J_i.transpose() * visualWeight * W * J_i;
 				Hj = J_j.transpose() * visualWeight * W * J_j;
+				Hj.block<6, 6>(0, 0) += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
 
 				if (Hi.determinant() < 1e-8)
 					Hbb_inv.block<15, 15>(0, 0) = (Hi + VecX::Constant(Hi.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
@@ -87,19 +99,23 @@ namespace ldso {
 				else
 					Hbb_inv.block<15, 15>(15, 15) = Hj.inverse();
 
-				bb.block<15, 1>(0, 0) = -J_i.transpose() * visualWeight * W * r_pr;
-				bb.block<15, 1>(15, 0) = -J_j.transpose() * visualWeight * W * r_pr;
-				Hab.block<6, 15>(0, 0) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 15>(0, 10);
+				bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W * r_pr;
+				bb.block<15, 1>(15, 0) += -J_j.transpose() * visualWeight * W * r_pr;
+				bb.block<15, 1>(15, 0) += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
+				Hab.block<6, 15>(0, 15) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 15>(0, 10);
 			}
 
-			H_I.block<6, 6>(0, 0) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 6>(0, 0);
-			b_I.block<6, 1>(0, 0) = -J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() * r_co;
+				H_I.block<6, 6>(0, 0) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 6>(0, 0);
+				b_I.block<6, 1>(0, 0) = -J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() * r_co;
 
 			MatXX HabHbbinv;
-			HabHbbinv.noalias() = Hab * Hbb_inv;
+			HabHbbinv = Hab * Hbb_inv;
 
-			H_I_sc.noalias() = HabHbbinv * Hab.transpose();
-			b_I_sc.noalias() = HabHbbinv * bb;
+			H_I_sc.setZero();
+			b_I_sc.setZero();
+
+			H_I_sc += HabHbbinv * Hab.transpose();
+			b_I_sc += HabHbbinv * bb;
 
 			energy += r_pr.transpose() * visualWeight * W * r_pr;
 			energy += r_co.transpose() * visualWeight * w.asDiagonal() * r_co;
@@ -132,11 +148,13 @@ namespace ldso {
 		void InertialCoarseTrackerHessian::update(Vec8 x) {
 			VecX xb;
 
-			xb = S.block<15, 15>(10, 10)*(Hbb_inv * (bb - Hab.transpose() * x));
+			xb = Hbb_inv * (bb - Hab.transpose() * x);
 
 
 			if (!fix_i)
 			{
+				xb.block<15, 1>(0, 0) = S.block<15, 15>(10, 10) * xb.block<15, 1>(0, 0);
+				xb.block<15, 1>(15, 0) = S.block<15, 15>(10, 10) * xb.block<15, 1>(15, 0);
 				Tw_i = SE3::exp(xb.block<6, 1>(0, 0)) * Tw_i;
 				v_i += xb.block<3, 1>(6, 0);
 				bg_i += xb.block<3, 1>(9, 0);
@@ -148,6 +166,7 @@ namespace ldso {
 			}
 			else
 			{
+				xb.block<15, 1>(0, 0) = S.block<15, 15>(10, 10) * xb.block<15, 1>(0, 0);
 				Tw_j = SE3::exp(xb.block<6, 1>(0, 0)) * Tw_j;
 				v_j += xb.block<3, 1>(6, 0);
 				bg_j += xb.block<3, 1>(9, 0);

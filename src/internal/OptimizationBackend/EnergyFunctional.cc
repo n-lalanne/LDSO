@@ -785,13 +785,13 @@ namespace ldso {
 			if (Hbb_I.determinant() < 1e-8)
 				Hbb_I_inv = (Hbb_I + VecX::Constant(Hbb_I.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
 			else
-				Hbb_I_inv.noalias() = Hbb_I.inverse();
+				Hbb_I_inv = Hbb_I.inverse();
 
 			MatXX HabHbbinv;
-			HabHbbinv.noalias() = Hab_I * Hbb_I_inv;
+			HabHbbinv = Hab_I * Hbb_I_inv;
 
-			H_I_sc.noalias() = HabHbbinv * Hab_I.transpose();
-			b_I_sc.noalias() = HabHbbinv * bb_I;
+			H_I_sc = HabHbbinv * Hab_I.transpose();
+			b_I_sc = HabHbbinv * bb_I;
 		}
 
 		void EnergyFunctional::resubstituteInertial(VecX x, shared_ptr<inertial::InertialHessian> HInertial)

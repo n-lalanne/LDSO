@@ -23,6 +23,7 @@ namespace ldso {
 			void update(Vec8 x);
 			void backup();
 			void reset();
+			void marginalize();
 
 			shared_ptr<PreIntegration> preIntegration;
 

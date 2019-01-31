@@ -425,7 +425,13 @@ namespace ldso {
 		LOG(INFO) << "Coarse Tracker tracked ab = " << aff_g2l.a << " " << aff_g2l.b << " (exp " << fh->ab_exposure
 			<< " ). Res " << achievedRes[0] << endl;
 
-		coarseTracker->inertialCoarseTrackerHessian->fix_i = false;
+		fh->inertialFrameHessian->T_WB_EvalPT = coarseTracker->inertialCoarseTrackerHessian->Tw_j;
+		fh->inertialFrameHessian->W_v_B_EvalPT = coarseTracker->inertialCoarseTrackerHessian->v_j;
+		fh->inertialFrameHessian->db_g_EvalPT = coarseTracker->inertialCoarseTrackerHessian->bg_j;
+		fh->inertialFrameHessian->db_a_EvalPT = coarseTracker->inertialCoarseTrackerHessian->ba_j;
+
+		fh->inertialFrameHessian->setState(Vec15::Zero());
+		coarseTracker->inertialCoarseTrackerHessian->marginalize();
 
 		return Vec4(achievedRes[0], flowVecs[0], flowVecs[1], flowVecs[2]);
 	}
