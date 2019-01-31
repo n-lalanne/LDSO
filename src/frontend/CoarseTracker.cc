@@ -95,6 +95,7 @@ namespace ldso {
 				// more than 60% is over than threshold, then increate the cut off threshold
 				levelCutoffRepeat *= 2;
 				resOld = calcRes(lvl, refToNew_current, aff_g2l_current, setting_coarseCutoffTH * levelCutoffRepeat);
+				visualWeight = resOld[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
 			}
 
 			//printf("INCREASING cutoff to %f (ratio is %f)!\n", setting_coarseCutoffTH*levelCutoffRepeat, resOld[5]);
@@ -108,14 +109,16 @@ namespace ldso {
 			Vec2f relAff = AffLight::fromToVecExposure(lastRef->ab_exposure, newFrame->ab_exposure, lastRef_aff_g2l,
 				aff_g2l_current).cast<float>();
 
-			/*printf("lvl%d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = %f)! \t",
+			printf("lvl%d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = %f)! \t",
 				lvl, -1, lambda, 1.0f,
 				"INITIA",
 				0.0f,
 				resOld[0] / resOld[1],
 				0, (int)resOld[1],
 				0.0f);
-			std::cout << refToNew_current.log().transpose() << " AFF " << aff_g2l_current.vec().transpose() << " (rel " << relAff.transpose() << ")\n";*/
+			std::cout << refToNew_current.log().transpose() << " AFF " << aff_g2l_current.vec().transpose() << " (rel " << relAff.transpose() << ")\n";
+
+			LOG(INFO) << "initial energy: " << inertialCoarseTrackerHessian->energy << " (" << inertialCoarseTrackerHessian->energy / (resOld[1] * patternNum) << ")" << std::endl;
 
 			// L-M iteration
 			for (int iteration = 0; iteration < maxIterations[lvl]; iteration++) {
@@ -172,7 +175,8 @@ namespace ldso {
 
 				// calculate new residual after this update step
 				Vec6 resNew = calcRes(lvl, refToNew_new, aff_g2l_new, setting_coarseCutoffTH * levelCutoffRepeat);
-				inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_current);
+				visualWeight = resNew[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
+				inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_new);
 
 				// decide whether to accept this step
 				// res[0]/res[1] is the average energy
@@ -181,7 +185,7 @@ namespace ldso {
 				Vec2f relAff = AffLight::fromToVecExposure(lastRef->ab_exposure, newFrame->ab_exposure,
 					lastRef_aff_g2l, aff_g2l_new).cast<float>();
 
-				/*printf("lvl %d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = %f)! \t",
+				printf("lvl %d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = %f)! \t",
 					lvl, iteration, lambda,
 					extrapFac,
 					(accept ? "ACCEPT" : "REJECT"),
@@ -189,7 +193,9 @@ namespace ldso {
 					resNew[0] / resNew[1],
 					(int)resOld[1], (int)resNew[1],
 					inc.norm());
-				std::cout << refToNew_new.log().transpose() << " AFF " << aff_g2l_new.vec().transpose() << " (rel " << relAff.transpose() << ")\n";*/
+				std::cout << refToNew_new.log().transpose() << " AFF " << aff_g2l_new.vec().transpose() << " (rel " << relAff.transpose() << ")\n";
+
+				LOG(INFO) << "initial energy: " << inertialCoarseTrackerHessian->energy << " (" << inertialCoarseTrackerHessian->energy / (resNew[1] * patternNum) << ")" << std::endl;
 
 				if (accept) {
 
@@ -204,6 +210,10 @@ namespace ldso {
 					// increase lambda in LM
 					lambda *= 4;
 					if (lambda < lambdaExtrapolationLimit) lambda = lambdaExtrapolationLimit;
+					inertialCoarseTrackerHessian->restore();
+					visualWeight = resOld[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
+					inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_current);
+					LOG(INFO) << "initial energy: " << inertialCoarseTrackerHessian->energy << " (" << inertialCoarseTrackerHessian->energy / (resOld[1] * patternNum) << ")" << std::endl;
 				}
 
 				// terminate if increment is small

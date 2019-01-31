@@ -14,16 +14,22 @@ namespace ldso {
 			S = s.asDiagonal().toDenseMatrix();
 		}
 
-		void InertialCoarseTrackerHessian::marginalize() 
+		void InertialCoarseTrackerHessian::marginalize()
 		{
-			fix_i = false;
+			//fix_i = false;
 			Tw_i = Tw_j;
 			v_i = v_j;
 			bg_i = bg_j;
 			ba_i = ba_j;
 		}
 
-		void InertialCoarseTrackerHessian::compute(double visualWeight, SE3 T_id, SE3 T_ji) {
+		void InertialCoarseTrackerHessian::restore() {
+
+			applyStep(-step);
+		}
+
+		void InertialCoarseTrackerHessian::compute(double visualWeight, SE3 T_id, SE3 T_ji)
+		{
 			Mat1515 J_i = Mat1515::Zero();
 			Mat1515 J_j = Mat1515::Zero();
 			Vec15 r_pr = Vec15::Zero();
@@ -105,8 +111,8 @@ namespace ldso {
 				Hab.block<6, 15>(0, 15) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 15>(0, 10);
 			}
 
-				H_I.block<6, 6>(0, 0) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 6>(0, 0);
-				b_I.block<6, 1>(0, 0) = -J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() * r_co;
+			H_I.block<6, 6>(0, 0) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 6>(0, 0);
+			b_I.block<6, 1>(0, 0) = -J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() * r_co;
 
 			MatXX HabHbbinv;
 			HabHbbinv = Hab * Hbb_inv;
@@ -145,33 +151,40 @@ namespace ldso {
 			fix_i = true;
 		}
 
-		void InertialCoarseTrackerHessian::update(Vec8 x) {
-			VecX xb;
-
-			xb = Hbb_inv * (bb - Hab.transpose() * x);
-
-
+		void InertialCoarseTrackerHessian::applyStep(VecX s) {
 			if (!fix_i)
 			{
-				xb.block<15, 1>(0, 0) = S.block<15, 15>(10, 10) * xb.block<15, 1>(0, 0);
-				xb.block<15, 1>(15, 0) = S.block<15, 15>(10, 10) * xb.block<15, 1>(15, 0);
-				Tw_i = SE3::exp(xb.block<6, 1>(0, 0)) * Tw_i;
-				v_i += xb.block<3, 1>(6, 0);
-				bg_i += xb.block<3, 1>(9, 0);
-				ba_i += xb.block<3, 1>(12, 0);
-				Tw_j = SE3::exp(xb.block<6, 1>(0 + 15, 0)) * Tw_j;
-				v_j += xb.block<3, 1>(6 + 15, 0);
-				bg_j += xb.block<3, 1>(9 + 15, 0);
-				ba_j += xb.block<3, 1>(12 + 15, 0);
+				Tw_i = SE3::exp(s.block<6, 1>(0, 0)) * Tw_i;
+				v_i += s.block<3, 1>(6, 0);
+				bg_i += s.block<3, 1>(9, 0);
+				ba_i += s.block<3, 1>(12, 0);
+				Tw_j = SE3::exp(s.block<6, 1>(0 + 15, 0)) * Tw_j;
+				v_j += s.block<3, 1>(6 + 15, 0);
+				bg_j += s.block<3, 1>(9 + 15, 0);
+				ba_j += s.block<3, 1>(12 + 15, 0);
 			}
 			else
 			{
-				xb.block<15, 1>(0, 0) = S.block<15, 15>(10, 10) * xb.block<15, 1>(0, 0);
-				Tw_j = SE3::exp(xb.block<6, 1>(0, 0)) * Tw_j;
-				v_j += xb.block<3, 1>(6, 0);
-				bg_j += xb.block<3, 1>(9, 0);
-				ba_j += xb.block<3, 1>(12, 0);
+				Tw_j = SE3::exp(s.block<6, 1>(0, 0)) * Tw_j;
+				v_j += s.block<3, 1>(6, 0);
+				bg_j += s.block<3, 1>(9, 0);
+				ba_j += s.block<3, 1>(12, 0);
 			}
+		}
+
+		void InertialCoarseTrackerHessian::update(Vec8 x) {
+			step = Hbb_inv * (bb - Hab.transpose() * x);
+
+			if (!fix_i)
+			{
+				step.block<15, 1>(0, 0) = S.block<15, 15>(10, 10) * step.block<15, 1>(0, 0);
+				step.block<15, 1>(15, 0) = S.block<15, 15>(10, 10) * step.block<15, 1>(15, 0);
+			}
+			else
+			{
+				step.block<15, 1>(0, 0) = S.block<15, 15>(10, 10) * step.block<15, 1>(0, 0);
+			}
+			applyStep(step);
 		}
 		void InertialCoarseTrackerHessian::backup() {
 			x_backup_i = Vec15::Zero();

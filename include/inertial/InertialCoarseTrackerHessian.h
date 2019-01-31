@@ -24,6 +24,7 @@ namespace ldso {
 			void backup();
 			void reset();
 			void marginalize();
+			void restore();
 
 			shared_ptr<PreIntegration> preIntegration;
 
@@ -56,6 +57,8 @@ namespace ldso {
 			MatXX Hbb_inv = MatXX::Zero(15, 15);
 			MatXX Hab = MatXX::Zero(8, 15);
 
+			VecX step = VecX::Zero(15);
+
 			Mat1515 W;
 			Vec6 w;
 
@@ -64,6 +67,8 @@ namespace ldso {
 			double energy;
 
 			bool fix_i = true;
+		private:
+			void applyStep(VecX s);
 		};
 	}
 }
