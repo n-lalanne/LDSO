@@ -19,8 +19,10 @@ namespace ldso {
 			//fix_i = false;
 			Tw_i = Tw_j;
 			v_i = v_j;
-			bg_i = bg_j;
-			ba_i = ba_j;
+			bg_i = Vec3::Zero();
+			ba_i = Vec3::Zero();
+			lin_bias_g = bg_j;
+			lin_bias_g = bg_j;
 		}
 
 		void InertialCoarseTrackerHessian::restore() {
@@ -40,8 +42,10 @@ namespace ldso {
 			H_I.setZero();
 
 
-			InertialFrameFrameHessian::computeResidual(r_pr, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j);
-			InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j);
+			InertialFrameFrameHessian::computeResidual(r_pr, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, Vec3::Zero(), lin_bias_a, Vec3::Zero());
+			InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, Vec3::Zero(), lin_bias_a, Vec3::Zero());
+
+			LOG(INFO) << "Bias Lin: (g): " << lin_bias_g.transpose().format(setting_vi_format) << "(a): " << lin_bias_a.transpose().format(setting_vi_format);
 
 			SE3 Tcd = T_ji * T_id;
 
@@ -139,15 +143,19 @@ namespace ldso {
 			Tw_i = fh->inertialFrameHessian->T_WB_PRE;
 			Tw_j = Tw_i;
 
-			bg_i = fh->inertialFrameHessian->db_g_PRE;
-			bg_j = bg_i;
+			bg_i = Vec3::Zero();
+			bg_j = fh->inertialFrameHessian->db_g_PRE;
 
-			ba_i = fh->inertialFrameHessian->db_g_PRE;
-			ba_j = ba_i;
+			ba_i = Vec3::Zero();
+			ba_j = fh->inertialFrameHessian->db_a_PRE;
 
 			scale = Hinertial->scale_PRE;
 			T_bc = Hinertial->T_BC;
 			R_wd = Hinertial->R_WD_PRE;
+
+			lin_bias_g = fh->inertialFrameHessian->b_g_lin;
+			lin_bias_a = fh->inertialFrameHessian->b_a_lin;
+
 			fix_i = true;
 		}
 
@@ -169,6 +177,7 @@ namespace ldso {
 				v_j += s.block<3, 1>(6, 0);
 				bg_j += s.block<3, 1>(9, 0);
 				ba_j += s.block<3, 1>(12, 0);
+				LOG(INFO) << "step: " << s.transpose().format(setting_vi_format);
 			}
 		}
 

@@ -20,7 +20,7 @@ namespace ldso {
 		public:
 			EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-			void linearize(shared_ptr<InertialHessian> inertialHessian, double visualWeight, bool force);
+			void linearize(shared_ptr<InertialHessian> inertialHessian, double visualWeight, bool force, int nPreIntegrationFactors, int nCombineFactors);
 			static void computeJacobian(Mat625 &J, double s, SO3 Rwb, SO3 Rbw, SO3 Rcb, SO3 Rbc, SO3 Rcd, SO3 Rdc, SO3 Rdw, SO3 Rwd, Vec3 pw, Vec3 pc, SE3 Tdc);
 			static void computeResidual(Vec6 &r, double s, SO3 Rwb, SO3 Rbw, SO3 Rcb, SO3 Rbc, SO3 Rcd, SO3 Rdc, SO3 Rdw, SO3 Rwd, Vec3 pw, Vec3 pc, SE3 Tdc);
 			void setState(Vec15 x_new);
@@ -35,22 +35,24 @@ namespace ldso {
 			// factor goes to me, j
 			shared_ptr<inertial::InertialFrameFrameHessian> to;
 
-			Vec3 W_v_B_EvalPT;
+			Vec3 W_v_B_EvalPT = Vec3::Zero();
 
-			SE3 T_WB_EvalPT;
-			SE3 T_BW_EvalPT;
+			SE3 T_WB_EvalPT = SE3();
+			SE3 T_BW_EvalPT = SE3();
 
+			Vec3 b_g_lin = Vec3::Zero();
+			Vec3 b_a_lin = Vec3::Zero();
 
-			Vec3 db_a_EvalPT;
-			Vec3 db_g_EvalPT;
+			Vec3 db_a_EvalPT = Vec3::Zero();
+			Vec3 db_g_EvalPT = Vec3::Zero();
 
-			Vec3 W_v_B_PRE;
+			Vec3 W_v_B_PRE = Vec3::Zero();
 
-			SE3 T_WB_PRE;
-			SE3 T_BW_PRE;
+			SE3 T_WB_PRE = SE3();
+			SE3 T_BW_PRE = SE3();
 
-			Vec3 db_a_PRE;
-			Vec3 db_g_PRE;
+			Vec3 db_a_PRE = Vec3::Zero();
+			Vec3 db_g_PRE = Vec3::Zero();
 
 			// 0-2: u, 3-5: w, 6-8: v, 9-11: b_g, 12-14: b_a
 			Vec15 x = Vec15::Zero();

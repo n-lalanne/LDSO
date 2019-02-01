@@ -34,6 +34,9 @@ namespace ldso {
 			SE3 Tw_i;
 			SE3 Tw_j;
 
+			Vec3 lin_bias_g;
+			Vec3 lin_bias_a;
+
 			Vec3 bg_i;
 			Vec3 ba_i;
 			Vec3 bg_j;

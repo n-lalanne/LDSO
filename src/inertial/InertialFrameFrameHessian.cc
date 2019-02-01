@@ -10,7 +10,7 @@ namespace ldso {
 			this->preIntegration = preIntegration;
 		}
 
-		void InertialFrameFrameHessian::computeJacobian(Mat1515 &J_from, Mat1515 &J_to, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj)
+		void InertialFrameFrameHessian::computeJacobian(Mat1515 &J_from, Mat1515 &J_to, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj, Vec3 bgi_lin, Vec3 bgj_lin, Vec3 bai_lin, Vec3 baj_lin)
 		{
 			Vec3 g(0, 0, -9.81);
 
@@ -81,7 +81,7 @@ namespace ldso {
 			J_to.block<3, 3>(12, 12) = -Mat33::Identity();
 		}
 
-		void InertialFrameFrameHessian::computeResidual(Vec15 &r, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj)
+		void InertialFrameFrameHessian::computeResidual(Vec15 &r, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj, Vec3 bgi_lin, Vec3 bgj_lin, Vec3 bai_lin, Vec3 baj_lin)
 		{
 			Vec3 g(0, 0, -9.81);
 
@@ -94,15 +94,15 @@ namespace ldso {
 			r.block<3, 1>(0, 0) = (dR_tilde_and_bias_inv * Riw * Rwj).log();
 			r.block<3, 1>(3, 0) = Riw * dvij_g - (preIntegration->delta_v_ij + preIntegration->d_delta_v_ij_dg * bgi + preIntegration->d_delta_v_ij_da*bai);
 			r.block<3, 1>(6, 0) = Riw * dpij_g - (preIntegration->delta_p_ij + preIntegration->d_delta_p_ij_dg * bgi + preIntegration->d_delta_p_ij_da*bai);
-			r.block<3, 1>(9, 0) = bgi - bgj;
-			r.block<3, 1>(12, 0) = bai - baj;
+			r.block<3, 1>(9, 0) = (bgi + bgi_lin) - (bgj + bgj_lin);
+			r.block<3, 1>(12, 0) = (bai + bai_lin) - (baj + baj_lin);
 		}
 
 		void InertialFrameFrameHessian::linearize(double visualWeight, bool force)
 		{
 			r.setZero();
 
-			computeResidual(r, preIntegration, from->T_WB_PRE.translation(), to->T_WB_PRE.translation(), from->T_BW_PRE.so3(), to->T_BW_PRE.so3(), to->T_WB_PRE.so3(), from->W_v_B_PRE, to->W_v_B_PRE, from->db_g_PRE, to->db_g_PRE, from->db_a_PRE, to->db_a_PRE);
+			computeResidual(r, preIntegration, from->T_WB_PRE.translation(), to->T_WB_PRE.translation(), from->T_BW_PRE.so3(), to->T_BW_PRE.so3(), to->T_WB_PRE.so3(), from->W_v_B_PRE, to->W_v_B_PRE, from->db_g_PRE, to->db_g_PRE, from->db_a_PRE, to->db_a_PRE, from->b_g_lin, to->b_g_lin, from->b_a_lin, to->b_a_lin);
 
 			if (!setting_vi_fej_window_optimization || force)
 			{
@@ -115,9 +115,9 @@ namespace ldso {
 				W = W.inverse();
 
 				if (setting_vi_fej_window_optimization)
-					computeJacobian(J_from, J_to, preIntegration, from->T_WB_EvalPT.translation(), to->T_WB_EvalPT.translation(), from->T_BW_EvalPT.so3(), to->T_BW_EvalPT.so3(), to->T_WB_EvalPT.so3(), from->W_v_B_EvalPT, to->W_v_B_EvalPT, from->db_g_EvalPT, to->db_g_EvalPT, from->db_a_EvalPT, to->db_a_EvalPT);
+					computeJacobian(J_from, J_to, preIntegration, from->T_WB_EvalPT.translation(), to->T_WB_EvalPT.translation(), from->T_BW_EvalPT.so3(), to->T_BW_EvalPT.so3(), to->T_WB_EvalPT.so3(), from->W_v_B_EvalPT, to->W_v_B_EvalPT, from->db_g_EvalPT, to->db_g_EvalPT, from->db_a_EvalPT, to->db_a_EvalPT, from->b_g_lin, to->b_g_lin, from->b_a_lin, to->b_a_lin);
 				else
-					computeJacobian(J_from, J_to, preIntegration, from->T_WB_PRE.translation(), to->T_WB_PRE.translation(), from->T_BW_PRE.so3(), to->T_BW_PRE.so3(), to->T_WB_PRE.so3(), from->W_v_B_PRE, to->W_v_B_PRE, from->db_g_PRE, to->db_g_PRE, from->db_a_PRE, to->db_a_PRE);
+					computeJacobian(J_from, J_to, preIntegration, from->T_WB_PRE.translation(), to->T_WB_PRE.translation(), from->T_BW_PRE.so3(), to->T_BW_PRE.so3(), to->T_WB_PRE.so3(), from->W_v_B_PRE, to->W_v_B_PRE, from->db_g_PRE, to->db_g_PRE, from->db_a_PRE, to->db_a_PRE, from->b_g_lin, to->b_g_lin, from->b_a_lin, to->b_a_lin);
 
 				H_to = J_to.transpose() * visualWeight * W * J_to;
 				H_from = J_from.transpose() * visualWeight * W * J_from;

@@ -5,7 +5,7 @@
 
 namespace ldso {
 	namespace inertial {
-		void InertialFrameHessian::linearize(shared_ptr<InertialHessian> inertialHessian, double visualWeight, bool force)
+		void InertialFrameHessian::linearize(shared_ptr<InertialHessian> inertialHessian, double visualWeight, bool force, int nPreIntegrationFactors, int nCombineFactors)
 		{
 			b.setZero();
 			r.setZero();
@@ -13,8 +13,10 @@ namespace ldso {
 
 			if (from)
 			{
-				from->linearize(visualWeight, force);
+				from->linearize(visualWeight / ((double)nPreIntegrationFactors), force);
 			}
+
+			visualWeight /= ((double)nCombineFactors);
 
 			computeResidual(r, inertialHessian->scale_PRE, T_WB_PRE.so3(), T_BW_PRE.so3(), inertialHessian->T_CB.so3(), inertialHessian->T_BC.so3(), fh->PRE_worldToCam.so3(), fh->PRE_camToWorld.so3(), inertialHessian->R_DW_PRE, inertialHessian->R_WD_PRE, T_WB_PRE.translation(), inertialHessian->T_CB.translation(), fh->PRE_camToWorld);
 

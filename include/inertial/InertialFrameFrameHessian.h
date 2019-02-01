@@ -18,13 +18,13 @@ namespace ldso {
 
 			InertialFrameFrameHessian(shared_ptr<inertial::PreIntegration> preIntegration);
 			void linearize(double visualWeight, bool force);
-			static void computeJacobian(Mat1515 &J_from, Mat1515 &J_to, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj);
-			static void computeResidual(Vec15 &r, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj);
+			static void computeJacobian(Mat1515 &J_from, Mat1515 &J_to, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj, Vec3 bgi_lin, Vec3 bgj_lin, Vec3 bai_lin, Vec3 baj_lin);
+			static void computeResidual(Vec15 &r, shared_ptr<inertial::PreIntegration> preIntegration, Vec3 pi, Vec3 pj, SO3 Riw, SO3 Rjw, SO3 Rwj, Vec3 vi, Vec3 vj, Vec3 bgi, Vec3 bgj, Vec3 bai, Vec3 baj, Vec3 bgi_lin, Vec3 bgj_lin, Vec3 bai_lin, Vec3 baj_lin);
 			// start at this frame, i
 			shared_ptr<InertialFrameHessian> from;
 			// go to this frame, j
 			shared_ptr<InertialFrameHessian> to;
-			
+
 			// H: start at this frame, i
 			Mat1515 H_from;
 			// b: start at this frame, i
@@ -47,7 +47,7 @@ namespace ldso {
 			double energy;
 			shared_ptr<inertial::PreIntegration> preIntegration;
 		private:
-			
+
 		};
 	}
 }

@@ -216,8 +216,8 @@ namespace ldso {
 		CHECK(coarseTracker->lastRef->frame != nullptr);
 		shared_ptr<inertial::PreIntegration> preIntegration = shared_ptr<inertial::PreIntegration>(new inertial::PreIntegration());
 		if (setting_vi_enable) {
-			preIntegration->lin_bias_g = lastF->inertialFrameHessian->db_g_PRE;
-			preIntegration->lin_bias_a = lastF->inertialFrameHessian->db_a_PRE;
+			preIntegration->lin_bias_g = coarseTracker->inertialCoarseTrackerHessian->lin_bias_g;
+			preIntegration->lin_bias_a = coarseTracker->inertialCoarseTrackerHessian->lin_bias_a;
 			preIntegration->addImuData(fh->inertialFrameHessian->imuDataHistory);
 			coarseTracker->inertialCoarseTrackerHessian->preIntegration = preIntegration;
 		}
@@ -571,8 +571,16 @@ namespace ldso {
 		// =========================== REMOVE OUTLIER =========================
 		removeOutliers();
 
+		// =========================== Visual Inertial =========================
 		nextKeyFramePreIntegration->lin_bias_g = fh->inertialFrameHessian->db_g_PRE;
 		nextKeyFramePreIntegration->lin_bias_a = fh->inertialFrameHessian->db_a_PRE;
+
+		fh->inertialFrameHessian->b_g_lin = nextKeyFramePreIntegration->lin_bias_g;
+		fh->inertialFrameHessian->b_a_lin = nextKeyFramePreIntegration->lin_bias_a;
+		fh->inertialFrameHessian->db_g_PRE = Vec3::Zero();
+		fh->inertialFrameHessian->db_a_PRE = Vec3::Zero();
+		fh->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();;
+		fh->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
 
 		// swap the coarse Tracker for new kf
 		{
@@ -1604,11 +1612,23 @@ namespace ldso {
 	{
 		double energy = 0;
 		double energyInertialOnly = 0;
+		int countPreIntegrationFactors = 0;
+		int countCombineFactors = 0;
 		if (setting_vi_enable)
 		{
-			double visualWeight = activeVisualResiduals * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
 			for (auto &fr : frames) {
-				fr->frameHessian->inertialFrameHessian->linearize(Hinertial, visualWeight, force);
+				if (fr->frameHessian->inertialFrameHessian->from != nullptr) {
+					countPreIntegrationFactors++;
+					countCombineFactors++;
+				}
+				else if (fr->frameHessian->inertialFrameHessian->to != nullptr)
+					countCombineFactors++;
+			}
+
+			double visualWeight = activeVisualResiduals * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
+
+			for (auto &fr : frames) {
+				fr->frameHessian->inertialFrameHessian->linearize(Hinertial, visualWeight, force, countPreIntegrationFactors, countCombineFactors);
 				energy += fr->frameHessian->inertialFrameHessian->energy;
 				if (fr->frameHessian->inertialFrameHessian->from)
 					energyInertialOnly += fr->frameHessian->inertialFrameHessian->from->energy;
