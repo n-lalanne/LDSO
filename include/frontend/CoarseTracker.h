@@ -128,6 +128,8 @@ namespace ldso {
 
 		std::vector<float *> ptrToDelete;    // all allocated memory, will be deleted in deconstructor
 		Accumulator9 acc;
+
+		void printOptRes(int lvl, int iteration, string action, double energy_vo_new, double energy_vi_new, double energy_vo_old, double energy_vi_old, double normInc);
 	};
 
 	// the distance map

@@ -104,21 +104,25 @@ namespace ldso {
 			calcGSSSE(lvl, H, b, refToNew_current, aff_g2l_current);
 			inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_current);
 
+			double resIOld = inertialCoarseTrackerHessian->energy / (resOld[1] * patternNum);
+
 			float lambda = 0.01;
 
 			Vec2f relAff = AffLight::fromToVecExposure(lastRef->ab_exposure, newFrame->ab_exposure, lastRef_aff_g2l,
 				aff_g2l_current).cast<float>();
 
-			printf("lvl%d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = %f)! \t",
+			/*printf("lvl%d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = %f)! \t",
 				lvl, -1, lambda, 1.0f,
 				"INITIA",
 				0.0f,
 				resOld[0] / resOld[1],
 				0, (int)resOld[1],
 				0.0f);
-			std::cout << refToNew_current.log().transpose() << " AFF " << aff_g2l_current.vec().transpose() << " (rel " << relAff.transpose() << ")\n";
+			std::cout << refToNew_current.log().transpose() << " AFF " << aff_g2l_current.vec().transpose() << " (rel " << relAff.transpose() << ")\n";*/
 
-			LOG(INFO) << "initial energy: " << inertialCoarseTrackerHessian->energy << " (" << inertialCoarseTrackerHessian->energy / (resOld[1] * patternNum) << ")" << std::endl;
+			//LOG(INFO) << "initial energy: " << inertialCoarseTrackerHessian->energy << " (" << inertialCoarseTrackerHessian->energy / (resOld[1] * patternNum) << ")" << std::endl;
+
+			printOptRes(lvl, -1, "INITIA", resOld[0] / resOld[1], resIOld, 0, 0, 0);
 
 			// L-M iteration
 			for (int iteration = 0; iteration < maxIterations[lvl]; iteration++) {
@@ -177,31 +181,33 @@ namespace ldso {
 				Vec6 resNew = calcRes(lvl, refToNew_new, aff_g2l_new, setting_coarseCutoffTH * levelCutoffRepeat);
 				visualWeight = resNew[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
 				inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_new);
-
+				double resINew = inertialCoarseTrackerHessian->energy / (resNew[1] * patternNum);
 				// decide whether to accept this step
 				// res[0]/res[1] is the average energy
-				bool accept = (resNew[0] / resNew[1]) < (resOld[0] / resOld[1]);
+				bool accept = (resNew[0] / resNew[1] + resINew) < (resOld[0] / resOld[1] + resIOld);
 
 				Vec2f relAff = AffLight::fromToVecExposure(lastRef->ab_exposure, newFrame->ab_exposure,
 					lastRef_aff_g2l, aff_g2l_new).cast<float>();
 
-				printf("lvl %d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = %f)! \t",
-					lvl, iteration, lambda,
-					extrapFac,
-					(accept ? "ACCEPT" : "REJECT"),
-					resOld[0] / resOld[1],
-					resNew[0] / resNew[1],
-					(int)resOld[1], (int)resNew[1],
-					inc.norm());
-				std::cout << refToNew_new.log().transpose() << " AFF " << aff_g2l_new.vec().transpose() << " (rel " << relAff.transpose() << ")\n";
+				//printf("lvl %d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = %f)! \t",
+				//	lvl, iteration, lambda,
+				//	extrapFac,
+				//	(accept ? "ACCEPT" : "REJECT"),
+				//	resOld[0] / resOld[1],
+				//	resNew[0] / resNew[1],
+				//	(int)resOld[1], (int)resNew[1],
+				//	inc.norm());
+				//std::cout << refToNew_new.log().transpose() << " AFF " << aff_g2l_new.vec().transpose() << " (rel " << relAff.transpose() << ")\n";
 
-				LOG(INFO) << "initial energy: " << inertialCoarseTrackerHessian->energy << " (" << inertialCoarseTrackerHessian->energy / (resNew[1] * patternNum) << ")" << std::endl;
+				//LOG(INFO) << "initial energy: " << inertialCoarseTrackerHessian->energy << " (" << inertialCoarseTrackerHessian->energy / (resNew[1] * patternNum) << ")" << std::endl;
+
+				printOptRes(lvl, iteration, (accept ? "ACCEPT" : "REJECT"), resNew[0] / resNew[1], resINew, resOld[0] / resOld[1], resIOld, inc.norm());
 
 				if (accept) {
-
 					// decrease lambda
 					calcGSSSE(lvl, H, b, refToNew_new, aff_g2l_new);
 					resOld = resNew;
+					resIOld = resINew;
 					aff_g2l_current = aff_g2l_new;
 					refToNew_current = refToNew_new;
 					lambda *= 0.5;
@@ -213,7 +219,7 @@ namespace ldso {
 					inertialCoarseTrackerHessian->restore();
 					visualWeight = resOld[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
 					inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_current);
-					LOG(INFO) << "initial energy: " << inertialCoarseTrackerHessian->energy << " (" << inertialCoarseTrackerHessian->energy / (resOld[1] * patternNum) << ")" << std::endl;
+					//LOG(INFO) << "initial energy: " << inertialCoarseTrackerHessian->energy << " (" << inertialCoarseTrackerHessian->energy / (resOld[1] * patternNum) << ")" << std::endl;
 				}
 
 				// terminate if increment is small
@@ -294,6 +300,11 @@ namespace ldso {
 			cyi[level] = Ki[level](1, 2);
 		}
 	}
+
+	void CoarseTracker::printOptRes(int lvl, int iteration, string action, double energy_vo_new, double energy_vi_new, double energy_vo_old, double energy_vi_old, double normInc) {
+		LOG(INFO) << "Level: " << lvl << " Iteration: " << iteration << " [" << action << "] |Inc|: " << normInc << " (" << energy_vo_old << " -> " << energy_vo_new << ") (" << energy_vi_old << " -> " << energy_vi_new << ") (" << energy_vo_old + energy_vi_old << " -> " << energy_vo_new + energy_vi_new << ")";
+	}
+
 
 	void CoarseTracker::setCoarseTrackingRef(std::vector<shared_ptr<FrameHessian>> &frameHessians) {
 

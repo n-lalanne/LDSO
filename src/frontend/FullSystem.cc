@@ -226,6 +226,7 @@ namespace ldso {
 
 		// try a lot of pose values and see which is the best
 		std::vector<SE3, Eigen::aligned_allocator<SE3>> lastF_2_fh_tries;
+
 		if (allFrameHistory.size() == 2)
 			for (unsigned int i = 0; i < lastF_2_fh_tries.size() + 1; i++)
 				lastF_2_fh_tries.push_back(SE3());  // use identity
@@ -246,6 +247,22 @@ namespace ldso {
 				aff_last_2_l = slast->aff_g2l;
 			}
 			SE3 fh_2_slast = slast_2_sprelast;// assumed to be the same as fh_2_slast.
+
+			if (setting_vi_enable) {
+				Vec3 g(0, 0, -9.81);
+
+				SE3 T_ij = SE3(SO3(preIntegration->delta_R_ij), (preIntegration->delta_p_ij + coarseTracker->inertialCoarseTrackerHessian->Tw_i.so3().inverse().matrix() * 0.5 * g * preIntegration->dt_ij*preIntegration->dt_ij));
+
+				coarseTracker->inertialCoarseTrackerHessian->v_j = coarseTracker->inertialCoarseTrackerHessian->v_i + coarseTracker->inertialCoarseTrackerHessian->Tw_i.so3()*preIntegration->delta_v_ij + g * preIntegration->dt_ij;
+
+				coarseTracker->inertialCoarseTrackerHessian->Tw_j = coarseTracker->inertialCoarseTrackerHessian->Tw_i * T_ij;
+
+				T_ij = coarseTracker->inertialCoarseTrackerHessian->T_bc.inverse() * SE3(T_ij.so3(), exp(-coarseTracker->inertialCoarseTrackerHessian->scale) * T_ij.translation()) *coarseTracker->inertialCoarseTrackerHessian->T_bc;
+
+				std::cout << (T_ij.inverse()*lastF_2_slast).matrix() << std::endl;
+
+				lastF_2_fh_tries.push_back(T_ij.inverse()*lastF_2_slast);
+			}
 
 			// get last delta-movement.
 			lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast);    // assume constant motion.
@@ -358,7 +375,7 @@ namespace ldso {
 
 		//Vec5 achievedRes = Vec5::Constant(NAN);
 
-		coarseTracker->inertialCoarseTrackerHessian->backup();
+		//coarseTracker->inertialCoarseTrackerHessian->backup();
 
 		Vec5 achievedRes = Vec5::Constant(INFINITY);
 		bool haveOneGood = false;
@@ -368,7 +385,7 @@ namespace ldso {
 			AffLight aff_g2l_this = aff_last_2_l;
 			SE3 lastF_2_fh_this = lastF_2_fh_tries[i];
 
-			coarseTracker->inertialCoarseTrackerHessian->reset();
+			//coarseTracker->inertialCoarseTrackerHessian->reset();
 
 			// use coarse tracker to solve the iteration
 			bool trackingIsGood = coarseTracker->trackNewestCoarse(
@@ -424,6 +441,8 @@ namespace ldso {
 
 		LOG(INFO) << "Coarse Tracker tracked ab = " << aff_g2l.a << " " << aff_g2l.b << " (exp " << fh->ab_exposure
 			<< " ). Res " << achievedRes[0] << endl;
+
+		std::cout << lastF_2_fh.matrix() << std::endl;
 
 		fh->inertialFrameHessian->T_WB_EvalPT = coarseTracker->inertialCoarseTrackerHessian->Tw_j;
 		fh->inertialFrameHessian->W_v_B_EvalPT = coarseTracker->inertialCoarseTrackerHessian->v_j;
@@ -579,7 +598,7 @@ namespace ldso {
 		fh->inertialFrameHessian->b_a_lin = nextKeyFramePreIntegration->lin_bias_a;
 		fh->inertialFrameHessian->db_g_PRE = Vec3::Zero();
 		fh->inertialFrameHessian->db_a_PRE = Vec3::Zero();
-		fh->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();;
+		fh->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
 		fh->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
 
 		// swap the coarse Tracker for new kf

@@ -22,7 +22,7 @@ namespace ldso {
 			bg_i = Vec3::Zero();
 			ba_i = Vec3::Zero();
 			lin_bias_g = bg_j;
-			lin_bias_g = bg_j;
+			lin_bias_a = ba_j;
 		}
 
 		void InertialCoarseTrackerHessian::restore() {
@@ -45,12 +45,14 @@ namespace ldso {
 			InertialFrameFrameHessian::computeResidual(r_pr, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, Vec3::Zero(), lin_bias_a, Vec3::Zero());
 			InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, Vec3::Zero(), lin_bias_a, Vec3::Zero());
 
-			LOG(INFO) << "Bias Lin: (g): " << lin_bias_g.transpose().format(setting_vi_format) << "(a): " << lin_bias_a.transpose().format(setting_vi_format);
+			//LOG(INFO) << "Bias Lin: (g): " << lin_bias_g.transpose().format(setting_vi_format) << "(a): " << lin_bias_a.transpose().format(setting_vi_format);
 
 			SE3 Tcd = T_ji * T_id;
 
 			InertialFrameHessian::computeResidual(r_co, scale, Tw_j.so3(), Tw_j.so3().inverse(), T_bc.so3().inverse(), T_bc.so3(), Tcd.so3(), Tcd.so3().inverse(), R_wd.inverse(), R_wd, Tw_j.translation(), T_bc.inverse().translation(), Tcd.inverse());
 			InertialFrameHessian::computeJacobian(J_co, scale, Tw_j.so3(), Tw_j.so3().inverse(), T_bc.so3().inverse(), T_bc.so3(), Tcd.so3(), Tcd.so3().inverse(), R_wd.inverse(), R_wd, Tw_j.translation(), T_bc.inverse().translation(), Tcd.inverse());
+
+			LOG(INFO) << "r (pre integration): " << r_pr.format(setting_vi_format) << "; r (join): " <<  r_co.format(setting_vi_format);
 
 			J_co = J_co * S;
 
@@ -144,10 +146,10 @@ namespace ldso {
 			Tw_j = Tw_i;
 
 			bg_i = Vec3::Zero();
-			bg_j = fh->inertialFrameHessian->db_g_PRE;
+			bg_j = fh->inertialFrameHessian->b_g_lin;
 
 			ba_i = Vec3::Zero();
-			ba_j = fh->inertialFrameHessian->db_a_PRE;
+			ba_j = fh->inertialFrameHessian->b_a_lin;
 
 			scale = Hinertial->scale_PRE;
 			T_bc = Hinertial->T_BC;
@@ -177,7 +179,7 @@ namespace ldso {
 				v_j += s.block<3, 1>(6, 0);
 				bg_j += s.block<3, 1>(9, 0);
 				ba_j += s.block<3, 1>(12, 0);
-				LOG(INFO) << "step: " << s.transpose().format(setting_vi_format);
+				//LOG(INFO) << "step: " << s.transpose().format(setting_vi_format);
 			}
 		}
 
