@@ -210,11 +210,11 @@ namespace ldso {
 					resIOld = resINew;
 					aff_g2l_current = aff_g2l_new;
 					refToNew_current = refToNew_new;
-					lambda *= 0.5;
+					lambda *= setting_coarse_tracker_lambda_decrease;
 				}
 				else {
 					// increase lambda in LM
-					lambda *= 4;
+					lambda *= setting_coarse_tracker_lambda_increase;
 					if (lambda < lambdaExtrapolationLimit) lambda = lambdaExtrapolationLimit;
 					inertialCoarseTrackerHessian->restore();
 					visualWeight = resOld[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
@@ -229,7 +229,7 @@ namespace ldso {
 			} // end of L-M iteration
 
 			// set last residual for that level, as well as flow indicators.
-			lastResiduals[lvl] = sqrtf((float)(resOld[0] / resOld[1]));
+			lastResiduals[lvl] = sqrtf((float)(resOld[0] / resOld[1] + resIOld));
 			lastFlowIndicators = resOld.segment<3>(2);
 			if (lastResiduals[lvl] > 1.5 * minResForAbort[lvl])
 			{

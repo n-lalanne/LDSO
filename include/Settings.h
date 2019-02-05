@@ -168,6 +168,8 @@ namespace ldso {
 	extern bool setting_pause;
 	extern int setting_pointSelection;      // 0-DSO's selection. 1-LDSO's selection, 2-Random selection
 
+	extern double setting_coarse_tracker_lambda_increase;
+	extern double setting_coarse_tracker_lambda_decrease;
 
 	//==================== Visual Inertial Settings
 	extern int setting_vi_nMeanFilterGravityDirection; // the number of messurements to go back for estimating the initial gravity direction
@@ -183,6 +185,7 @@ namespace ldso {
 	extern double setting_vi_lambda_trans; // lambda for rotation weight
 
 	extern double setting_vi_lambda_overall; // lambda for inertial weight
+	extern double setting_vi_lambda_coarse_tracker; // lambda for inertial weight
 
 	extern bool setting_vi_debug;
 

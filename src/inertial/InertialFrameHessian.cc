@@ -20,6 +20,8 @@ namespace ldso {
 
 			computeResidual(r, inertialHessian->scale_PRE, T_WB_PRE.so3(), T_BW_PRE.so3(), inertialHessian->T_CB.so3(), inertialHessian->T_BC.so3(), fh->PRE_worldToCam.so3(), fh->PRE_camToWorld.so3(), inertialHessian->R_DW_PRE, inertialHessian->R_WD_PRE, T_WB_PRE.translation(), inertialHessian->T_CB.translation(), fh->PRE_camToWorld);
 
+			LOG(INFO) << "r (combine): [" << r.transpose().format(setting_vi_format) << "]";
+
 			if (!setting_vi_fej_window_optimization || force)
 			{
 				H.setZero();
@@ -29,7 +31,7 @@ namespace ldso {
 				W.block<3, 1>(3, 0) = Vec3(setting_vi_lambda_trans*setting_vi_lambda_trans, setting_vi_lambda_trans*setting_vi_lambda_trans, setting_vi_lambda_trans*setting_vi_lambda_trans);
 
 				if (setting_vi_fej_window_optimization)
-					computeJacobian(J, inertialHessian->scale_EvalPT, T_WB_EvalPT.so3(), T_BW_EvalPT.so3(), inertialHessian->T_CB.so3(), inertialHessian->T_BC.so3(), fh->worldToCam_evalPT.so3(), fh->worldToCam_evalPT.so3().inverse(), inertialHessian->R_DW_EvalPT, inertialHessian->R_WD_EvalPT, T_WB_EvalPT.translation(), inertialHessian->T_CB.translation(), fh->worldToCam_evalPT.inverse());
+					computeJacobian(J, inertialHessian->scale_EvalPT, T_WB_EvalPT.so3(), T_BW_EvalPT.so3(), inertialHessian->T_CB.so3(), inertialHessian->T_BC.so3(), fh->worldToCam_evalPT.so3(), fh->worldToCam_evalPT.so3().inverse(), inertialHessian->R_DW_EvalPT, inertialHessian->R_DW_EvalPT.inverse(), T_WB_EvalPT.translation(), inertialHessian->T_CB.translation(), fh->worldToCam_evalPT.inverse());
 				else
 					computeJacobian(J, inertialHessian->scale_PRE, T_WB_PRE.so3(), T_BW_PRE.so3(), inertialHessian->T_CB.so3(), inertialHessian->T_BC.so3(), fh->PRE_worldToCam.so3(), fh->PRE_camToWorld.so3(), inertialHessian->R_DW_PRE, inertialHessian->R_WD_PRE, T_WB_PRE.translation(), inertialHessian->T_CB.translation(), fh->PRE_camToWorld);
 

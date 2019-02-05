@@ -129,6 +129,10 @@ namespace ldso {
 	bool setting_fastLoopClosing = true;
 	bool setting_showLoopClosing = false;
 
+
+	double setting_coarse_tracker_lambda_increase = 4.0;
+	double setting_coarse_tracker_lambda_decrease = 0.5;
+
 	//==================== Visual Inertial Settings
 	int setting_vi_nMeanFilterGravityDirection = 40;
 
@@ -136,6 +140,7 @@ namespace ldso {
 	double setting_vi_epsilonIIRInitialization = 0.01;
 	double setting_vi_hasMovementThreshold = 0.1;
 	int setting_vi_hasMovementResetPeriod = 200 * 0.2;
+	double setting_vi_lambda_coarse_tracker = 1;
 
 	bool setting_vi_enable = true;
 	bool setting_vi_fej_window_optimization = false;

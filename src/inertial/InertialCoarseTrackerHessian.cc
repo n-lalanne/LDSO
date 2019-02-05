@@ -52,7 +52,7 @@ namespace ldso {
 			InertialFrameHessian::computeResidual(r_co, scale, Tw_j.so3(), Tw_j.so3().inverse(), T_bc.so3().inverse(), T_bc.so3(), Tcd.so3(), Tcd.so3().inverse(), R_wd.inverse(), R_wd, Tw_j.translation(), T_bc.inverse().translation(), Tcd.inverse());
 			InertialFrameHessian::computeJacobian(J_co, scale, Tw_j.so3(), Tw_j.so3().inverse(), T_bc.so3().inverse(), T_bc.so3(), Tcd.so3(), Tcd.so3().inverse(), R_wd.inverse(), R_wd, Tw_j.translation(), T_bc.inverse().translation(), Tcd.inverse());
 
-			LOG(INFO) << "r (pre integration): " << r_pr.format(setting_vi_format) << "; r (join): " <<  r_co.format(setting_vi_format);
+			//LOG(INFO) << "r (pre integration): " << r_pr.format(setting_vi_format) << "; r (join): " <<  r_co.format(setting_vi_format);
 
 			J_co = J_co * S;
 
@@ -62,8 +62,9 @@ namespace ldso {
 			W = W.inverse();
 
 			w.setZero();
-			w.block<3, 1>(0, 0) = Vec3(setting_vi_lambda_rot * setting_vi_lambda_rot, setting_vi_lambda_rot* setting_vi_lambda_rot, setting_vi_lambda_rot*setting_vi_lambda_rot);
-			w.block<3, 1>(3, 0) = Vec3(setting_vi_lambda_trans*setting_vi_lambda_trans, setting_vi_lambda_trans*setting_vi_lambda_trans, setting_vi_lambda_trans*setting_vi_lambda_trans);
+			w.block<3, 1>(0, 0) = setting_vi_lambda_coarse_tracker * Vec3(setting_vi_lambda_rot * setting_vi_lambda_rot, setting_vi_lambda_rot * setting_vi_lambda_rot, setting_vi_lambda_rot * setting_vi_lambda_rot);
+			w.block<3, 1>(3, 0) = setting_vi_lambda_coarse_tracker * Vec3(setting_vi_lambda_trans * setting_vi_lambda_trans, setting_vi_lambda_trans * setting_vi_lambda_trans, setting_vi_lambda_trans * setting_vi_lambda_trans);
+
 
 			if (fix_i)
 			{

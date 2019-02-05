@@ -105,6 +105,17 @@ namespace ldso {
             this->Tcw = Tcw;
         }
 
+		// get and write pose
+		SE3 getPoseInertial() {
+			unique_lock<mutex> lck(poseMutex);
+			return TcwInertial;
+		}
+
+		void setPoseInertial(const SE3 &Tcw) {
+			unique_lock<mutex> lck(poseMutex);
+			this->TcwInertial = Tcw;
+		}
+
         // get and write the optimized pose by loop closing
         Sim3 getPoseOpti() {
             unique_lock<mutex> lck(poseMutex);
@@ -126,9 +137,10 @@ namespace ldso {
         // poses
         // access them by getPose and getPoseOpti function
         mutex poseMutex;            // need to lock this pose since we have multiple threads reading and writing them
-        SE3 Tcw = SE3(Eigen::Quaterniond::Identity(), Vec3::Zero());;           // pose from world to camera, estimated by DSO (nobody wants to touch DSO's backend except Jakob)
+        SE3 Tcw = SE3(Eigen::Quaterniond::Identity(), Vec3::Zero());           // pose from world to camera, estimated by DSO (nobody wants to touch DSO's backend except Jakob)
         Sim3 TcwOpti;     // pose from world to camera optimized by global pose graph (with scale)
 
+		SE3 TcwInertial = SE3(Eigen::Quaterniond::Identity(), Vec3::Zero());
     public:
         bool poseValid = true;     // if pose is valid (false when initializing)
         double timeStamp = 0;      // time stamp

@@ -251,15 +251,13 @@ namespace ldso {
 			if (setting_vi_enable) {
 				Vec3 g(0, 0, -9.81);
 
-				SE3 T_ij = SE3(SO3(preIntegration->delta_R_ij), (preIntegration->delta_p_ij + coarseTracker->inertialCoarseTrackerHessian->Tw_i.so3().inverse().matrix() * 0.5 * g * preIntegration->dt_ij*preIntegration->dt_ij));
+				SE3 T_ij = SE3(SO3(preIntegration->delta_R_ij), (preIntegration->delta_p_ij + (coarseTracker->inertialCoarseTrackerHessian->Tw_i.so3().inverse().matrix() * 0.5 * g * preIntegration->dt_ij + coarseTracker->inertialCoarseTrackerHessian->v_i)*preIntegration->dt_ij));
 
 				coarseTracker->inertialCoarseTrackerHessian->v_j = coarseTracker->inertialCoarseTrackerHessian->v_i + coarseTracker->inertialCoarseTrackerHessian->Tw_i.so3()*preIntegration->delta_v_ij + g * preIntegration->dt_ij;
 
 				coarseTracker->inertialCoarseTrackerHessian->Tw_j = coarseTracker->inertialCoarseTrackerHessian->Tw_i * T_ij;
 
 				T_ij = coarseTracker->inertialCoarseTrackerHessian->T_bc.inverse() * SE3(T_ij.so3(), exp(-coarseTracker->inertialCoarseTrackerHessian->scale) * T_ij.translation()) *coarseTracker->inertialCoarseTrackerHessian->T_bc;
-
-				std::cout << (T_ij.inverse()*lastF_2_slast).matrix() << std::endl;
 
 				lastF_2_fh_tries.push_back(T_ij.inverse()*lastF_2_slast);
 			}
@@ -433,7 +431,10 @@ namespace ldso {
 		// set the pose of new frame
 		CHECK(coarseTracker->lastRef->frame != nullptr);
 		SE3 camToWorld = lastF->frame->getPose().inverse() * lastF_2_fh.inverse();
-		fh->frame->setPose(camToWorld.inverse());
+		SE3 worldToCam = camToWorld.inverse();
+		fh->frame->setPose(worldToCam);
+		SE3 worldToCamInertial = SE3(worldToCam.so3(), exp(coarseTracker->inertialCoarseTrackerHessian->scale)*worldToCam.translation())*SE3(coarseTracker->inertialCoarseTrackerHessian->R_wd.inverse(), Vec3::Zero());
+		fh->frame->setPoseInertial(worldToCamInertial);
 		fh->frame->aff_g2l = aff_g2l;
 
 		if (coarseTracker->firstCoarseRMSE < 0)
@@ -441,8 +442,6 @@ namespace ldso {
 
 		LOG(INFO) << "Coarse Tracker tracked ab = " << aff_g2l.a << " " << aff_g2l.b << " (exp " << fh->ab_exposure
 			<< " ). Res " << achievedRes[0] << endl;
-
-		std::cout << lastF_2_fh.matrix() << std::endl;
 
 		fh->inertialFrameHessian->T_WB_EvalPT = coarseTracker->inertialCoarseTrackerHessian->Tw_j;
 		fh->inertialFrameHessian->W_v_B_EvalPT = coarseTracker->inertialCoarseTrackerHessian->v_j;
@@ -978,7 +977,10 @@ namespace ldso {
 		{
 			unique_lock<mutex> crlock(shellPoseMutex);
 			for (auto fr : frames) {
-				fr->setPose(fr->frameHessian->PRE_camToWorld.inverse());
+				SE3 worldToCam = fr->frameHessian->PRE_camToWorld.inverse();
+				fr->setPose(worldToCam);
+				SE3 worldToCamInertial = SE3(worldToCam.so3(), exp(Hinertial->scale_PRE)*worldToCam.translation())*SE3(Hinertial->R_DW_PRE, Vec3::Zero());
+				fr->setPoseInertial(worldToCamInertial);
 				fr->aff_g2l = fr->frameHessian->aff_g2l();
 			}
 		}
@@ -1531,6 +1533,8 @@ namespace ldso {
 			unique_lock<mutex> crlock(shellPoseMutex);
 			firstFrame->setEvalPT_scaled(fr->getPose(), firstFrame->frame->aff_g2l);
 			newFrame->frame->setPose(firstToNew);
+			SE3 worldToCamInertial = SE3(firstToNew.so3(), exp(Hinertial->scale_PRE)*firstToNew.translation())*SE3(Hinertial->R_DW_PRE, Vec3::Zero());
+			newFrame->frame->setPoseInertial(worldToCamInertial);
 			newFrame->setEvalPT_scaled(newFrame->frame->getPose(), newFrame->frame->aff_g2l);
 		}
 
@@ -1559,7 +1563,7 @@ namespace ldso {
 		double theta = acos(b_g.dot(w_g));
 
 		SO3 R_wb;
-		SO3 R_cwd = firstToNew.so3();
+		SO3 R_cd = firstToNew.so3();
 		SO3 R_bc = Hinertial->T_BC.so3();
 
 		if (abs(axis_abs) < Sophus::Constants<double>::epsilon())
@@ -1572,7 +1576,7 @@ namespace ldso {
 			R_wb = SO3::exp(axis*theta);
 		}
 
-		Hinertial->setEvalPT((R_wb*R_bc*R_cwd).inverse());
+		Hinertial->setEvalPT((R_wb*R_bc*R_cd).inverse());
 
 		firstFrame->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
 		firstFrame->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();

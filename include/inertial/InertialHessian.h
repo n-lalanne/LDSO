@@ -17,11 +17,9 @@ namespace ldso {
 				this->T_BC = imuToCam.inverse();
 			}
 
-			inline void setEvalPT(const SO3 &worldDSOToWorld_evalPT) {
-				this->R_DW_EvalPT = worldDSOToWorld_evalPT;
-				this->R_WD_EvalPT = worldDSOToWorld_evalPT.inverse();
-
-				this->R_WD_PRE = R_WD_EvalPT;
+			inline void setEvalPT(const SO3 &worldToWorldDSO_evalPT) {
+				this->R_DW_EvalPT = worldToWorldDSO_evalPT;
+				this->R_WD_PRE = R_DW_EvalPT.inverse();
 				this->R_DW_PRE = R_DW_EvalPT;
 			};
 
@@ -35,7 +33,6 @@ namespace ldso {
 			double scale_PRE;
 
 			SO3 R_DW_EvalPT;
-			SO3 R_WD_EvalPT;
 
 			SO3 R_WD_PRE;
 			SO3 R_DW_PRE;

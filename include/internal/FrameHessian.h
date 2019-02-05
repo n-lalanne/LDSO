@@ -86,6 +86,8 @@ namespace ldso {
 
 				PRE_worldToCam = SE3::exp(w2c_leftEps()) * get_worldToCam_evalPT();
 				PRE_camToWorld = PRE_worldToCam.inverse();
+
+				LOG(INFO) << "Frame Hessian (" << frameID << ") u: [" << PRE_camToWorld.log().transpose().segment<3>(0).format(setting_vi_format) << "]; omega: [" << PRE_camToWorld.log().transpose().segment<3>(3).format(setting_vi_format) << "];";
 			};
 
 			inline void setStateScaled(const Vec10 &state_scaled) {
@@ -100,6 +102,8 @@ namespace ldso {
 
 				PRE_worldToCam = SE3::exp(w2c_leftEps()) * get_worldToCam_evalPT();
 				PRE_camToWorld = PRE_worldToCam.inverse();
+
+				LOG(INFO) << "Frame Hessian (" << frameID << ") u: [" << PRE_camToWorld.log().transpose().segment<3>(0).format(setting_vi_format) << "]; omega: [" << PRE_camToWorld.log().transpose().segment<3>(3).format(setting_vi_format) << "];";
 			};
 
 			inline void setEvalPT(const SE3 &worldToCam_evalPT, const Vec10 &state) {
