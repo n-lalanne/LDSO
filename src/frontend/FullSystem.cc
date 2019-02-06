@@ -1555,7 +1555,7 @@ namespace ldso {
 		double theta = acos(b_g.dot(w_g));
 
 		SO3 R_wb;
-		SO3 R_cd = firstToNew.so3();
+		SO3 R_cd = SO3(Eigen::Quaterniond::Identity());
 		SO3 R_bc = Hinertial->T_BC.so3();
 
 		if (abs(axis_abs) < Sophus::Constants<double>::epsilon())
@@ -1572,14 +1572,14 @@ namespace ldso {
 
 		Vec3 g(0, 0, -9.81);
 
-		SE3 T_dc0 = SE3(SO3(Eigen::Quaterniond::Identity()), Vec3::Zero());
-		SE3 T_dc1 = firstToNew.inverse();
+		
+		SE3 T_wb1 = SE3(R_wb, Vec3::Zero());
+		T_wb1.translation() = SE3(preIntegration->delta_R_ij, Vec3::Zero()).inverse()*(preIntegration->delta_p_ij + (0.5 * (T_wb1.so3() * SO3(preIntegration->delta_R_ij).inverse() * g) * preIntegration->dt_ij)*preIntegration->dt_ij);
+		SE3 T_wb0 = T_wb1 * SE3(preIntegration->delta_R_ij, Vec3::Zero()).inverse();
+		T_wb0.translation() = Vec3::Zero();
 
-
-		SE3 T_wb1 = SE3(Hinertial->R_WD_PRE, Vec3::Zero()) * T_dc1 * Hinertial->T_CB;
-
-		SE3 T_b0b1 = SE3(SO3(preIntegration->delta_R_ij), (preIntegration->delta_p_ij + (0.5 * (T_wb1.so3() * SO3(preIntegration->delta_R_ij).inverse() * g) * preIntegration->dt_ij)*preIntegration->dt_ij));
-		SE3 T_wb0 = T_wb1 * T_b0b1.inverse();
+		SE3 T_dc0 = SE3(Hinertial->R_DW_PRE, Vec3::Zero()) * T_wb0 * Hinertial->T_BC;
+		SE3 T_dc1 = SE3(Hinertial->R_DW_PRE, Vec3::Zero()) * T_wb1 * Hinertial->T_BC;
 
 		firstFrame->frame->setPose(T_dc0.inverse());
 		firstFrame->frame->setPoseInertial(T_dc0.inverse()*SE3(Hinertial->R_DW_PRE, Vec3::Zero()));

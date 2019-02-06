@@ -137,8 +137,8 @@ namespace ldso {
 	int setting_vi_nMeanFilterGravityDirection = 40;
 
 	int setting_vi_nMaxIterationsIIRInitialization = 100;
-	double setting_vi_epsilonIIRInitialization = 0.01;
-	double setting_vi_hasMovementThreshold = 0.01;
+	double setting_vi_epsilonIIRInitialization = 0.001;
+	double setting_vi_hasMovementThreshold = 0.005;
 	int setting_vi_hasMovementResetPeriod = 200 * 0.2;
 	double setting_vi_lambda_coarse_tracker = 1;
 
