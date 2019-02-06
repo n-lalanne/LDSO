@@ -68,8 +68,8 @@ namespace ldso {
 				W = W.inverse();
 
 				w.setZero();
-				w.block<3, 1>(0, 0) = setting_vi_lambda_coarse_tracker * Vec3(setting_vi_lambda_rot * setting_vi_lambda_rot, setting_vi_lambda_rot * setting_vi_lambda_rot, setting_vi_lambda_rot * setting_vi_lambda_rot);
-				w.block<3, 1>(3, 0) = setting_vi_lambda_coarse_tracker * Vec3(setting_vi_lambda_trans * setting_vi_lambda_trans, setting_vi_lambda_trans * setting_vi_lambda_trans, setting_vi_lambda_trans * setting_vi_lambda_trans);
+				w.block<3, 1>(0, 0) = setting_vi_lambda_coarse_tracker * setting_vi_lambda_rot * setting_vi_lambda_rot * Vec3::Ones();
+				w.block<3, 1>(3, 0) = setting_vi_lambda_coarse_tracker * setting_vi_lambda_trans * Vec3::Ones();
 
 
 				if (fix_i)

@@ -38,7 +38,6 @@ namespace ldso {
 			Vec3 W_v_B_EvalPT = Vec3::Zero();
 
 			SE3 T_WB_EvalPT = SE3();
-			SE3 T_BW_EvalPT = SE3();
 
 			Vec3 b_g_lin = Vec3::Zero();
 			Vec3 b_a_lin = Vec3::Zero();

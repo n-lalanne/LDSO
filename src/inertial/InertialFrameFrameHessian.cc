@@ -115,7 +115,7 @@ namespace ldso {
 				W = W.inverse();
 
 				if (setting_vi_fej_window_optimization)
-					computeJacobian(J_from, J_to, preIntegration, from->T_WB_EvalPT.translation(), to->T_WB_EvalPT.translation(), from->T_BW_EvalPT.so3(), to->T_BW_EvalPT.so3(), to->T_WB_EvalPT.so3(), from->W_v_B_EvalPT, to->W_v_B_EvalPT, from->db_g_EvalPT, to->db_g_EvalPT, from->db_a_EvalPT, to->db_a_EvalPT, from->b_g_lin, to->b_g_lin, from->b_a_lin, to->b_a_lin);
+					computeJacobian(J_from, J_to, preIntegration, from->T_WB_EvalPT.translation(), to->T_WB_EvalPT.translation(), from->T_WB_EvalPT.so3().inverse(), to->T_WB_EvalPT.so3().inverse(), to->T_WB_EvalPT.so3(), from->W_v_B_EvalPT, to->W_v_B_EvalPT, from->db_g_EvalPT, to->db_g_EvalPT, from->db_a_EvalPT, to->db_a_EvalPT, from->b_g_lin, to->b_g_lin, from->b_a_lin, to->b_a_lin);
 				else
 					computeJacobian(J_from, J_to, preIntegration, from->T_WB_PRE.translation(), to->T_WB_PRE.translation(), from->T_BW_PRE.so3(), to->T_BW_PRE.so3(), to->T_WB_PRE.so3(), from->W_v_B_PRE, to->W_v_B_PRE, from->db_g_PRE, to->db_g_PRE, from->db_a_PRE, to->db_a_PRE, from->b_g_lin, to->b_g_lin, from->b_a_lin, to->b_a_lin);
 

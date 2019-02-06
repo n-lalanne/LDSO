@@ -138,16 +138,16 @@ namespace ldso {
 
 	int setting_vi_nMaxIterationsIIRInitialization = 100;
 	double setting_vi_epsilonIIRInitialization = 0.01;
-	double setting_vi_hasMovementThreshold = 0.1;
+	double setting_vi_hasMovementThreshold = 0.01;
 	int setting_vi_hasMovementResetPeriod = 200 * 0.2;
 	double setting_vi_lambda_coarse_tracker = 1;
 
-	bool setting_vi_enable = false;
+	bool setting_vi_enable = true;
 	bool setting_vi_fej_window_optimization = false;
 	bool setting_vi_debug = true;
 
 	double setting_vi_lambda_rot = 1; // lambda for rotation weight
-	double setting_vi_lambda_trans = 0; // lambda for translation weight
+	double setting_vi_lambda_trans = 0.5; // lambda for translation weight
 
 	double setting_vi_lambda_overall = 1;
 
