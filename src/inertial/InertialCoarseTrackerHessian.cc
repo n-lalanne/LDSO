@@ -22,8 +22,8 @@ namespace ldso {
 				v_i = v_j;
 				bg_i = Vec3::Zero();
 				ba_i = Vec3::Zero();
-				lin_bias_g = bg_j;
-				lin_bias_a = ba_j;
+				lin_bias_g += bg_j;
+				lin_bias_a += ba_j;
 			}
 		}
 
@@ -48,8 +48,8 @@ namespace ldso {
 			b_I_sc.setZero();
 
 			if (setting_vi_enable) {
-				InertialFrameFrameHessian::computeResidual(r_pr, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, Vec3::Zero(), lin_bias_a, Vec3::Zero());
-				InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, Vec3::Zero(), lin_bias_a, Vec3::Zero());
+				InertialFrameFrameHessian::computeResidual(r_pr, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
+				InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
 
 				//LOG(INFO) << "Bias Lin: (g): " << lin_bias_g.transpose().format(setting_vi_format) << "(a): " << lin_bias_a.transpose().format(setting_vi_format);
 

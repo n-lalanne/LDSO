@@ -14,6 +14,7 @@ namespace ldso {
 			if (from)
 			{
 				from->linearize(visualWeight / ((double)nPreIntegrationFactors), force);
+				LOG(INFO) << "r (pre): [" << from->r.transpose().format(setting_vi_format) << "]";
 			}
 
 			visualWeight /= ((double)nCombineFactors);

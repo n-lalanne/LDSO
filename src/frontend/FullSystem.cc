@@ -1539,6 +1539,9 @@ namespace ldso {
 		int historySize = newFrame->inertialFrameHessian->imuDataHistory.size();
 
 		shared_ptr<inertial::PreIntegration> preIntegration = shared_ptr<inertial::PreIntegration>(new inertial::PreIntegration());
+
+		preIntegration->lin_bias_a = Vec3(-0.2, 0, 0);
+
 		preIntegration->addImuData(newFrame->inertialFrameHessian->imuDataHistory);
 
 		for (int n = 0; n < setting_vi_nMeanFilterGravityDirection && n < historySize; n++)
@@ -1555,7 +1558,7 @@ namespace ldso {
 		double theta = acos(b_g.dot(w_g));
 
 		SO3 R_wb;
-		SO3 R_cd = SO3(Eigen::Quaterniond::Identity());
+		SO3 R_cd = firstToNew.so3();
 		SO3 R_bc = Hinertial->T_BC.so3();
 
 		if (abs(axis_abs) < Sophus::Constants<double>::epsilon())
@@ -1572,31 +1575,36 @@ namespace ldso {
 
 		Vec3 g(0, 0, -9.81);
 
-		
-		SE3 T_wb1 = SE3(R_wb, Vec3::Zero());
-		T_wb1.translation() = SE3(preIntegration->delta_R_ij, Vec3::Zero()).inverse()*(preIntegration->delta_p_ij + (0.5 * (T_wb1.so3() * SO3(preIntegration->delta_R_ij).inverse() * g) * preIntegration->dt_ij)*preIntegration->dt_ij);
-		SE3 T_wb0 = T_wb1 * SE3(preIntegration->delta_R_ij, Vec3::Zero()).inverse();
-		T_wb0.translation() = Vec3::Zero();
+		SE3 T_dc0 = SE3();
+		SE3 T_dc1 = firstToNew.inverse();
+		SE3 T_wb0 = SE3(Hinertial->R_WD_PRE, Vec3::Zero()) * T_dc0 * Hinertial->T_CB;
+		SE3 T_wb1 = SE3(Hinertial->R_WD_PRE, Vec3::Zero()) * T_dc1 * Hinertial->T_CB;
 
-		SE3 T_dc0 = SE3(Hinertial->R_DW_PRE, Vec3::Zero()) * T_wb0 * Hinertial->T_BC;
-		SE3 T_dc1 = SE3(Hinertial->R_DW_PRE, Vec3::Zero()) * T_wb1 * Hinertial->T_BC;
+		LOG(INFO) << "dv: " << (T_wb0.so3() * preIntegration->delta_v_ij + g * preIntegration->dt_ij).format(setting_vi_format);
+
+		nextKeyFramePreIntegration->lin_bias_a = Vec3::Zero();
+		nextKeyFramePreIntegration->lin_bias_g = Vec3::Zero();
 
 		firstFrame->frame->setPose(T_dc0.inverse());
 		firstFrame->frame->setPoseInertial(T_dc0.inverse()*SE3(Hinertial->R_DW_PRE, Vec3::Zero()));
 		firstFrame->setEvalPT_scaled(fr->getPose(), firstFrame->frame->aff_g2l);
 		firstFrame->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
 		firstFrame->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
+		firstFrame->inertialFrameHessian->b_a_lin = nextKeyFramePreIntegration->lin_bias_a;
+		firstFrame->inertialFrameHessian->b_g_lin = nextKeyFramePreIntegration->lin_bias_g;
 		firstFrame->inertialFrameHessian->T_WB_EvalPT = T_wb0;
 		firstFrame->inertialFrameHessian->W_v_B_EvalPT = Vec3::Zero();
 		firstFrame->inertialFrameHessian->setState(Vec15::Zero());
 
 		newFrame->frame->setPose(T_dc1.inverse());
-		newFrame->frame->setPoseInertial(T_dc0.inverse()*SE3(Hinertial->R_DW_PRE, Vec3::Zero()));
+		newFrame->frame->setPoseInertial(T_dc1.inverse()*SE3(Hinertial->R_DW_PRE, Vec3::Zero()));
 		newFrame->setEvalPT_scaled(newFrame->frame->getPose(), newFrame->frame->aff_g2l);
 		newFrame->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
 		newFrame->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
+		newFrame->inertialFrameHessian->b_a_lin = nextKeyFramePreIntegration->lin_bias_a;
+		newFrame->inertialFrameHessian->b_g_lin = nextKeyFramePreIntegration->lin_bias_g;
 		newFrame->inertialFrameHessian->T_WB_EvalPT = T_wb1;
-		newFrame->inertialFrameHessian->W_v_B_EvalPT = T_wb0 * preIntegration->delta_v_ij + g * preIntegration->dt_ij;
+		newFrame->inertialFrameHessian->W_v_B_EvalPT = Vec3::Zero();
 		newFrame->inertialFrameHessian->setState(Vec15::Zero());
 
 		// ===============
