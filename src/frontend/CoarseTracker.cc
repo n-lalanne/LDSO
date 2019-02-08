@@ -99,14 +99,15 @@ namespace ldso {
 			}
 
 			//printf("INCREASING cutoff to %f (ratio is %f)!\n", setting_coarseCutoffTH*levelCutoffRepeat, resOld[5]);
+			float lambda = 0.01;
 
 			// Compute H and b
 			calcGSSSE(lvl, H, b, refToNew_current, aff_g2l_current);
-			inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_current);
+			inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_current, lambda);
 
 			double resIOld = inertialCoarseTrackerHessian->energy / (resOld[1] * patternNum);
 
-			float lambda = 0.01;
+			
 
 			Vec2f relAff = AffLight::fromToVecExposure(lastRef->ab_exposure, newFrame->ab_exposure, lastRef_aff_g2l,
 				aff_g2l_current).cast<float>();
@@ -128,7 +129,7 @@ namespace ldso {
 			for (int iteration = 0; iteration < maxIterations[lvl]; iteration++) {
 				Mat88 Hl = H + inertialCoarseTrackerHessian->H_I;
 				for (int i = 0; i < 8; i++) Hl(i, i) *= (1 + lambda);
-				Hl -= (inertialCoarseTrackerHessian->H_I_sc) * (1.0f / (1 + lambda));
+				Hl -= inertialCoarseTrackerHessian->H_I_sc;
 				Vec8 inc = Hl.ldlt().solve(-b + inertialCoarseTrackerHessian->b_I - inertialCoarseTrackerHessian->b_I_sc);
 
 				// depends on the mode, if a,b is fixed, don't estimate them
@@ -180,7 +181,7 @@ namespace ldso {
 				// calculate new residual after this update step
 				Vec6 resNew = calcRes(lvl, refToNew_new, aff_g2l_new, setting_coarseCutoffTH * levelCutoffRepeat);
 				visualWeight = resNew[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
-				inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_new);
+				inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_new, lambda);
 				double resINew = inertialCoarseTrackerHessian->energy / (resNew[1] * patternNum);
 				// decide whether to accept this step
 				// res[0]/res[1] is the average energy
@@ -218,7 +219,7 @@ namespace ldso {
 					if (lambda < lambdaExtrapolationLimit) lambda = lambdaExtrapolationLimit;
 					inertialCoarseTrackerHessian->restore();
 					visualWeight = resOld[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
-					inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_current);
+					inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_current, lambda);
 					//LOG(INFO) << "initial energy: " << inertialCoarseTrackerHessian->energy << " (" << inertialCoarseTrackerHessian->energy / (resOld[1] * patternNum) << ")" << std::endl;
 				}
 

@@ -111,9 +111,15 @@ namespace ldso {
 			return TcwInertial;
 		}
 
-		void setPoseInertial(const SE3 &Tcw) {
+		double getScaleInertial() {
+			unique_lock<mutex> lck(poseMutex);
+			return scale;
+		}
+
+		void setPoseInertial(const SE3 &Tcw, double scale) {
 			unique_lock<mutex> lck(poseMutex);
 			this->TcwInertial = Tcw;
+			this->scale = scale;
 		}
 
         // get and write the optimized pose by loop closing
@@ -141,6 +147,7 @@ namespace ldso {
         Sim3 TcwOpti;     // pose from world to camera optimized by global pose graph (with scale)
 
 		SE3 TcwInertial = SE3(Eigen::Quaterniond::Identity(), Vec3::Zero());
+		double scale;
     public:
         bool poseValid = true;     // if pose is valid (false when initializing)
         double timeStamp = 0;      // time stamp

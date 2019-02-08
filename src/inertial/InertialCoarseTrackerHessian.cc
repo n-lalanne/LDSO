@@ -33,7 +33,7 @@ namespace ldso {
 			}
 		}
 
-		void InertialCoarseTrackerHessian::compute(double visualWeight, SE3 T_id, SE3 T_ji)
+		void InertialCoarseTrackerHessian::compute(double visualWeight, SE3 T_id, SE3 T_ji, double lambda)
 		{
 
 			Mat1515 J_i = Mat1515::Zero();
@@ -84,6 +84,9 @@ namespace ldso {
 					Hj = J_j.transpose() * visualWeight * W * J_j;
 					Hj.block<6, 6>(0, 0) += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
 
+					for (int i = 0; i < 15; i++)
+						Hj(i, i) *= (1 + lambda);
+
 					if (Hj.determinant() < 1e-8)
 						Hbb_inv += (Hj + VecX::Constant(Hj.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
 					else
@@ -107,6 +110,11 @@ namespace ldso {
 					Hi = J_i.transpose() * visualWeight * W * J_i;
 					Hj = J_j.transpose() * visualWeight * W * J_j;
 					Hj.block<6, 6>(0, 0) += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
+
+					for (int i = 0; i < 15; i++) {
+						Hi(i, i) *= (1 + lambda);
+						Hj(i, i) *= (1 + lambda);
+					}
 
 					if (Hi.determinant() < 1e-8)
 						Hbb_inv.block<15, 15>(0, 0) = (Hi + VecX::Constant(Hi.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();

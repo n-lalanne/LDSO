@@ -263,7 +263,7 @@ namespace ldso {
 			accumulateSCF_MT(H_sc, b_sc, multiThreading);
 
 			if (setting_vi_enable)
-				combineInertialHessians();
+				combineInertialHessians(lambda);
 
 			bM_top = (bM + HM * getStitchedDeltaF());
 
@@ -293,7 +293,7 @@ namespace ldso {
 			}
 			else {
 				HFinal_top = HL_top + HM + HA_top;
-				bFinal_top = bL_top + bM_top + bA_top - b_sc;
+				bFinal_top = bL_top + bM_top + bA_top - b_sc / (1 + lambda);
 
 				lastHS = HFinal_top - H_sc - H_I_sc;
 
@@ -310,9 +310,9 @@ namespace ldso {
 					HFinal_top(i, i) *= (1 + lambda);
 
 				if (setting_vi_enable)
-					HFinal_top -= (H_sc + H_I_sc) * (1.0f / (1 + lambda));
-				else
-					HFinal_top -= (H_sc) * (1.0f / (1 + lambda));
+					HFinal_top -= H_I_sc;
+
+				HFinal_top -= (H_sc) * (1.0f / (1 + lambda));
 			}
 
 			// get the result
@@ -369,11 +369,11 @@ namespace ldso {
 			}
 
 			lastX = x;
+			currentLambda = lambda;
 
 			if (setting_vi_enable)
 				resubstituteInertial(x, HInertial);
 
-			currentLambda = lambda;
 			resubstituteF_MT(x, HCalib, multiThreading);
 			currentLambda = 0;
 
@@ -571,7 +571,7 @@ namespace ldso {
 					return;
 				}
 
-				p->step = -b * p->HdiF;
+				p->step = -b * p->HdiF / (1 + currentLambda);
 			}
 		}
 
@@ -748,7 +748,7 @@ namespace ldso {
 			if (H != 0) *H -= NNpiTS * *H * NNpiTS;
 		}
 
-		void EnergyFunctional::combineInertialHessians()
+		void EnergyFunctional::combineInertialHessians(double lambda)
 		{
 			Hab_I = MatXX::Zero(CPARS + 8 * nFrames, 4 + 15 * nFrames);
 			Hbb_I = MatXX::Zero(4 + 15 * nFrames, 4 + 15 * nFrames);
@@ -781,6 +781,9 @@ namespace ldso {
 				}
 				index++;
 			}
+
+			for (int i = 0; i < 4 + 15 * nFrames; i++)
+				Hbb_I(i, i) *= (1 + lambda);
 
 			if (Hbb_I.determinant() < 1e-8)
 				Hbb_I_inv = (Hbb_I + VecX::Constant(Hbb_I.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();

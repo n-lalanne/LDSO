@@ -19,7 +19,7 @@ namespace ldso {
 			InertialCoarseTrackerHessian();
 
 			void setValues(std::vector <shared_ptr<internal::FrameHessian>> &frameHessians, shared_ptr<inertial::InertialHessian> Hinertial);
-			void compute(double visualWeight, SE3 T_id, SE3 T_ji);
+			void compute(double visualWeight, SE3 T_id, SE3 T_ji, double lambda);
 			void update(Vec8 x);
 			void backup();
 			void reset();
