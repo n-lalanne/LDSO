@@ -20,7 +20,7 @@ namespace ldso {
 	float setting_initialAffBPrior = 1e14;
 	float setting_initialAffAPrior = 1e14;
 	float setting_initialCalibHessian = 5e9;
-	int setting_solverMode = SOLVER_FIX_LAMBDA | SOLVER_ORTHOGONALIZE_X_LATER;
+	int setting_solverMode = 0;// SOLVER_FIX_LAMBDA | SOLVER_ORTHOGONALIZE_X_LATER;
 	double setting_solverModeDelta = 0.00001;
 	float setting_minIdepthH_act = 100;
 	float setting_minIdepthH_marg = 50;
@@ -70,7 +70,7 @@ namespace ldso {
 	bool setting_relinAlways = true;
 	bool setting_fixCalib = false;
 	bool setting_activateAllOnMarg = false;
-	bool setting_forceAceptStep = true;
+	bool setting_forceAceptStep = false;
 	float setting_useDepthWeightsCoarse = -1;
 	bool setting_dilateDoubleCoarse = false;
 	float setting_huberTH = 9;              // done
@@ -138,16 +138,17 @@ namespace ldso {
 
 	int setting_vi_nMaxIterationsIIRInitialization = 100;
 	double setting_vi_epsilonIIRInitialization = 0.001;
-	double setting_vi_hasMovementThreshold = 0.005;
+	double setting_vi_hasMovementThreshold = 0.001;
 	int setting_vi_hasMovementResetPeriod = 200 * 0.2;
-	double setting_vi_lambda_coarse_tracker = 1;
+
+	double setting_vi_lambda_coarse_tracker = 0;
 
 	bool setting_vi_enable = true;
 	bool setting_vi_fej_window_optimization = false;
 	bool setting_vi_debug = true;
 
 	double setting_vi_lambda_rot = 1; // lambda for rotation weight
-	double setting_vi_lambda_trans = 1; // lambda for translation weight
+	double setting_vi_lambda_trans = 0.5; // lambda for translation weight
 
 	double setting_vi_lambda_overall = 1;
 

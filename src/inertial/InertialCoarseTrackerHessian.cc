@@ -17,7 +17,7 @@ namespace ldso {
 		void InertialCoarseTrackerHessian::marginalize()
 		{
 			if (setting_vi_enable) {
-				//fix_i = false;
+				fix_i = false;
 				Tw_i = Tw_j;
 				v_i = v_j;
 				bg_i = Vec3::Zero();
@@ -65,7 +65,7 @@ namespace ldso {
 				W.setZero();
 				W.block<9, 9>(0, 0) = preIntegration->Sigma_ij;
 				W.block<6, 6>(9, 9) = preIntegration->Sigma_bd * preIntegration->dt_ij;
-				W = W.inverse();
+				W = setting_vi_lambda_coarse_tracker * W.inverse();
 
 				w.setZero();
 				w.block<3, 1>(0, 0) = setting_vi_lambda_coarse_tracker * setting_vi_lambda_rot * setting_vi_lambda_rot * Vec3::Ones();

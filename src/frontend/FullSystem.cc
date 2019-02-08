@@ -985,6 +985,11 @@ namespace ldso {
 			}
 		}
 
+		if (lastInertialEnergy > 20)
+			setting_vi_lambda_coarse_tracker = 0;
+		else
+			setting_vi_lambda_coarse_tracker = 1;
+
 		return sqrtf((float)(lastEnergy[0] / (patternNum * ef->resInA)));
 	}
 
@@ -1540,13 +1545,11 @@ namespace ldso {
 
 		shared_ptr<inertial::PreIntegration> preIntegration = shared_ptr<inertial::PreIntegration>(new inertial::PreIntegration());
 
-		preIntegration->lin_bias_a = Vec3(-0.2, 0, 0);
-
 		preIntegration->addImuData(newFrame->inertialFrameHessian->imuDataHistory);
 
 		for (int n = 0; n < setting_vi_nMeanFilterGravityDirection && n < historySize; n++)
 		{
-			inertial::ImuData imu = newFrame->inertialFrameHessian->imuDataHistory[historySize - n - 1];
+			inertial::ImuData imu = newFrame->inertialFrameHessian->imuDataHistory[n];
 			b_g += Vec3(imu.ax, imu.ay, imu.az);
 		}
 
@@ -1558,7 +1561,7 @@ namespace ldso {
 		double theta = acos(b_g.dot(w_g));
 
 		SO3 R_wb;
-		SO3 R_cd = firstToNew.so3();
+		SO3 R_cd = SO3(Eigen::Quaterniond::Identity());
 		SO3 R_bc = Hinertial->T_BC.so3();
 
 		if (abs(axis_abs) < Sophus::Constants<double>::epsilon())
@@ -1579,8 +1582,6 @@ namespace ldso {
 		SE3 T_dc1 = firstToNew.inverse();
 		SE3 T_wb0 = SE3(Hinertial->R_WD_PRE, Vec3::Zero()) * T_dc0 * Hinertial->T_CB;
 		SE3 T_wb1 = SE3(Hinertial->R_WD_PRE, Vec3::Zero()) * T_dc1 * Hinertial->T_CB;
-
-		LOG(INFO) << "dv: " << (T_wb0.so3() * preIntegration->delta_v_ij + g * preIntegration->dt_ij).format(setting_vi_format);
 
 		nextKeyFramePreIntegration->lin_bias_a = Vec3::Zero();
 		nextKeyFramePreIntegration->lin_bias_g = Vec3::Zero();
@@ -1801,6 +1802,8 @@ namespace ldso {
 		pstepfac.segment<3>(3).setConstant(stepfacR);
 		pstepfac.segment<4>(6).setConstant(stepfacA);
 
+		double sumI = 0;
+		double sumIH = 0;
 
 		float sumA = 0, sumB = 0, sumT = 0, sumR = 0, sumID = 0, numID = 0;
 
@@ -1841,7 +1844,7 @@ namespace ldso {
 			stepInertial.block<3, 1>(0, 0) = (SO3::exp(Hinertial->x_step.block<3, 1>(0, 0))*SO3::exp(Hinertial->x_backup.block<3, 1>(0, 0))).log();
 			stepInertial.block<1, 1>(3, 0) = Hinertial->x_step.block<1, 1>(3, 0) + Hinertial->x_backup.block<1, 1>(3, 0);
 			Hinertial->setState(stepInertial);
-
+			sumIH = stepInertial.squaredNorm();
 			for (auto &fr : frames) {
 				auto fh = fr->frameHessian;
 
@@ -1857,6 +1860,8 @@ namespace ldso {
 				stepFrameInertial.block<6, 1>(0, 0) = (SE3::exp(fh->inertialFrameHessian->x_step.block<6, 1>(0, 0))*SE3::exp(fh->inertialFrameHessian->x_backup.block<6, 1>(0, 0))).log();
 				stepFrameInertial.block<9, 1>(6, 0) = fh->inertialFrameHessian->x_step.block<9, 1>(6, 0) + fh->inertialFrameHessian->x_backup.block<9, 1>(6, 0);
 				fh->inertialFrameHessian->setState(stepFrameInertial);
+
+				sumI += stepFrameInertial.squaredNorm();
 
 				sumA += fh->step[6] * fh->step[6];
 				sumB += fh->step[7] * fh->step[7];
@@ -1884,6 +1889,8 @@ namespace ldso {
 		sumT /= frames.size();
 		sumID /= numID;
 		sumNID /= numID;
+		sumI /= frames.size();
+
 
 		EFDeltaValid = false;
 		setPrecalcValues();
@@ -1891,7 +1898,9 @@ namespace ldso {
 		return sqrtf(sumA) < 0.0005 * setting_thOptIterations &&
 			sqrtf(sumB) < 0.00005 * setting_thOptIterations &&
 			sqrtf(sumR) < 0.00005 * setting_thOptIterations &&
-			sqrtf(sumT) * sumNID < 0.00005 * setting_thOptIterations;
+			sqrtf(sumT) * sumNID < 0.00005 * setting_thOptIterations &&
+			sqrt(sumI) < 0.00005 * setting_thOptIterations &&
+			sqrt(sumIH) < 0.00005 * setting_thOptIterations;
 	}
 
 	void FullSystem::backupState(bool backupLastStep) {
