@@ -445,8 +445,10 @@ namespace ldso {
 
 		fh->inertialFrameHessian->T_WB_EvalPT = coarseTracker->inertialCoarseTrackerHessian->Tw_j;
 		fh->inertialFrameHessian->W_v_B_EvalPT = coarseTracker->inertialCoarseTrackerHessian->v_j;
-		fh->inertialFrameHessian->db_g_EvalPT = coarseTracker->inertialCoarseTrackerHessian->bg_j;
-		fh->inertialFrameHessian->db_a_EvalPT = coarseTracker->inertialCoarseTrackerHessian->ba_j;
+		fh->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
+		fh->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
+		fh->inertialFrameHessian->b_g_lin = coarseTracker->inertialCoarseTrackerHessian->bg_j + coarseTracker->inertialCoarseTrackerHessian->lin_bias_g;
+		fh->inertialFrameHessian->b_a_lin = coarseTracker->inertialCoarseTrackerHessian->ba_j + coarseTracker->inertialCoarseTrackerHessian->lin_bias_a;
 
 		fh->inertialFrameHessian->setState(Vec15::Zero());
 		coarseTracker->inertialCoarseTrackerHessian->marginalize();
@@ -590,8 +592,8 @@ namespace ldso {
 		removeOutliers();
 
 		// =========================== Visual Inertial =========================
-		nextKeyFramePreIntegration->lin_bias_g = fh->inertialFrameHessian->db_g_PRE;
-		nextKeyFramePreIntegration->lin_bias_a = fh->inertialFrameHessian->db_a_PRE;
+		nextKeyFramePreIntegration->lin_bias_g = fh->inertialFrameHessian->db_g_PRE + fh->inertialFrameHessian->b_g_lin;
+		nextKeyFramePreIntegration->lin_bias_a = fh->inertialFrameHessian->db_a_PRE + fh->inertialFrameHessian->b_a_lin;
 
 		fh->inertialFrameHessian->b_g_lin = nextKeyFramePreIntegration->lin_bias_g;
 		fh->inertialFrameHessian->b_a_lin = nextKeyFramePreIntegration->lin_bias_a;
@@ -599,6 +601,8 @@ namespace ldso {
 		fh->inertialFrameHessian->db_a_PRE = Vec3::Zero();
 		fh->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
 		fh->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
+		fh->inertialFrameHessian->x.segment<6>(9) = Vec6::Zero();
+		fh->inertialFrameHessian->x_backup.segment<6>(9) = Vec6::Zero();
 
 		// swap the coarse Tracker for new kf
 		{
@@ -958,6 +962,7 @@ namespace ldso {
 		newStateZero.segment<2>(6) = frames.back()->frameHessian->get_state().segment<2>(6);
 
 		frames.back()->frameHessian->setEvalPT(frames.back()->frameHessian->PRE_worldToCam, newStateZero);
+		frames.back()->frameHessian->inertialFrameHessian->setCurrentStateAsEvalPt();
 
 		EFDeltaValid = false;
 		EFAdjointsValid = false;
@@ -965,7 +970,7 @@ namespace ldso {
 		setPrecalcValues();
 
 		lastEnergy = linearizeAll(true);    // fix all the linearizations
-		lastInertialEnergy = linearizeInertial(lastEnergy[2], false);
+		lastInertialEnergy = linearizeInertial(lastEnergy[2], true);
 
 		if (!std::isfinite((double)lastEnergy[0]) || !std::isfinite((double)lastEnergy[1]) ||
 			!std::isfinite((double)lastEnergy[2])) {
@@ -977,10 +982,10 @@ namespace ldso {
 		{
 			unique_lock<mutex> crlock(shellPoseMutex);
 			for (auto fr : frames) {
-				SE3 worldToCam = fr->frameHessian->PRE_camToWorld.inverse();
-				fr->setPose(worldToCam);
-				SE3 worldToCamInertial = SE3(worldToCam.so3(), exp(Hinertial->scale_PRE)*worldToCam.translation())*SE3(Hinertial->R_DW_PRE, Vec3::Zero());
-				fr->setPoseInertial(worldToCamInertial, exp(Hinertial->scale_PRE));
+				SE3 Tcd = fr->frameHessian->PRE_camToWorld.inverse();
+				fr->setPose(Tcd);
+				SE3 Tcw = SE3(Tcd.so3(), exp(Hinertial->scale_PRE) * Tcd.translation()) * SE3(Hinertial->R_DW_PRE, Vec3::Zero());
+				fr->setPoseInertial(Tcw, exp(Hinertial->scale_PRE));
 				fr->aff_g2l = fr->frameHessian->aff_g2l();
 			}
 		}
@@ -1582,7 +1587,7 @@ namespace ldso {
 		nextKeyFramePreIntegration->lin_bias_g = Vec3::Zero();
 
 		firstFrame->frame->setPose(T_dc0.inverse());
-		firstFrame->frame->setPoseInertial(T_dc0.inverse()*SE3(Hinertial->R_DW_PRE, Vec3::Zero()),1);
+		firstFrame->frame->setPoseInertial(T_dc0.inverse()*SE3(Hinertial->R_DW_PRE, Vec3::Zero()), 1);
 		firstFrame->setEvalPT_scaled(fr->getPose(), firstFrame->frame->aff_g2l);
 		firstFrame->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
 		firstFrame->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
@@ -1593,7 +1598,7 @@ namespace ldso {
 		firstFrame->inertialFrameHessian->setState(Vec15::Zero());
 
 		newFrame->frame->setPose(T_dc1.inverse());
-		newFrame->frame->setPoseInertial(T_dc1.inverse()*SE3(Hinertial->R_DW_PRE, Vec3::Zero()),1);
+		newFrame->frame->setPoseInertial(T_dc1.inverse()*SE3(Hinertial->R_DW_PRE, Vec3::Zero()), 1);
 		newFrame->setEvalPT_scaled(newFrame->frame->getPose(), newFrame->frame->aff_g2l);
 		newFrame->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
 		newFrame->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();

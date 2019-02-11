@@ -83,6 +83,8 @@ namespace ldso {
 			assert(EFAdjointsValid);
 			assert(EFIndicesValid);
 
+			marginalizeInertialFrameHessian(fh);
+
 			int ndim = nFrames * 8 + CPARS - 8;// new dimension
 			int odim = nFrames * 8 + CPARS;// old dimension
 
@@ -795,6 +797,24 @@ namespace ldso {
 
 			H_I_sc = HabHbbinv * Hab_I.transpose();
 			b_I_sc = HabHbbinv * bb_I;
+		}
+
+		void EnergyFunctional::marginalizeInertialFrameHessian(shared_ptr<FrameHessian> fh)
+		{
+			MatXX Hab = MatXX::Zero(15 * 2);
+			MatXX Hbb = MatXX::Zero(15, 15);
+			MatXX bb = VecX::Zero(15);
+			MatXX H = MatXX::Zero(2 * 15, 2 * 15);
+			MatXX b = VecX::Zero(2 * 15);
+
+			if (fh->inertialFrameHessian->from != nullptr)
+			{
+
+			}
+			if (fh->inertialFrameHessian->to != nullptr)
+			{
+
+			}
 		}
 
 		void EnergyFunctional::resubstituteInertial(VecX x, shared_ptr<inertial::InertialHessian> HInertial)

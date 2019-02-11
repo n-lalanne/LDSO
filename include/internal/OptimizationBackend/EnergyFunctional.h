@@ -259,6 +259,7 @@ namespace ldso {
 			Mat2525 S = Mat2525::Zero();
 
 			void combineInertialHessians(double lambda);
+			void marginalizeInertialFrameHessian(shared_ptr<FrameHessian> fh);
 			void resubstituteInertial(VecX x, shared_ptr<inertial::InertialHessian> HInertial);
 		};
 	}

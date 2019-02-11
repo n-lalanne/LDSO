@@ -28,7 +28,7 @@ namespace ldso {
 				H.setZero();
 				J.setZero();
 				W.setZero();
-				W.block<3, 1>(0, 0) = setting_vi_lambda_rot * setting_vi_lambda_rot * Vec3::Ones(); 
+				W.block<3, 1>(0, 0) = setting_vi_lambda_rot * setting_vi_lambda_rot * Vec3::Ones();
 				W.block<3, 1>(3, 0) = setting_vi_lambda_trans * setting_vi_lambda_trans * Vec3::Ones();
 
 				if (setting_vi_fej_window_optimization)
@@ -107,6 +107,16 @@ namespace ldso {
 			J.block<3, 3>(3, 10) = Mat33::Identity();
 			//dr_p_dw
 			J.block<3, 3>(3, 13) = -SO3::hat(pw);
+		}
+
+		void InertialFrameHessian::setCurrentStateAsEvalPt()
+		{
+			T_WB_EvalPT = T_WB_PRE;
+			W_v_B_EvalPT = W_v_B_PRE;
+			db_g_EvalPT = db_g_PRE;
+			db_a_EvalPT = db_a_PRE;
+			x.setZero();
+			x_backup.setZero();
 		}
 
 		void InertialFrameHessian::setState(Vec15 x_new)

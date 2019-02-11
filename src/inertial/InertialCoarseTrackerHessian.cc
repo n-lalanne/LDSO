@@ -17,7 +17,7 @@ namespace ldso {
 		void InertialCoarseTrackerHessian::marginalize()
 		{
 			if (setting_vi_enable) {
-				fix_i = false;
+				fix_i = true;
 				Tw_i = Tw_j;
 				v_i = v_j;
 				bg_i = Vec3::Zero();
