@@ -775,6 +775,13 @@ namespace ldso {
 					Hbb_I.block<4, 15>(0, 4 + 15 * index) += H.block<4, 15>(6, 10);
 					Hbb_I.block<15, 4>(4 + 15 * index, 0) += H.block<15, 4>(10, 6);
 
+					if (f->inertialFrameHessian->from != nullptr)
+					{
+						Mat1515 Hab = S.block<15, 15>(10, 10) * f->inertialFrameHessian->from->H_from_to * S.block<15, 15>(10, 10);
+						Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * (index + 1)) += Hab;
+						Hbb_I.block<15, 15>(4 + 15 * (index + 1), 4 + 15 * index) += Hab.transpose();
+					}
+
 					bb_I.block<4, 1>(0, 0) -= b.block<4, 1>(6, 0);
 					bb_I.block<15, 1>(4 + 15 * index, 0) -= b.block<15, 1>(10, 0);
 
@@ -801,11 +808,11 @@ namespace ldso {
 
 		void EnergyFunctional::marginalizeInertialFrameHessian(shared_ptr<FrameHessian> fh)
 		{
-			MatXX Hab = MatXX::Zero(15 * 2);
+			MatXX Hab = MatXX::Zero(15 * 2, 15);
 			MatXX Hbb = MatXX::Zero(15, 15);
-			MatXX bb = VecX::Zero(15);
+			VecX bb = VecX::Zero(15);
 			MatXX H = MatXX::Zero(2 * 15, 2 * 15);
-			MatXX b = VecX::Zero(2 * 15);
+			VecX b = VecX::Zero(2 * 15);
 
 			if (fh->inertialFrameHessian->from != nullptr)
 			{

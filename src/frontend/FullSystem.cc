@@ -251,7 +251,7 @@ namespace ldso {
 			if (setting_vi_enable) {
 				Vec3 g(0, 0, -9.81);
 
-				SE3 T_ij = SE3(SO3(preIntegration->delta_R_ij), (preIntegration->delta_p_ij + (coarseTracker->inertialCoarseTrackerHessian->Tw_i.so3().inverse().matrix() * 0.5 * g * preIntegration->dt_ij + coarseTracker->inertialCoarseTrackerHessian->v_i)*preIntegration->dt_ij));
+				SE3 T_ij = SE3(SO3(preIntegration->delta_R_ij), (preIntegration->delta_p_ij + (coarseTracker->inertialCoarseTrackerHessian->Tw_i.so3().inverse().matrix() * (0.5 * g * preIntegration->dt_ij + coarseTracker->inertialCoarseTrackerHessian->v_i))*preIntegration->dt_ij));
 
 				coarseTracker->inertialCoarseTrackerHessian->v_j = coarseTracker->inertialCoarseTrackerHessian->v_i + coarseTracker->inertialCoarseTrackerHessian->Tw_i.so3()*preIntegration->delta_v_ij + g * preIntegration->dt_ij;
 

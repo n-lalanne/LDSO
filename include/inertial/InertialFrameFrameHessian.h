@@ -35,6 +35,9 @@ namespace ldso {
 			// b: go to this frame, j
 			Vec15 b_to;
 
+			// H: combination Hab
+			Mat1515 H_from_to;
+
 			//0-2: r_R, 3-5: r_v, 6-8: r_p, 9-11: r_bg, 12-14: r_ba
 			Vec15 r;
 

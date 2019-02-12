@@ -14,14 +14,16 @@ namespace ldso {
 			if (from)
 			{
 				from->linearize(visualWeight / ((double)nPreIntegrationFactors), force);
-				LOG(INFO) << "r (pre): [" << from->r.transpose().format(setting_vi_format) << "]";
+				if (setting_vi_debug)
+					LOG(INFO) << "r (pre): [" << from->r.transpose().format(setting_vi_format) << "]";
 			}
 
 			visualWeight /= ((double)nCombineFactors);
 
 			computeResidual(r, inertialHessian->scale_PRE, T_WB_PRE.so3(), T_BW_PRE.so3(), inertialHessian->T_CB.so3(), inertialHessian->T_BC.so3(), fh->PRE_worldToCam.so3(), fh->PRE_camToWorld.so3(), inertialHessian->R_DW_PRE, inertialHessian->R_WD_PRE, T_WB_PRE.translation(), inertialHessian->T_CB.translation(), fh->PRE_camToWorld);
 
-			LOG(INFO) << "r (combine): [" << r.transpose().format(setting_vi_format) << "]";
+			if (setting_vi_debug)
+				LOG(INFO) << "r (combine): [" << r.transpose().format(setting_vi_format) << "]";
 
 			if (!setting_vi_fej_window_optimization || force)
 			{

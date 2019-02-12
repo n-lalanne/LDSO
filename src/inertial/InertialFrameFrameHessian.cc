@@ -121,6 +121,7 @@ namespace ldso {
 
 				H_to = J_to.transpose() * visualWeight * W * J_to;
 				H_from = J_from.transpose() * visualWeight * W * J_from;
+				H_from_to = J_from.transpose() * visualWeight * W * J_to;
 			}
 
 			b_to = -J_to.transpose() * visualWeight * W * r;

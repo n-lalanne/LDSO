@@ -107,7 +107,7 @@ namespace ldso {
 
 			double resIOld = inertialCoarseTrackerHessian->energy / (resOld[1] * patternNum);
 
-			
+
 
 			Vec2f relAff = AffLight::fromToVecExposure(lastRef->ab_exposure, newFrame->ab_exposure, lastRef_aff_g2l,
 				aff_g2l_current).cast<float>();
@@ -303,7 +303,8 @@ namespace ldso {
 	}
 
 	void CoarseTracker::printOptRes(int lvl, int iteration, string action, double energy_vo_new, double energy_vi_new, double energy_vo_old, double energy_vi_old, double normInc) {
-		LOG(INFO) << "Level: " << lvl << " Iteration: " << iteration << " [" << action << "] |Inc|: " << normInc << " (" << energy_vo_old << " -> " << energy_vo_new << ") (" << energy_vi_old << " -> " << energy_vi_new << ") (" << energy_vo_old + energy_vi_old << " -> " << energy_vo_new + energy_vi_new << ")";
+		if (setting_vi_debug)
+			LOG(INFO) << "Level: " << lvl << " Iteration: " << iteration << " [" << action << "] |Inc|: " << normInc << " (" << energy_vo_old << " -> " << energy_vo_new << ") (" << energy_vi_old << " -> " << energy_vi_new << ") (" << energy_vo_old + energy_vi_old << " -> " << energy_vo_new + energy_vi_new << ")";
 	}
 
 

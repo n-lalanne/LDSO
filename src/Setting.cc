@@ -144,13 +144,13 @@ namespace ldso {
 	double setting_vi_lambda_coarse_tracker = 1;
 
 	bool setting_vi_enable = true;
-	bool setting_vi_fej_window_optimization = true;
-	bool setting_vi_debug = true;
+	bool setting_vi_fej_window_optimization = false;
+	bool setting_vi_debug = false;
 
 	double setting_vi_lambda_rot = 1; // lambda for rotation weight
-	double setting_vi_lambda_trans = 0.5; // lambda for translation weight
+	double setting_vi_lambda_trans = 1; // lambda for translation weight
 
-	double setting_vi_lambda_overall = 0.01;
+	double setting_vi_lambda_overall = 1;
 
 	Eigen::IOFormat setting_vi_format(3, Eigen::DontAlignCols, "\t", " ", "", "", "", "");
 

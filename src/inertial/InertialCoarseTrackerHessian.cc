@@ -17,7 +17,38 @@ namespace ldso {
 		void InertialCoarseTrackerHessian::marginalize()
 		{
 			if (setting_vi_enable) {
-				fix_i = true;
+				fix_i = false;
+
+				Mat1515 J_i = Mat1515::Zero();
+				Mat1515 J_j = Mat1515::Zero();
+				Vec15 r_pr = Vec15::Zero();
+
+				InertialFrameFrameHessian::computeResidual(r_pr, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
+				InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g + bg_j, lin_bias_a, lin_bias_a + ba_j);
+
+				J_i = J_i * S.block<15, 15>(10, 10);
+				J_j = J_j * S.block<15, 15>(10, 10);
+
+				Mat1515 Hbb = Mat1515::Zero();
+				Mat1515 Hba = Mat1515::Zero(15, 15);
+				Vec15 bb = Vec15::Zero();
+
+				Hbb = J_i.transpose() * W * J_i - HM_I;
+				Hba = J_i.transpose() * W * J_j;
+
+				if (Hbb.determinant() < 1e-8)
+					Hbb_inv = (Hbb + VecX::Constant(Hbb.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
+				else
+					Hbb_inv = Hbb.inverse();
+
+				bb = -J_i.transpose() * W * r_pr - bM_I;
+
+				Mat1515 HabHbbinv;
+				HabHbbinv = Hba.transpose() * Hbb_inv;
+
+				HM_I = HabHbbinv * Hba;
+				bM_I = HabHbbinv * bb;
+
 				Tw_i = Tw_j;
 				v_i = v_j;
 				bg_i = Vec3::Zero();
@@ -35,7 +66,6 @@ namespace ldso {
 
 		void InertialCoarseTrackerHessian::compute(double visualWeight, SE3 T_id, SE3 T_ji, double lambda)
 		{
-
 			Mat1515 J_i = Mat1515::Zero();
 			Mat1515 J_j = Mat1515::Zero();
 			Vec15 r_pr = Vec15::Zero();
@@ -101,32 +131,28 @@ namespace ldso {
 					J_i = J_i * S.block<15, 15>(10, 10);
 					J_j = J_j * S.block<15, 15>(10, 10);
 					Hbb_inv = MatXX::Zero(30, 30);
+
 					bb = VecX::Zero(30);
 					Hab = MatXX::Zero(8, 30);
 
-					Mat1515 Hi;
-					Mat1515 Hj;
+					MatXX Hbb = MatXX::Zero(30, 30);
 
-					Hi = J_i.transpose() * visualWeight * W * J_i;
-					Hj = J_j.transpose() * visualWeight * W * J_j;
-					Hj.block<6, 6>(0, 0) += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
+					Hbb.block<15, 15>(0, 0) = J_i.transpose() * visualWeight * W * J_i - visualWeight * HM_I;
+					Hbb.block<15, 15>(0, 15) = J_i.transpose() * visualWeight * W * J_j;
+					Hbb.block<15, 15>(15, 0) = Hbb.block<15, 15>(0, 15).transpose();
+					Hbb.block<15, 15>(15, 15) = J_j.transpose() * visualWeight * W * J_j;
+					Hbb.block<6, 6>(15, 15).noalias() += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
 
-					for (int i = 0; i < 15; i++) {
-						Hi(i, i) *= (1 + lambda);
-						Hj(i, i) *= (1 + lambda);
+					for (int i = 0; i < 30; i++) {
+						Hbb(i, i) *= (1 + lambda);
 					}
 
-					if (Hi.determinant() < 1e-8)
-						Hbb_inv.block<15, 15>(0, 0) = (Hi + VecX::Constant(Hi.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
+					if (Hbb.determinant() < 1e-8)
+						Hbb_inv = (Hbb + VecX::Constant(Hbb.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
 					else
-						Hbb_inv.block<15, 15>(0, 0) = Hi.inverse();
+						Hbb_inv = Hbb.inverse();
 
-					if (Hj.determinant() < 1e-8)
-						Hbb_inv.block<15, 15>(15, 15) = (Hj + VecX::Constant(Hj.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
-					else
-						Hbb_inv.block<15, 15>(15, 15) = Hj.inverse();
-
-					bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W * r_pr;
+					bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W * r_pr - visualWeight * bM_I;
 					bb.block<15, 1>(15, 0) += -J_j.transpose() * visualWeight * W * r_pr;
 					bb.block<15, 1>(15, 0) += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
 					Hab.block<6, 15>(0, 15) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 15>(0, 10);
@@ -159,10 +185,10 @@ namespace ldso {
 				Tw_j = Tw_i;
 
 				bg_i = Vec3::Zero();
-				bg_j = fh->inertialFrameHessian->b_g_lin;
+				bg_j = Vec3::Zero();
 
 				ba_i = Vec3::Zero();
-				ba_j = fh->inertialFrameHessian->b_a_lin;
+				ba_j = Vec3::Zero();
 
 				scale = Hinertial->scale_PRE;
 				T_bc = Hinertial->T_BC;
@@ -172,6 +198,8 @@ namespace ldso {
 				lin_bias_a = fh->inertialFrameHessian->b_a_lin;
 
 				fix_i = true;
+				HM_I.setZero();
+				bM_I.setZero();
 			}
 		}
 

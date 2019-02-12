@@ -60,6 +60,9 @@ namespace ldso {
 			MatXX Hbb_inv = MatXX::Zero(15, 15);
 			MatXX Hab = MatXX::Zero(8, 15);
 
+			Mat1515 HM_I = Mat1515::Zero();
+			Vec15 bM_I = Vec15::Zero();
+
 			VecX step = VecX::Zero(15);
 
 			Mat1515 W;
