@@ -51,6 +51,14 @@ namespace ldso {
 			HM.rightCols<8>().setZero();
 			HM.bottomRows<8>().setZero();
 
+			// extend H,b
+			assert(HM_I.cols() == 15 * (nFrames - 1) + 4);
+			bM_I.conservativeResize(15 * nFrames + 4);
+			HM_I.conservativeResize(15 * nFrames + 4, 15 * nFrames + 4);
+			bM_I.tail<15>().setZero();
+			HM_I.rightCols<15>().setZero();
+			HM_I.bottomRows<15>().setZero();
+
 			// set index as invalid
 			EFIndicesValid = false;
 			EFAdjointsValid = false;
@@ -758,38 +766,41 @@ namespace ldso {
 			H_I = MatXX::Zero(CPARS + 8 * nFrames, CPARS + 8 * nFrames);
 			b_I = VecX::Zero(CPARS + 8 * nFrames);
 
+			VecX deltaX = VecX::Zero(4 + 15 * nFrames);
+
 			int index = 0;
 
 			for (auto f : frames)
 			{
-				if (f->inertialFrameHessian->from != nullptr || f->inertialFrameHessian->to != nullptr)
+				Mat2525 H = S * f->inertialFrameHessian->H * S;
+				Vec25 b = S * f->inertialFrameHessian->b;
+
+				H_I.block<6, 6>(CPARS + 8 * index, CPARS + 8 * index) += H.block<6, 6>(0, 0);
+				b_I.block<6, 1>(CPARS + 8 * index, 0) -= b.block<6, 1>(0, 0);
+
+				Hbb_I.block<4, 4>(0, 0) += H.block<4, 4>(6, 6);
+				Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * index) += H.block<15, 15>(10, 10);
+				Hbb_I.block<4, 15>(0, 4 + 15 * index) += H.block<4, 15>(6, 10);
+				Hbb_I.block<15, 4>(4 + 15 * index, 0) += H.block<15, 4>(10, 6);
+
+				if (f->inertialFrameHessian->from != nullptr)
 				{
-					Mat2525 H = S * f->inertialFrameHessian->H * S;
-					Vec25 b = S * f->inertialFrameHessian->b;
-
-					H_I.block<6, 6>(CPARS + 8 * index, CPARS + 8 * index) += H.block<6, 6>(0, 0);
-					b_I.block<6, 1>(CPARS + 8 * index, 0) -= b.block<6, 1>(0, 0);
-
-					Hbb_I.block<4, 4>(0, 0) += H.block<4, 4>(6, 6);
-					Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * index) += H.block<15, 15>(10, 10);
-					Hbb_I.block<4, 15>(0, 4 + 15 * index) += H.block<4, 15>(6, 10);
-					Hbb_I.block<15, 4>(4 + 15 * index, 0) += H.block<15, 4>(10, 6);
-
-					if (f->inertialFrameHessian->from != nullptr)
-					{
-						Mat1515 Hab = S.block<15, 15>(10, 10) * f->inertialFrameHessian->from->H_from_to * S.block<15, 15>(10, 10);
-						Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * (index + 1)) += Hab;
-						Hbb_I.block<15, 15>(4 + 15 * (index + 1), 4 + 15 * index) += Hab.transpose();
-					}
-
-					bb_I.block<4, 1>(0, 0) -= b.block<4, 1>(6, 0);
-					bb_I.block<15, 1>(4 + 15 * index, 0) -= b.block<15, 1>(10, 0);
-
-					Hab_I.block<6, 4>(CPARS + 8 * index, 0) += H.block<6, 4>(0, 6);
-					Hab_I.block<6, 15>(CPARS + 8 * index, 4 + 15 * index) += H.block<6, 15>(0, 10);
+					Mat1515 Hab = S.block<15, 15>(10, 10) * f->inertialFrameHessian->from->H_from_to * S.block<15, 15>(10, 10);
+					Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * (index + 1)) += Hab;
+					Hbb_I.block<15, 15>(4 + 15 * (index + 1), 4 + 15 * index) += Hab.transpose();
 				}
+
+				bb_I.block<4, 1>(0, 0) -= b.block<4, 1>(6, 0);
+				bb_I.block<15, 1>(4 + 15 * index, 0) -= b.block<15, 1>(10, 0);
+
+				Hab_I.block<6, 4>(CPARS + 8 * index, 0) += H.block<6, 4>(0, 6);
+				Hab_I.block<6, 15>(CPARS + 8 * index, 4 + 15 * index) += H.block<6, 15>(0, 10);
+				deltaX.segment<15>(4 + index * 15) = S.block<15, 15>(10, 10) * f->inertialFrameHessian->x;
 				index++;
 			}
+
+			Hbb_I += HM_I;
+			bb_I += (bM_I + HM_I * deltaX);
 
 			for (int i = 0; i < 4 + 15 * nFrames; i++)
 				Hbb_I(i, i) *= (1 + lambda);
@@ -808,20 +819,72 @@ namespace ldso {
 
 		void EnergyFunctional::marginalizeInertialFrameHessian(shared_ptr<FrameHessian> fh)
 		{
-			MatXX Hab = MatXX::Zero(15 * 2, 15);
-			MatXX Hbb = MatXX::Zero(15, 15);
-			VecX bb = VecX::Zero(15);
-			MatXX H = MatXX::Zero(2 * 15, 2 * 15);
-			VecX b = VecX::Zero(2 * 15);
+			int ndim = (nFrames - 1) * 15 + 4;// new dimension
+			int odim = nFrames * 15 + 4;// old dimension
 
+			if ((int)fh->idx != (int)frames.size() - 1) {
+				int io = fh->idx * 15 + 4;    // index of frame to move to end
+				int ntail = 15 * (nFrames - fh->idx - 1);
+				assert((io + 15 + ntail) == nFrames * 15 + 4);
+
+				Vec15 bTmp = bM_I.segment<15>(io);
+				VecX tailTMP = bM_I.tail(ntail);
+				bM_I.segment(io, ntail) = tailTMP;
+				bM_I.tail<15>() = bTmp;
+
+				MatXX HtmpCol = HM_I.block(0, io, odim, 15);
+				MatXX rightColsTmp = HM_I.rightCols(ntail);
+				HM_I.block(0, io, odim, ntail) = rightColsTmp;
+				HM_I.rightCols(15) = HtmpCol;
+
+				MatXX HtmpRow = HM_I.block(io, 0, 15, odim);
+				MatXX botRowsTmp = HM_I.bottomRows(ntail);
+				HM_I.block(io, 0, ntail, odim) = botRowsTmp;
+				HM_I.bottomRows(15) = HtmpRow;
+			}
+
+
+			// marginalize. First add prior here, instead of to active.
 			if (fh->inertialFrameHessian->from != nullptr)
 			{
-
+				HM_I.bottomRightCorner<15, 15>() += fh->inertialFrameHessian->from->H_from;
+				bM_I.tail<15>() -= fh->inertialFrameHessian->from->b_from;
+				HM_I.block<15, 15>(fh->idx * 15 + 4, ndim) = fh->inertialFrameHessian->from->H_from_to;
+				HM_I.block<15, 15>(ndim, fh->idx * 15 + 4) = fh->inertialFrameHessian->from->H_from_to.transpose();
 			}
 			if (fh->inertialFrameHessian->to != nullptr)
 			{
-
+				HM_I.bottomRightCorner<15, 15>() += fh->inertialFrameHessian->to->H_to;
+				bM_I.tail<15>() -= fh->inertialFrameHessian->to->b_to;
+				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, ndim) = fh->inertialFrameHessian->to->H_from_to.transpose();
+				HM_I.block<15, 15>(ndim, (fh->idx - 1) * 15 + 4) = fh->inertialFrameHessian->to->H_from_to;
 			}
+
+			VecX SVec = (HM_I.diagonal().cwiseAbs() + VecX::Constant(HM_I.cols(), 10)).cwiseSqrt();
+			VecX SVecI = SVec.cwiseInverse();
+
+			// scale!
+			MatXX HMScaled = SVecI.asDiagonal() * HM_I * SVecI.asDiagonal();
+			VecX bMScaled = SVecI.asDiagonal() * bM_I;
+
+			// invert bottom part!
+			Mat1515 hpi = HMScaled.bottomRightCorner<15, 15>();
+			hpi = 0.5f * (hpi + hpi);
+			hpi = hpi.inverse();
+			hpi = 0.5f * (hpi + hpi);
+
+			// schur-complement!
+			MatXX bli = HMScaled.bottomLeftCorner(15, ndim).transpose() * hpi;
+			HMScaled.topLeftCorner(ndim, ndim).noalias() -= bli * HMScaled.bottomLeftCorner(15, ndim);
+			bMScaled.head(ndim).noalias() -= bli * bMScaled.tail<15>();
+
+			// unscale!
+			HMScaled = SVec.asDiagonal() * HMScaled * SVec.asDiagonal();
+			bMScaled = SVec.asDiagonal() * bMScaled;
+
+			// set.
+			HM_I = 0.5 * (HMScaled.topLeftCorner(ndim, ndim) + HMScaled.topLeftCorner(ndim, ndim).transpose());
+			bM_I = bMScaled.head(ndim);
 		}
 
 		void EnergyFunctional::resubstituteInertial(VecX x, shared_ptr<inertial::InertialHessian> HInertial)

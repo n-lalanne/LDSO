@@ -592,17 +592,8 @@ namespace ldso {
 		removeOutliers();
 
 		// =========================== Visual Inertial =========================
-		nextKeyFramePreIntegration->lin_bias_g = fh->inertialFrameHessian->db_g_PRE + fh->inertialFrameHessian->b_g_lin;
-		nextKeyFramePreIntegration->lin_bias_a = fh->inertialFrameHessian->db_a_PRE + fh->inertialFrameHessian->b_a_lin;
-
-		fh->inertialFrameHessian->b_g_lin = nextKeyFramePreIntegration->lin_bias_g;
-		fh->inertialFrameHessian->b_a_lin = nextKeyFramePreIntegration->lin_bias_a;
-		fh->inertialFrameHessian->db_g_PRE = Vec3::Zero();
-		fh->inertialFrameHessian->db_a_PRE = Vec3::Zero();
-		fh->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
-		fh->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
-		fh->inertialFrameHessian->x.segment<6>(9) = Vec6::Zero();
-		fh->inertialFrameHessian->x_backup.segment<6>(9) = Vec6::Zero();
+		nextKeyFramePreIntegration->lin_bias_g = fh->inertialFrameHessian->b_g_lin;
+		nextKeyFramePreIntegration->lin_bias_a = fh->inertialFrameHessian->b_a_lin;
 
 		// swap the coarse Tracker for new kf
 		{
@@ -961,8 +952,19 @@ namespace ldso {
 		Vec10 newStateZero = Vec10::Zero();
 		newStateZero.segment<2>(6) = frames.back()->frameHessian->get_state().segment<2>(6);
 
-		frames.back()->frameHessian->setEvalPT(frames.back()->frameHessian->PRE_worldToCam, newStateZero);
-		frames.back()->frameHessian->inertialFrameHessian->setCurrentStateAsEvalPt();
+		shared_ptr<FrameHessian> fh = frames.back()->frameHessian;
+		fh->setEvalPT(frames.back()->frameHessian->PRE_worldToCam, newStateZero);
+
+		fh->inertialFrameHessian->b_g_lin = fh->inertialFrameHessian->db_g_PRE + fh->inertialFrameHessian->b_g_lin;
+		fh->inertialFrameHessian->b_a_lin = fh->inertialFrameHessian->db_a_PRE + fh->inertialFrameHessian->b_a_lin;
+		fh->inertialFrameHessian->db_g_PRE = Vec3::Zero();
+		fh->inertialFrameHessian->db_a_PRE = Vec3::Zero();
+		fh->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
+		fh->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
+		fh->inertialFrameHessian->x.segment<6>(9) = Vec6::Zero();
+		fh->inertialFrameHessian->x_backup.segment<6>(9) = Vec6::Zero();
+
+		fh->inertialFrameHessian->setCurrentStateAsEvalPt();
 
 		EFDeltaValid = false;
 		EFAdjointsValid = false;

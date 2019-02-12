@@ -242,8 +242,8 @@ namespace ldso {
 
 			// ========================== Visual inertial ==================================== //
 
-			MatXX HM_I = MatXX::Zero(CPARS, CPARS);
-			VecX bM_I = VecX::Zero(CPARS);
+			MatXX HM_I = MatXX::Zero(4, 4);
+			VecX bM_I = VecX::Zero(4);
 
 			MatXX H_I = MatXX::Zero(CPARS, CPARS);
 			VecX b_I = VecX::Zero(CPARS);
