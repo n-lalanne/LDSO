@@ -44,6 +44,8 @@ namespace ldso {
 
 			Vec15 x_backup_i;
 			Vec15 x_backup_j;
+			Vec15 x_i;
+			Vec15 x_j;
 
 			double scale;
 			SE3 T_bc;

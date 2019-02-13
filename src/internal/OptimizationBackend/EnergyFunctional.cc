@@ -843,21 +843,19 @@ namespace ldso {
 				HM_I.bottomRows(15) = HtmpRow;
 			}
 
-
-			// marginalize. First add prior here, instead of to active.
 			if (fh->inertialFrameHessian->from != nullptr)
 			{
 				HM_I.bottomRightCorner<15, 15>() += fh->inertialFrameHessian->from->H_from;
 				bM_I.tail<15>() -= fh->inertialFrameHessian->from->b_from;
-				HM_I.block<15, 15>(fh->idx * 15 + 4, ndim) = fh->inertialFrameHessian->from->H_from_to;
-				HM_I.block<15, 15>(ndim, fh->idx * 15 + 4) = fh->inertialFrameHessian->from->H_from_to.transpose();
+				HM_I.block<15, 15>(fh->idx * 15 + 4, ndim) += fh->inertialFrameHessian->from->H_from_to;
+				HM_I.block<15, 15>(ndim, fh->idx * 15 + 4) += fh->inertialFrameHessian->from->H_from_to.transpose();
 			}
 			if (fh->inertialFrameHessian->to != nullptr)
 			{
 				HM_I.bottomRightCorner<15, 15>() += fh->inertialFrameHessian->to->H_to;
 				bM_I.tail<15>() -= fh->inertialFrameHessian->to->b_to;
-				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, ndim) = fh->inertialFrameHessian->to->H_from_to.transpose();
-				HM_I.block<15, 15>(ndim, (fh->idx - 1) * 15 + 4) = fh->inertialFrameHessian->to->H_from_to;
+				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, ndim) += fh->inertialFrameHessian->to->H_from_to.transpose();
+				HM_I.block<15, 15>(ndim, (fh->idx - 1) * 15 + 4) += fh->inertialFrameHessian->to->H_from_to;
 			}
 
 			VecX SVec = (HM_I.diagonal().cwiseAbs() + VecX::Constant(HM_I.cols(), 10)).cwiseSqrt();

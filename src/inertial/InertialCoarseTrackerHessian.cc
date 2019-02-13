@@ -33,7 +33,7 @@ namespace ldso {
 				Mat1515 Hba = Mat1515::Zero(15, 15);
 				Vec15 bb = Vec15::Zero();
 
-				Hbb = J_i.transpose() * W * J_i - HM_I;
+				Hbb = J_i.transpose() * W * J_i + HM_I;
 				Hba = J_i.transpose() * W * J_j;
 
 				if (Hbb.determinant() < 1e-8)
@@ -41,7 +41,7 @@ namespace ldso {
 				else
 					Hbb_inv = Hbb.inverse();
 
-				bb = -J_i.transpose() * W * r_pr - bM_I;
+				bb = -J_i.transpose() * W * r_pr + bM_I;
 
 				Mat1515 HabHbbinv;
 				HabHbbinv = Hba.transpose() * Hbb_inv;
@@ -137,7 +137,7 @@ namespace ldso {
 
 					MatXX Hbb = MatXX::Zero(30, 30);
 
-					Hbb.block<15, 15>(0, 0) = J_i.transpose() * visualWeight * W * J_i - visualWeight * HM_I;
+					Hbb.block<15, 15>(0, 0) = J_i.transpose() * visualWeight * W * J_i + visualWeight * HM_I;
 					Hbb.block<15, 15>(0, 15) = J_i.transpose() * visualWeight * W * J_j;
 					Hbb.block<15, 15>(15, 0) = Hbb.block<15, 15>(0, 15).transpose();
 					Hbb.block<15, 15>(15, 15) = J_j.transpose() * visualWeight * W * J_j;
@@ -152,7 +152,7 @@ namespace ldso {
 					else
 						Hbb_inv = Hbb.inverse();
 
-					bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W * r_pr - visualWeight * bM_I;
+					bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W * r_pr + visualWeight * (bM_I - HM_I * S.block<15, 15>(10, 10) * (x_i - x_backup_i));
 					bb.block<15, 1>(15, 0) += -J_j.transpose() * visualWeight * W * r_pr;
 					bb.block<15, 1>(15, 0) += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
 					Hab.block<6, 15>(0, 15) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 15>(0, 10);
@@ -216,6 +216,8 @@ namespace ldso {
 					v_j += s.block<3, 1>(6 + 15, 0);
 					bg_j += s.block<3, 1>(9 + 15, 0);
 					ba_j += s.block<3, 1>(12 + 15, 0);
+					x_i += s.block<15, 1>(0, 0);
+					x_j += s.block<15, 1>(15, 0);
 				}
 				else
 				{
@@ -223,6 +225,7 @@ namespace ldso {
 					v_j += s.block<3, 1>(6, 0);
 					bg_j += s.block<3, 1>(9, 0);
 					ba_j += s.block<3, 1>(12, 0);
+					x_j += s.block<15, 1>(0, 0);
 					//LOG(INFO) << "step: " << s.transpose().format(setting_vi_format);
 				}
 			}
@@ -260,6 +263,9 @@ namespace ldso {
 
 				x_backup_i.block<3, 1>(12, 0) = ba_i;
 				x_backup_j.block<3, 1>(12, 0) = ba_j;
+
+				x_i = x_backup_i;
+				x_j = x_backup_j;
 			}
 		}
 
@@ -276,6 +282,9 @@ namespace ldso {
 
 				ba_i = x_backup_i.block<3, 1>(12, 0);
 				ba_j = x_backup_j.block<3, 1>(12, 0);
+
+				x_i = x_backup_i;
+				x_j = x_backup_j;
 			}
 		}
 	}

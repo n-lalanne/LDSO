@@ -169,6 +169,7 @@ namespace ldso {
 				incScaled.segment<1>(7) *= SCALE_B;
 
 				if (!std::isfinite(incScaled.sum())) incScaled.setZero();
+				if (!std::isfinite(incScaled.sum())) inc.setZero();
 
 				// left multiply the pose and add to a,b
 				SE3 refToNew_new = SE3::exp((Vec6)(incScaled.head<6>())) * refToNew_current;
