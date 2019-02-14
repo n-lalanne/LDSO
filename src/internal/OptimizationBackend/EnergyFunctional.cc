@@ -788,19 +788,19 @@ namespace ldso {
 				Mat2525 H = S * f->inertialFrameHessian->H * S;
 				Vec25 b = S * f->inertialFrameHessian->b;
 
-				H_I.block<6, 6>(CPARS + 8 * index, CPARS + 8 * index) += H.block<6, 6>(0, 0);
+				H_I.block<6, 6>(CPARS + 8 * index, CPARS + 8 * index).triangularView<Eigen::Upper>() += H.block<6, 6>(0, 0);
 				b_I.block<6, 1>(CPARS + 8 * index, 0) -= b.block<6, 1>(0, 0);
 
-				Hbb_I.block<4, 4>(0, 0) += H.block<4, 4>(6, 6);
-				Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * index) += H.block<15, 15>(10, 10);
+				Hbb_I.block<4, 4>(0, 0).triangularView<Eigen::Upper>() += H.block<4, 4>(6, 6);
+				Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * index).triangularView<Eigen::Upper>() += H.block<15, 15>(10, 10);
 				Hbb_I.block<4, 15>(0, 4 + 15 * index) += H.block<4, 15>(6, 10);
-				Hbb_I.block<15, 4>(4 + 15 * index, 0) += H.block<15, 4>(10, 6);
+				//Hbb_I.block<15, 4>(4 + 15 * index, 0) += H.block<15, 4>(10, 6);
 
 				if (f->inertialFrameHessian->from != nullptr)
 				{
 					Mat1515 Hab = S.block<15, 15>(10, 10) * f->inertialFrameHessian->from->H_from_to * S.block<15, 15>(10, 10);
 					Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * (index + 1)) += Hab;
-					Hbb_I.block<15, 15>(4 + 15 * (index + 1), 4 + 15 * index) += Hab.transpose();
+					//Hbb_I.block<15, 15>(4 + 15 * (index + 1), 4 + 15 * index) += Hab.transpose();
 				}
 
 				bb_I.block<4, 1>(0, 0) -= b.block<4, 1>(6, 0);
@@ -812,22 +812,22 @@ namespace ldso {
 				index++;
 			}
 
-			if (Hbb_I.eigenvalues().real().minCoeff() < 0.0)
-				LOG(INFO) << Hbb_I.eigenvalues().transpose().format(setting_vi_format);
+			//if (Hbb_I.selfadjointView<Eigen::Upper>().eigenvalues().real().minCoeff() < 0.0)
+			//	LOG(INFO) << Hbb_I.eigenvalues().transpose().format(setting_vi_format);
 
-			if (HM_I.eigenvalues().real().minCoeff() < 0.0)
-				LOG(INFO) << Hbb_I.eigenvalues().transpose().format(setting_vi_format);
+			//if (HM_I.selfadjointView<Eigen::Upper>().eigenvalues().real().minCoeff() < 0.0)
+			//	LOG(INFO) << Hbb_I.eigenvalues().transpose().format(setting_vi_format);
 
-			if ((HM_I+ Hbb_I).eigenvalues().real().minCoeff() < 0.0)
-				LOG(INFO) << (HM_I + Hbb_I).eigenvalues().transpose().format(setting_vi_format);
+			//if ((HM_I+ Hbb_I).selfadjointView<Eigen::Upper>().eigenvalues().real().minCoeff() < 0.0)
+			//	LOG(INFO) << (HM_I + Hbb_I).eigenvalues().transpose().format(setting_vi_format);
 
-			Hbb_I += HM_I;
-			bb_I += (bM_I + HM_I * deltaX);
+			Hbb_I.triangularView<Eigen::Upper>() += HM_I;
+		    bb_I.triangularView<Eigen::Upper>() += (bM_I + HM_I * deltaX);
 
 			for (int i = 0; i < 4 + 15 * nFrames; i++)
 				Hbb_I(i, i) *= (1 + lambda);
 
-			Hbb_I_inv = util::MatrixInverter::invertPosDef(Hbb_I);
+			Hbb_I_inv = util::MatrixInverter::invertPosDef(Hbb_I.selfadjointView<Eigen::Upper>());
 
 			MatXX HabHbbinv;
 			HabHbbinv = Hab_I * Hbb_I_inv;
@@ -864,24 +864,25 @@ namespace ldso {
 
 			if (fh->inertialFrameHessian->from != nullptr)
 			{
-				HM_I.bottomRightCorner<15, 15>() += fh->inertialFrameHessian->from->H_from;
+				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += fh->inertialFrameHessian->from->H_from;
 				bM_I.tail<15>() -= fh->inertialFrameHessian->from->b_from;
 				HM_I.block<15, 15>(fh->idx * 15 + 4, ndim) += fh->inertialFrameHessian->from->H_from_to;
-				HM_I.block<15, 15>(ndim, fh->idx * 15 + 4) += fh->inertialFrameHessian->from->H_from_to.transpose();
+				//HM_I.block<15, 15>(ndim, fh->idx * 15 + 4) += fh->inertialFrameHessian->from->H_from_to.transpose();
 			}
 			if (fh->inertialFrameHessian->to != nullptr)
 			{
-				HM_I.bottomRightCorner<15, 15>() += fh->inertialFrameHessian->to->H_to;
+				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += fh->inertialFrameHessian->to->H_to;
 				bM_I.tail<15>() -= fh->inertialFrameHessian->to->b_to;
 				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, ndim) += fh->inertialFrameHessian->to->H_from_to.transpose();
-				HM_I.block<15, 15>(ndim, (fh->idx - 1) * 15 + 4) += fh->inertialFrameHessian->to->H_from_to;
+				//HM_I.block<15, 15>(ndim, (fh->idx - 1) * 15 + 4) += fh->inertialFrameHessian->to->H_from_to;
 			}
 
 			VecX SVec = (HM_I.diagonal().cwiseAbs() + VecX::Constant(HM_I.cols(), 10)).cwiseSqrt();
 			VecX SVecI = SVec.cwiseInverse();
 
 			// scale!
-			MatXX HMScaled = SVecI.asDiagonal() * HM_I * SVecI.asDiagonal();
+			MatXX HMScaled = MatXX::Zero(odim,odim);
+			HMScaled.triangularView<Eigen::Upper>() = SVecI.asDiagonal() * HM_I * SVecI.asDiagonal();
 			VecX bMScaled = SVecI.asDiagonal() * bM_I;
 
 			// invert bottom part!

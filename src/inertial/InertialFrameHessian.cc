@@ -38,16 +38,16 @@ namespace ldso {
 				else
 					computeJacobian(J, inertialHessian->scale_PRE, T_WB_PRE.so3(), T_BW_PRE.so3(), inertialHessian->T_CB.so3(), inertialHessian->T_BC.so3(), fh->PRE_worldToCam.so3(), fh->PRE_camToWorld.so3(), inertialHessian->R_DW_PRE, inertialHessian->R_WD_PRE, T_WB_PRE.translation(), inertialHessian->T_CB.translation(), fh->PRE_camToWorld);
 
-				H += J.transpose() * visualWeight * W.asDiagonal() * J;
+				H.block<16, 16>(0, 0).triangularView<Eigen::Upper>() = J.block<6, 16>(0, 0).transpose() * visualWeight * W.asDiagonal() * J.block<6, 16>(0, 0);
 
 				if (from)
 				{
-					H.block<15, 15>(10, 10) += from->H_from;
+					H.block<15, 15>(10, 10).triangularView<Eigen::Upper>() += from->H_from;
 				}
 
 				if (to)
 				{
-					H.block<15, 15>(10, 10) += to->H_to;
+					H.block<15, 15>(10, 10).triangularView<Eigen::Upper>() += to->H_to;
 				}
 			}
 
@@ -57,7 +57,7 @@ namespace ldso {
 				b.block<15, 1>(10, 0) += from->b_from;
 
 				if (setting_vi_debug)
-					LOG(INFO) << "Inertial Pre-Integration (" << fh->frameID << ") dR: [" << (from->preIntegration->delta_R_ij*SO3::exp(from->preIntegration->d_delta_R_ij_dg* db_g_PRE)).log().transpose().format(setting_vi_format) << "]; dv: [" << (T_WB_PRE.so3() * (from->preIntegration->delta_v_ij + from->preIntegration->d_delta_v_ij_dg * db_g_PRE + from->preIntegration->d_delta_v_ij_da *db_a_PRE) - Vec3(0,0,9.81*from->preIntegration->dt_ij)).transpose().format(setting_vi_format) << "]; dp: [" << (from->preIntegration->delta_p_ij + from->preIntegration->d_delta_p_ij_dg * db_g_PRE + from->preIntegration->d_delta_p_ij_da *db_a_PRE).transpose().format(setting_vi_format) << "]; dt: " << from->preIntegration->dt_ij << ";";
+					LOG(INFO) << "Inertial Pre-Integration (" << fh->frameID << ") dR: [" << (from->preIntegration->delta_R_ij*SO3::exp(from->preIntegration->d_delta_R_ij_dg* db_g_PRE)).log().transpose().format(setting_vi_format) << "]; dv: [" << (T_WB_PRE.so3() * (from->preIntegration->delta_v_ij + from->preIntegration->d_delta_v_ij_dg * db_g_PRE + from->preIntegration->d_delta_v_ij_da *db_a_PRE) - Vec3(0, 0, 9.81*from->preIntegration->dt_ij)).transpose().format(setting_vi_format) << "]; dp: [" << (from->preIntegration->delta_p_ij + from->preIntegration->d_delta_p_ij_dg * db_g_PRE + from->preIntegration->d_delta_p_ij_da *db_a_PRE).transpose().format(setting_vi_format) << "]; dt: " << from->preIntegration->dt_ij << ";";
 			}
 
 			if (to)
@@ -65,7 +65,7 @@ namespace ldso {
 				b.block<15, 1>(10, 0) += to->b_to;
 			}
 
-			H = 0.5 * (H + H.transpose());
+			LOG(INFO) << "eigen H: " << H.eigenvalues().format(setting_vi_format);
 
 			b += -J.transpose() * visualWeight * W.asDiagonal() * r;
 

@@ -120,10 +120,10 @@ namespace ldso {
 				else
 					computeJacobian(J_from, J_to, preIntegration, from->T_WB_PRE.translation(), to->T_WB_PRE.translation(), from->T_BW_PRE.so3(), to->T_BW_PRE.so3(), to->T_WB_PRE.so3(), from->W_v_B_PRE, to->W_v_B_PRE, from->db_g_PRE, to->db_g_PRE, from->db_a_PRE, to->db_a_PRE, from->b_g_lin, to->b_g_lin, from->b_a_lin, to->b_a_lin);
 
-				H_to = J_to.transpose() * visualWeight * W * J_to;
-				H_to = 0.5 * (H_to + H_to.transpose());
-				H_from = J_from.transpose() * visualWeight * W * J_from;
-				H_from = 0.5 * (H_from + H_from.transpose());
+				H_to.triangularView<Eigen::Upper>() = J_to.transpose() * visualWeight * W * J_to;
+
+				H_from.triangularView<Eigen::Upper>() = J_from.transpose() * visualWeight * W * J_from;
+
 				H_from_to = J_from.transpose() * visualWeight * W * J_to;
 			}
 

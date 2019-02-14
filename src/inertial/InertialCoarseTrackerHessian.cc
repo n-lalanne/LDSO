@@ -137,7 +137,7 @@ namespace ldso {
 
 					MatXX Hbb = MatXX::Zero(30, 30);
 
-					Hbb.block<15, 15>(0, 0) = J_i.transpose() * visualWeight * W * J_i + visualWeight * HM_I;
+					Hbb.block<15, 15>(0, 0) = J_i.transpose() * visualWeight * W * J_i; // +visualWeight * HM_I;
 					Hbb.block<15, 15>(0, 15) = J_i.transpose() * visualWeight * W * J_j;
 					Hbb.block<15, 15>(15, 0) = Hbb.block<15, 15>(0, 15).transpose();
 					Hbb.block<15, 15>(15, 15) = J_j.transpose() * visualWeight * W * J_j;
@@ -152,7 +152,7 @@ namespace ldso {
 					else
 						Hbb_inv = Hbb.inverse();
 
-					bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W * r_pr + visualWeight * (bM_I - HM_I * S.block<15, 15>(10, 10) * (x_i - x_backup_i));
+					bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W * r_pr; // +visualWeight * (bM_I - HM_I * S.block<15, 15>(10, 10) * (x_i - x_backup_i));
 					bb.block<15, 1>(15, 0) += -J_j.transpose() * visualWeight * W * r_pr;
 					bb.block<15, 1>(15, 0) += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
 					Hab.block<6, 15>(0, 15) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 15>(0, 10);
