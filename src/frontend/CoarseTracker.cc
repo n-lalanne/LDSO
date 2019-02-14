@@ -168,8 +168,15 @@ namespace ldso {
 				incScaled.segment<1>(6) *= SCALE_A;
 				incScaled.segment<1>(7) *= SCALE_B;
 
-				if (!std::isfinite(incScaled.sum())) incScaled.setZero();
-				if (!std::isfinite(incScaled.sum())) inc.setZero();
+				if (!std::isfinite(incScaled.squaredNorm()))
+				{
+					incScaled.setZero();
+					inc.setZero();
+					std::cout << "H:" << std::endl << Hl << std::endl;
+					std::cout << "eigenvalues:" << std::endl << Hl.eigenvalues().transpose().format(setting_vi_format) << std::endl;
+					std::cout << "b:" << std::endl << -b + inertialCoarseTrackerHessian->b_I - inertialCoarseTrackerHessian->b_I_sc << std::endl;
+				}
+
 
 				// left multiply the pose and add to a,b
 				SE3 refToNew_new = SE3::exp((Vec6)(incScaled.head<6>())) * refToNew_current;

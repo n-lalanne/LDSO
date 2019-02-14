@@ -2,6 +2,8 @@
 #include "internal/OptimizationBackend/EnergyFunctional.h"
 #include "internal/GlobalFuncs.h"
 
+#include "util/MatrixInverter.h"
+
 #include <glog/logging.h>
 
 
@@ -376,6 +378,17 @@ namespace ldso {
 				(iteration >= 2 && (setting_solverMode & SOLVER_ORTHOGONALIZE_X_LATER))) {
 				VecX xOld = x;
 				orthogonalize(&x, 0);
+			}
+
+			if (!std::isfinite(x.squaredNorm()))
+			{
+				//std::cout << "H:" << std::endl << HFinal_top << std::endl;
+				std::cout << "eigenvalues:" << std::endl << HFinal_top.eigenvalues().transpose().format(setting_vi_format) << std::endl;
+				std::cout << "eigenvalues:" << std::endl << H_I.eigenvalues().transpose().format(setting_vi_format) << std::endl;
+				std::cout << "eigenvalues:" << std::endl << Hbb_I_inv.eigenvalues().transpose().format(setting_vi_format) << std::endl;
+				std::cout << "eigenvalues:" << std::endl << (HL_top + HM + HA_top - H_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl;
+				std::cout << "eigenvalues:" << std::endl << (H_I - H_I_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl;
+				//std::cout << "b:" << std::endl << bFinal_top << std::endl;
 			}
 
 			lastX = x;
@@ -799,16 +812,22 @@ namespace ldso {
 				index++;
 			}
 
+			if (Hbb_I.eigenvalues().real().minCoeff() < 0.0)
+				LOG(INFO) << Hbb_I.eigenvalues().transpose().format(setting_vi_format);
+
+			if (HM_I.eigenvalues().real().minCoeff() < 0.0)
+				LOG(INFO) << Hbb_I.eigenvalues().transpose().format(setting_vi_format);
+
+			if ((HM_I+ Hbb_I).eigenvalues().real().minCoeff() < 0.0)
+				LOG(INFO) << (HM_I + Hbb_I).eigenvalues().transpose().format(setting_vi_format);
+
 			Hbb_I += HM_I;
 			bb_I += (bM_I + HM_I * deltaX);
 
 			for (int i = 0; i < 4 + 15 * nFrames; i++)
 				Hbb_I(i, i) *= (1 + lambda);
 
-			if (Hbb_I.determinant() < 1e-8)
-				Hbb_I_inv = (Hbb_I + VecX::Constant(Hbb_I.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
-			else
-				Hbb_I_inv = Hbb_I.inverse();
+			Hbb_I_inv = util::MatrixInverter::invertPosDef(Hbb_I);
 
 			MatXX HabHbbinv;
 			HabHbbinv = Hab_I * Hbb_I_inv;

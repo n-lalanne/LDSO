@@ -65,6 +65,8 @@ namespace ldso {
 				b.block<15, 1>(10, 0) += to->b_to;
 			}
 
+			H = 0.5 * (H + H.transpose());
+
 			b += -J.transpose() * visualWeight * W.asDiagonal() * r;
 
 			energy += r.transpose() * visualWeight * W.asDiagonal() * r;
