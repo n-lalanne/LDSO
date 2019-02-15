@@ -822,7 +822,7 @@ namespace ldso {
 			//	LOG(INFO) << (HM_I + Hbb_I).eigenvalues().transpose().format(setting_vi_format);
 
 			Hbb_I.triangularView<Eigen::Upper>() += HM_I;
-		    bb_I.triangularView<Eigen::Upper>() += (bM_I + HM_I * deltaX);
+			bb_I += (bM_I + HM_I.selfadjointView<Eigen::Upper>() * deltaX);
 
 			for (int i = 0; i < 4 + 15 * nFrames; i++)
 				Hbb_I(i, i) *= (1 + lambda);
@@ -881,23 +881,23 @@ namespace ldso {
 			VecX SVecI = SVec.cwiseInverse();
 
 			// scale!
-			MatXX HMScaled = MatXX::Zero(odim,odim);
+			MatXX HMScaled = MatXX::Zero(odim, odim);
 			HMScaled.triangularView<Eigen::Upper>() = SVecI.asDiagonal() * HM_I * SVecI.asDiagonal();
 			VecX bMScaled = SVecI.asDiagonal() * bM_I;
 
 			// invert bottom part!
-			Mat1515 hpi = HMScaled.bottomRightCorner<15, 15>();
+			Mat1515 hpi = HMScaled.bottomRightCorner<15, 15>().selfadjointView<Eigen::Upper>();
 			hpi = 0.5f * (hpi + hpi);
 			hpi = hpi.inverse();
 			hpi = 0.5f * (hpi + hpi);
 
 			// schur-complement!
-			MatXX bli = HMScaled.bottomLeftCorner(15, ndim).transpose() * hpi;
-			HMScaled.topLeftCorner(ndim, ndim).noalias() -= bli * HMScaled.bottomLeftCorner(15, ndim);
+			MatXX bli = HMScaled.topRightCorner(ndim, 15) * hpi;
+			HMScaled.topLeftCorner(ndim, ndim).noalias() -= bli * HMScaled.topRightCorner(ndim, 15).transpose();
 			bMScaled.head(ndim).noalias() -= bli * bMScaled.tail<15>();
 
 			// unscale!
-			HMScaled = SVec.asDiagonal() * HMScaled * SVec.asDiagonal();
+			HMScaled = SVec.asDiagonal() * HMScaled.selfadjointView<Eigen::Upper>().toDenseMatrix() * SVec.asDiagonal();
 			bMScaled = SVec.asDiagonal() * bMScaled;
 
 			// set.

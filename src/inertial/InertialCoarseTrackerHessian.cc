@@ -17,7 +17,7 @@ namespace ldso {
 		void InertialCoarseTrackerHessian::marginalize()
 		{
 			if (setting_vi_enable) {
-				fix_i = false;
+				fix_i = true;
 
 				Mat1515 J_i = Mat1515::Zero();
 				Mat1515 J_j = Mat1515::Zero();
