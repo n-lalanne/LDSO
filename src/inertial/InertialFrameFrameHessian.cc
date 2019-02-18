@@ -110,10 +110,9 @@ namespace ldso {
 				J_to.setZero();
 
 				W.setZero();
-				W.block<9, 9>(0, 0) = preIntegration->Sigma_ij;
-				W.block<6, 6>(9, 9) = preIntegration->Sigma_bd * preIntegration->dt_ij;
-				W = W.inverse();
-				W = 0.5 * (W * W.transpose());
+				W.block<9, 9>(0, 0).triangularView<Eigen::Upper>() = preIntegration->Sigma_ij;
+				W.block<6, 6>(9, 9).triangularView<Eigen::Upper>() = preIntegration->Sigma_bd * preIntegration->dt_ij;
+				W = W.selfadjointView<Eigen::Upper>().toDenseMatrix().inverse();
 
 				if (setting_vi_fej_window_optimization)
 					computeJacobian(J_from, J_to, preIntegration, from->T_WB_EvalPT.translation(), to->T_WB_EvalPT.translation(), from->T_WB_EvalPT.so3().inverse(), to->T_WB_EvalPT.so3().inverse(), to->T_WB_EvalPT.so3(), from->W_v_B_EvalPT, to->W_v_B_EvalPT, from->db_g_EvalPT, to->db_g_EvalPT, from->db_a_EvalPT, to->db_a_EvalPT, from->b_g_lin, to->b_g_lin, from->b_a_lin, to->b_a_lin);

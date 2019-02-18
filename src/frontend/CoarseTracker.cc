@@ -127,9 +127,9 @@ namespace ldso {
 
 			// L-M iteration
 			for (int iteration = 0; iteration < maxIterations[lvl]; iteration++) {
-				Mat88 Hl = H + inertialCoarseTrackerHessian->H_I;
+				Mat88 Hl = H + inertialCoarseTrackerHessian->H_I.triangularView<Eigen::Upper>().toDenseMatrix();
 				for (int i = 0; i < 8; i++) Hl(i, i) *= (1 + lambda);
-				Hl -= inertialCoarseTrackerHessian->H_I_sc;
+				Hl -= inertialCoarseTrackerHessian->H_I_sc.triangularView<Eigen::Upper>();
 				Vec8 inc = Hl.ldlt().solve(-b + inertialCoarseTrackerHessian->b_I - inertialCoarseTrackerHessian->b_I_sc);
 
 				// depends on the mode, if a,b is fixed, don't estimate them

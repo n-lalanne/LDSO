@@ -3,6 +3,7 @@ using namespace std;
 #include "inertial/InertialCoarseTrackerHessian.h"
 #include "inertial/InertialFrameFrameHessian.h"
 #include "inertial/InertialFrameHessian.h"
+#include "util/MatrixInverter.h"
 
 namespace ldso {
 	namespace inertial {
@@ -17,7 +18,7 @@ namespace ldso {
 		void InertialCoarseTrackerHessian::marginalize()
 		{
 			if (setting_vi_enable) {
-				fix_i = true;
+				fix_i = false;
 
 				Mat1515 J_i = Mat1515::Zero();
 				Mat1515 J_j = Mat1515::Zero();
@@ -33,21 +34,16 @@ namespace ldso {
 				Mat1515 Hba = Mat1515::Zero(15, 15);
 				Vec15 bb = Vec15::Zero();
 
-				Hbb = J_i.transpose() * W * J_i + HM_I;
+				Hbb.triangularView<Eigen::Upper>() = J_i.transpose() * W * J_i + HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
 				Hba = J_i.transpose() * W * J_j;
-
-				if (Hbb.determinant() < 1e-8)
-					Hbb_inv = (Hbb + VecX::Constant(Hbb.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
-				else
-					Hbb_inv = Hbb.inverse();
 
 				bb = -J_i.transpose() * W * r_pr + bM_I;
 
 				Mat1515 HabHbbinv;
-				HabHbbinv = Hba.transpose() * Hbb_inv;
+				HabHbbinv = Hba.transpose() * util::MatrixInverter::invertPosDef(Hbb).selfadjointView<Eigen::Upper>();
 
-				HM_I = HabHbbinv * Hba;
-				bM_I = HabHbbinv * bb;
+				HM_I.triangularView<Eigen::Upper>() = J_j.transpose() * W * J_j - HabHbbinv * Hba;
+				bM_I = -J_j.transpose() * W * r_pr - HabHbbinv * bb;
 
 				Tw_i = Tw_j;
 				v_i = v_j;
@@ -93,9 +89,9 @@ namespace ldso {
 				J_co = J_co * S;
 
 				W.setZero();
-				W.block<9, 9>(0, 0) = preIntegration->Sigma_ij;
-				W.block<6, 6>(9, 9) = preIntegration->Sigma_bd * preIntegration->dt_ij;
-				W = setting_vi_lambda_coarse_tracker * W.inverse();
+				W.block<9, 9>(0, 0).triangularView<Eigen::Upper>() = preIntegration->Sigma_ij;
+				W.block<6, 6>(9, 9).triangularView<Eigen::Upper>() = preIntegration->Sigma_bd * preIntegration->dt_ij;
+				W = setting_vi_lambda_coarse_tracker * W.selfadjointView<Eigen::Upper>().toDenseMatrix().inverse();
 
 				w.setZero();
 				w.block<3, 1>(0, 0) = setting_vi_lambda_coarse_tracker * setting_vi_lambda_rot * setting_vi_lambda_rot * Vec3::Ones();
@@ -111,16 +107,13 @@ namespace ldso {
 
 					Mat1515 Hj;
 
-					Hj = J_j.transpose() * visualWeight * W * J_j;
-					Hj.block<6, 6>(0, 0) += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
+					Hj.triangularView<Eigen::Upper>() = J_j.transpose() * visualWeight * W * J_j;
+					Hj.block<6, 6>(0, 0).triangularView<Eigen::Upper>() += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
 
 					for (int i = 0; i < 15; i++)
 						Hj(i, i) *= (1 + lambda);
 
-					if (Hj.determinant() < 1e-8)
-						Hbb_inv += (Hj + VecX::Constant(Hj.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
-					else
-						Hbb_inv += Hj.inverse();
+					Hbb_inv = util::MatrixInverter::invertPosDef(Hj);
 
 					bb += -J_j.transpose() * visualWeight * W * r_pr;
 					bb += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
@@ -137,34 +130,31 @@ namespace ldso {
 
 					MatXX Hbb = MatXX::Zero(30, 30);
 
-					Hbb.block<15, 15>(0, 0) = J_i.transpose() * visualWeight * W * J_i; // +visualWeight * HM_I;
+					Hbb.block<15, 15>(0, 0).triangularView<Eigen::Upper>() = J_i.transpose() * visualWeight * W * J_i + visualWeight * HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
 					Hbb.block<15, 15>(0, 15) = J_i.transpose() * visualWeight * W * J_j;
-					Hbb.block<15, 15>(15, 0) = Hbb.block<15, 15>(0, 15).transpose();
-					Hbb.block<15, 15>(15, 15) = J_j.transpose() * visualWeight * W * J_j;
-					Hbb.block<6, 6>(15, 15).noalias() += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
+					//Hbb.block<15, 15>(15, 0) = Hbb.block<15, 15>(0, 15).transpose();
+					Hbb.block<15, 15>(15, 15).triangularView<Eigen::Upper>() = J_j.transpose() * visualWeight * W * J_j;
+					Hbb.block<6, 6>(15, 15).triangularView<Eigen::Upper>() += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
 
 					for (int i = 0; i < 30; i++) {
 						Hbb(i, i) *= (1 + lambda);
 					}
 
-					if (Hbb.determinant() < 1e-8)
-						Hbb_inv = (Hbb + VecX::Constant(Hbb.cols(), 10e-8).asDiagonal().toDenseMatrix()).inverse();
-					else
-						Hbb_inv = Hbb.inverse();
+					Hbb_inv = util::MatrixInverter::invertPosDef(Hbb);
 
-					bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W * r_pr; // +visualWeight * (bM_I - HM_I * S.block<15, 15>(10, 10) * (x_i - x_backup_i));
+					bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W * r_pr + visualWeight * (bM_I - HM_I.selfadjointView<Eigen::Upper>() * S.block<15, 15>(10, 10) * (x_i - x_backup_i));
 					bb.block<15, 1>(15, 0) += -J_j.transpose() * visualWeight * W * r_pr;
 					bb.block<15, 1>(15, 0) += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
 					Hab.block<6, 15>(0, 15) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 15>(0, 10);
 				}
 
-				H_I.block<6, 6>(0, 0) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 6>(0, 0);
+				H_I.block<6, 6>(0, 0).triangularView<Eigen::Upper>() = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 6>(0, 0);
 				b_I.block<6, 1>(0, 0) = -J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() * r_co;
 
 				MatXX HabHbbinv;
-				HabHbbinv = Hab * Hbb_inv;
+				HabHbbinv = Hab * Hbb_inv.selfadjointView<Eigen::Upper>();
 
-				H_I_sc += HabHbbinv * Hab.transpose();
+				H_I_sc.triangularView<Eigen::Upper>() = HabHbbinv * Hab.transpose();
 				b_I_sc += HabHbbinv * bb;
 
 				energy += r_pr.transpose() * visualWeight * W * r_pr;
@@ -233,7 +223,7 @@ namespace ldso {
 
 		void InertialCoarseTrackerHessian::update(Vec8 x) {
 			if (setting_vi_enable) {
-				step = Hbb_inv * (bb - Hab.transpose() * x);
+				step = Hbb_inv.selfadjointView<Eigen::Upper>() * (bb - Hab.transpose() * x);
 
 				if (!fix_i)
 				{

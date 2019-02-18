@@ -310,7 +310,7 @@ namespace ldso {
 				lastHS = HFinal_top - H_sc - H_I_sc;
 
 				if (setting_vi_enable) {
-					HFinal_top += H_I;
+					HFinal_top += H_I.selfadjointView<Eigen::Upper>();
 					bFinal_top += b_I - b_I_sc;
 					lastHS -= H_I_sc;
 				}
@@ -387,7 +387,7 @@ namespace ldso {
 				std::cout << "eigenvalues:" << std::endl << H_I.eigenvalues().transpose().format(setting_vi_format) << std::endl;
 				std::cout << "eigenvalues:" << std::endl << Hbb_I_inv.eigenvalues().transpose().format(setting_vi_format) << std::endl;
 				std::cout << "eigenvalues:" << std::endl << (HL_top + HM + HA_top - H_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl;
-				std::cout << "eigenvalues:" << std::endl << (H_I - H_I_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl;
+				std::cout << "eigenvalues:" << std::endl << (H_I.selfadjointView<Eigen::Upper>().toDenseMatrix() - H_I_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl;
 				//std::cout << "b:" << std::endl << bFinal_top << std::endl;
 			}
 
@@ -827,10 +827,10 @@ namespace ldso {
 			for (int i = 0; i < 4 + 15 * nFrames; i++)
 				Hbb_I(i, i) *= (1 + lambda);
 
-			Hbb_I_inv = util::MatrixInverter::invertPosDef(Hbb_I.selfadjointView<Eigen::Upper>());
+			Hbb_I_inv = util::MatrixInverter::invertPosDef(Hbb_I);
 
 			MatXX HabHbbinv;
-			HabHbbinv = Hab_I * Hbb_I_inv;
+			HabHbbinv = Hab_I * Hbb_I_inv.selfadjointView<Eigen::Upper>();
 
 			H_I_sc = HabHbbinv * Hab_I.transpose();
 			b_I_sc = HabHbbinv * bb_I;
@@ -909,7 +909,7 @@ namespace ldso {
 		{
 			int index = 0;
 
-			VecX xb = Hbb_I_inv * (bb_I - Hab_I.transpose() * x);
+			VecX xb = Hbb_I_inv.selfadjointView<Eigen::Upper>() * (bb_I - Hab_I.transpose() * x);
 
 			HInertial->x_step = -S.block<4, 4>(6, 6) * xb.block<4, 1>(0, 0);
 

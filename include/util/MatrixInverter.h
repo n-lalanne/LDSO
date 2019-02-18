@@ -12,7 +12,7 @@ namespace ldso {
 		public:
 			EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-			static MatXX invertPosDef(MatXX M);
+			static MatXX invertPosDef(MatXX M, bool fast = true);
 		};
 	}
 }
