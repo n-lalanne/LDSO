@@ -389,6 +389,7 @@ namespace ldso {
 				std::cout << "HM_I:" << std::endl << HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
 				std::cout << "(HL_top + HM + HA_top - H_sc):" << std::endl << (HL_top + HM + HA_top - H_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
 				std::cout << "(H_I - H_I_sc):" << std::endl << (H_I.selfadjointView<Eigen::Upper>().toDenseMatrix() - H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
+				std::cout << "Hbb_I_inv:" << std::endl << Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix() << std::endl << std::endl;
 				//std::cout << "b:" << std::endl << bFinal_top << std::endl;
 			}
 
@@ -832,7 +833,7 @@ namespace ldso {
 			Hbb_I_inv = util::MatrixInverter::invertPosDef(Hbb_I, setting_use_fast_matrix_inverter);
 
 			MatXX HabHbbinv;
-			HabHbbinv = Hab_I * Hbb_I_inv.selfadjointView<Eigen::Upper>();
+			HabHbbinv = Hab_I * Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix();
 
 			H_I_sc.triangularView<Eigen::Upper>() = HabHbbinv * Hab_I.transpose();
 			b_I_sc = HabHbbinv * bb_I;
@@ -868,18 +869,25 @@ namespace ldso {
 
 			if (fh->inertialFrameHessian->from != nullptr)
 			{
-				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += fh->inertialFrameHessian->from->H_from;
-				bM_I.tail<15>() -= fh->inertialFrameHessian->from->b_from;
+				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += fh->inertialFrameHessian->from->H_from.selfadjointView<Eigen::Upper>().toDenseMatrix();
+				HM_I.block<15, 15>(fh->idx * 15 + 4, fh->idx * 15 + 4).triangularView<Eigen::Upper>() += fh->inertialFrameHessian->from->H_to.selfadjointView<Eigen::Upper>().toDenseMatrix();
 				HM_I.block<15, 15>(fh->idx * 15 + 4, ndim) += fh->inertialFrameHessian->from->H_from_to;
-				//HM_I.block<15, 15>(ndim, fh->idx * 15 + 4) += fh->inertialFrameHessian->from->H_from_to.transpose();
+
+				bM_I.tail<15>() -= fh->inertialFrameHessian->from->b_from;
+				bM_I.segment<15>(fh->idx * 15 + 4) -= fh->inertialFrameHessian->from->b_to;
 			}
 			if (fh->inertialFrameHessian->to != nullptr)
 			{
-				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += fh->inertialFrameHessian->to->H_to;
-				bM_I.tail<15>() -= fh->inertialFrameHessian->to->b_to;
+				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += fh->inertialFrameHessian->to->H_to.selfadjointView<Eigen::Upper>().toDenseMatrix();
+				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, (fh->idx - 1) * 15 + 4).triangularView<Eigen::Upper>() += fh->inertialFrameHessian->to->H_from.selfadjointView<Eigen::Upper>().toDenseMatrix();
 				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, ndim) += fh->inertialFrameHessian->to->H_from_to.transpose();
-				//HM_I.block<15, 15>(ndim, (fh->idx - 1) * 15 + 4) += fh->inertialFrameHessian->to->H_from_to;
+
+				bM_I.tail<15>() -= fh->inertialFrameHessian->to->b_to;
+				bM_I.segment<15>((fh->idx - 1) * 15 + 4) -= fh->inertialFrameHessian->to->b_from;
 			}
+
+			/*std::cout << "HM_I: " << std::endl << HM_I.bottomRightCorner<15, 15>().selfadjointView<Eigen::Upper>().toDenseMatrix() << std::endl;
+			std::cout << "Hab: " << std::endl << HM_I.topRightCorner(ndim, 15) << std::endl;*/
 
 			VecX SVec = (HM_I.diagonal().cwiseAbs() + VecX::Constant(HM_I.cols(), 10)).cwiseSqrt();
 			VecX SVecI = SVec.cwiseInverse();
@@ -891,7 +899,7 @@ namespace ldso {
 
 			// invert bottom part!
 			MatXX hpi = Mat1515::Zero();
-			hpi.triangularView<Eigen::Upper>() = HMScaled.bottomRightCorner<15, 15>();
+			hpi.triangularView<Eigen::Upper>() = HMScaled.bottomRightCorner<15, 15>().selfadjointView<Eigen::Upper>().toDenseMatrix();
 			hpi = util::MatrixInverter::invertPosDef(hpi, setting_use_fast_matrix_inverter);
 
 			// schur-complement!
@@ -904,6 +912,7 @@ namespace ldso {
 			bMScaled = SVec.asDiagonal() * bMScaled;
 
 			// set.
+			HM_I = MatXX::Zero(ndim, ndim);
 			HM_I.triangularView<Eigen::Upper>() = HMScaled.topLeftCorner(ndim, ndim);
 			bM_I = bMScaled.head(ndim);
 		}

@@ -256,6 +256,9 @@ namespace ldso {
 
 				x_i = x_backup_i;
 				x_j = x_backup_j;
+
+				if (setting_vi_debug)
+					LOG(INFO) << "xi: " << x_i.transpose().format(setting_vi_format) << "xi_backup: " << x_backup_i.transpose().format(setting_vi_format);
 			}
 		}
 

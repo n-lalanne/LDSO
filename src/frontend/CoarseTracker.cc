@@ -175,8 +175,8 @@ namespace ldso {
 					std::cout << "H:" << std::endl << Hl << std::endl;
 					std::cout << "eigenvalues:" << std::endl << Hl.eigenvalues().transpose().format(setting_vi_format) << std::endl;
 					std::cout << "b:" << std::endl << -b << std::endl;
-					std::cout << "b:" << std::endl << inertialCoarseTrackerHessian->b_I - inertialCoarseTrackerHessian->b_I_sc << std::endl;
-					std::cout << "b:" << std::endl << inertialCoarseTrackerHessian->x_i - inertialCoarseTrackerHessian->x_backup_i << std::endl;
+					std::cout << "(b_I-b_I_sc):" << std::endl << inertialCoarseTrackerHessian->b_I - inertialCoarseTrackerHessian->b_I_sc << std::endl;
+					std::cout << "(x_i-x_backup_i):" << std::endl << inertialCoarseTrackerHessian->x_i - inertialCoarseTrackerHessian->x_backup_i << std::endl;
 				}
 
 

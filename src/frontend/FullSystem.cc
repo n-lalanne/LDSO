@@ -373,7 +373,7 @@ namespace ldso {
 
 		//Vec5 achievedRes = Vec5::Constant(NAN);
 
-		//coarseTracker->inertialCoarseTrackerHessian->backup();
+		coarseTracker->inertialCoarseTrackerHessian->backup();
 
 		Vec5 achievedRes = Vec5::Constant(INFINITY);
 		bool haveOneGood = false;
@@ -382,8 +382,6 @@ namespace ldso {
 
 			AffLight aff_g2l_this = aff_last_2_l;
 			SE3 lastF_2_fh_this = lastF_2_fh_tries[i];
-
-			//coarseTracker->inertialCoarseTrackerHessian->reset();
 
 			// use coarse tracker to solve the iteration
 			bool trackingIsGood = coarseTracker->trackNewestCoarse(
@@ -416,6 +414,7 @@ namespace ldso {
 
 			if (haveOneGood && achievedRes[0] < lastCoarseRMSE[0] * setting_reTrackThreshold)
 				break;
+			coarseTracker->inertialCoarseTrackerHessian->reset();
 		}
 
 		if (!haveOneGood) {
