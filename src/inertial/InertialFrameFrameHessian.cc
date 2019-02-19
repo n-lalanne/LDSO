@@ -2,6 +2,7 @@ using namespace std;
 
 #include "inertial/InertialFrameFrameHessian.h"
 #include "inertial/InertialUtility.h"
+#include "util/MatrixInverter.h"
 
 namespace ldso {
 	namespace inertial {
@@ -112,7 +113,7 @@ namespace ldso {
 				W.setZero();
 				W.block<9, 9>(0, 0).triangularView<Eigen::Upper>() = preIntegration->Sigma_ij;
 				W.block<6, 6>(9, 9).triangularView<Eigen::Upper>() = preIntegration->Sigma_bd * preIntegration->dt_ij;
-				W = W.selfadjointView<Eigen::Upper>().toDenseMatrix().inverse();
+				W = util::MatrixInverter::invertPosDef(W);
 
 				if (setting_vi_fej_window_optimization)
 					computeJacobian(J_from, J_to, preIntegration, from->T_WB_EvalPT.translation(), to->T_WB_EvalPT.translation(), from->T_WB_EvalPT.so3().inverse(), to->T_WB_EvalPT.so3().inverse(), to->T_WB_EvalPT.so3(), from->W_v_B_EvalPT, to->W_v_B_EvalPT, from->db_g_EvalPT, to->db_g_EvalPT, from->db_a_EvalPT, to->db_a_EvalPT, from->b_g_lin, to->b_g_lin, from->b_a_lin, to->b_a_lin);
@@ -123,13 +124,13 @@ namespace ldso {
 
 				H_from.triangularView<Eigen::Upper>() = J_from.transpose() * visualWeight * W * J_from;
 
-				H_from_to = J_from.transpose() * visualWeight * W * J_to;
+				H_from_to = J_from.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_to;
 			}
 
-			b_to = -J_to.transpose() * visualWeight * W * r;
-			b_from = -J_from.transpose() * visualWeight * W * r;
+			b_to = -J_to.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r;
+			b_from = -J_from.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r;
 
-			energy = r.transpose() * visualWeight * W * r;
+			energy = r.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r;
 		}
 	}
 }

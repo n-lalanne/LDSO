@@ -515,7 +515,7 @@ namespace ldso {
 		setPrecalcValues();
 
 		//Debug
-		if (setting_vi_enable) {
+		if (setting_vi_enable && setting_vi_debug) {
 			for (auto fht : frames)
 			{
 				LOG(INFO) << "KFID: " << fht->kfId << endl;

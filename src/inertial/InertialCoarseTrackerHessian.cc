@@ -91,7 +91,7 @@ namespace ldso {
 				W.setZero();
 				W.block<9, 9>(0, 0).triangularView<Eigen::Upper>() = preIntegration->Sigma_ij;
 				W.block<6, 6>(9, 9).triangularView<Eigen::Upper>() = preIntegration->Sigma_bd * preIntegration->dt_ij;
-				W = setting_vi_lambda_coarse_tracker * W.selfadjointView<Eigen::Upper>().toDenseMatrix().inverse();
+				W = setting_vi_lambda_coarse_tracker * util::MatrixInverter::invertPosDef(W);
 
 				w.setZero();
 				w.block<3, 1>(0, 0) = setting_vi_lambda_coarse_tracker * setting_vi_lambda_rot * setting_vi_lambda_rot * Vec3::Ones();
@@ -107,7 +107,7 @@ namespace ldso {
 
 					Mat1515 Hj;
 
-					Hj.triangularView<Eigen::Upper>() = J_j.transpose() * visualWeight * W * J_j;
+					Hj.triangularView<Eigen::Upper>() = J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_j;
 					Hj.block<6, 6>(0, 0).triangularView<Eigen::Upper>() += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
 
 					for (int i = 0; i < 15; i++)
@@ -115,7 +115,7 @@ namespace ldso {
 
 					Hbb_inv = util::MatrixInverter::invertPosDef(Hj);
 
-					bb += -J_j.transpose() * visualWeight * W * r_pr;
+					bb += -J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr;
 					bb += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
 					Hab.block<6, 15>(0, 0) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 15>(0, 10);
 				}
@@ -130,10 +130,10 @@ namespace ldso {
 
 					MatXX Hbb = MatXX::Zero(30, 30);
 
-					Hbb.block<15, 15>(0, 0).triangularView<Eigen::Upper>() = J_i.transpose() * visualWeight * W * J_i + visualWeight * HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
-					Hbb.block<15, 15>(0, 15) = J_i.transpose() * visualWeight * W * J_j;
+					Hbb.block<15, 15>(0, 0).triangularView<Eigen::Upper>() = J_i.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_i + visualWeight * HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
+					Hbb.block<15, 15>(0, 15) = J_i.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_j;
 					//Hbb.block<15, 15>(15, 0) = Hbb.block<15, 15>(0, 15).transpose();
-					Hbb.block<15, 15>(15, 15).triangularView<Eigen::Upper>() = J_j.transpose() * visualWeight * W * J_j;
+					Hbb.block<15, 15>(15, 15).triangularView<Eigen::Upper>() = J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_j;
 					Hbb.block<6, 6>(15, 15).triangularView<Eigen::Upper>() += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
 
 					for (int i = 0; i < 30; i++) {
@@ -142,8 +142,8 @@ namespace ldso {
 
 					Hbb_inv = util::MatrixInverter::invertPosDef(Hbb);
 
-					bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W * r_pr + visualWeight * (bM_I - HM_I.selfadjointView<Eigen::Upper>() * S.block<15, 15>(10, 10) * (x_i - x_backup_i));
-					bb.block<15, 1>(15, 0) += -J_j.transpose() * visualWeight * W * r_pr;
+					bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr + visualWeight * (bM_I - HM_I.selfadjointView<Eigen::Upper>() * S.block<15, 15>(10, 10) * (x_i - x_backup_i));
+					bb.block<15, 1>(15, 0) += -J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr;
 					bb.block<15, 1>(15, 0) += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
 					Hab.block<6, 15>(0, 15) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 15>(0, 10);
 				}
@@ -157,7 +157,7 @@ namespace ldso {
 				H_I_sc.triangularView<Eigen::Upper>() = HabHbbinv * Hab.transpose();
 				b_I_sc += HabHbbinv * bb;
 
-				energy += r_pr.transpose() * visualWeight * W * r_pr;
+				energy += r_pr.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr;
 				energy += r_co.transpose() * visualWeight * w.asDiagonal() * r_co;
 			}
 		}

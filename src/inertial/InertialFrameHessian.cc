@@ -65,7 +65,7 @@ namespace ldso {
 				b.block<15, 1>(10, 0) += to->b_to;
 			}
 
-			LOG(INFO) << "eigen H: " << H.eigenvalues().format(setting_vi_format);
+			//LOG(INFO) << "eigen H: " << H.eigenvalues().format(setting_vi_format);
 
 			b += -J.transpose() * visualWeight * W.asDiagonal() * r;
 

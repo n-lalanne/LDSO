@@ -279,7 +279,7 @@ namespace ldso {
 
 			bM_top = (bM + HM * getStitchedDeltaF());
 
-			MatXX HFinal_top;
+			MatXX HFinal_top = MatXX::Zero(HA_top.rows(), HA_top.cols());
 			VecX bFinal_top;
 
 			if (setting_solverMode & SOLVER_ORTHOGONALIZE_SYSTEM) {
@@ -304,15 +304,15 @@ namespace ldso {
 					HFinal_top(i, i) *= (1 + lambda);
 			}
 			else {
-				HFinal_top = HL_top + HM + HA_top;
+				HFinal_top.triangularView<Eigen::Upper>() = HL_top + HM + HA_top;
 				bFinal_top = bL_top + bM_top + bA_top - b_sc / (1 + lambda);
 
-				lastHS = HFinal_top - H_sc - H_I_sc;
+				lastHS = HFinal_top - H_sc - H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix();
 
 				if (setting_vi_enable) {
-					HFinal_top += H_I.selfadjointView<Eigen::Upper>();
+					HFinal_top.triangularView<Eigen::Upper>() += H_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
 					bFinal_top += b_I - b_I_sc;
-					lastHS -= H_I_sc;
+					lastHS -= H_I_sc.selfadjointView<Eigen::Upper>();
 				}
 
 
@@ -322,16 +322,16 @@ namespace ldso {
 					HFinal_top(i, i) *= (1 + lambda);
 
 				if (setting_vi_enable)
-					HFinal_top -= H_I_sc;
+					HFinal_top.triangularView<Eigen::Upper>() -= H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix();
 
-				HFinal_top -= (H_sc) * (1.0f / (1 + lambda));
+				HFinal_top.triangularView<Eigen::Upper>() -= (H_sc) * (1.0f / (1 + lambda));
 			}
 
 			// get the result
 			VecX x;
 			if (setting_solverMode & SOLVER_SVD) {
 				VecX SVecI = HFinal_top.diagonal().cwiseSqrt().cwiseInverse();
-				MatXX HFinalScaled = SVecI.asDiagonal() * HFinal_top * SVecI.asDiagonal();
+				MatXX HFinalScaled = SVecI.asDiagonal() * HFinal_top.selfadjointView<Eigen::Upper>().toDenseMatrix() * SVecI.asDiagonal();
 				VecX bFinalScaled = SVecI.asDiagonal() * bFinal_top;
 				Eigen::JacobiSVD<MatXX> svd(HFinalScaled, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
@@ -362,14 +362,14 @@ namespace ldso {
 			else {
 
 				VecX SVecI = (HFinal_top.diagonal() + VecX::Constant(HFinal_top.cols(), 10)).cwiseSqrt().cwiseInverse();
-				MatXX HFinalScaled = SVecI.asDiagonal() * HFinal_top * SVecI.asDiagonal();
+				MatXX HFinalScaled = SVecI.asDiagonal() * HFinal_top.selfadjointView<Eigen::Upper>().toDenseMatrix() * SVecI.asDiagonal();
 
 				/*
 				x = SVecI.asDiagonal() * HFinalScaled.ldlt().solve(
 						SVecI.asDiagonal() * bFinal_top);//  SVec.asDiagonal() * svd.matrixV() * Ub;
 						*/
 
-				x = SVecI.asDiagonal() * HFinalScaled.ldlt().solve(
+				x = SVecI.asDiagonal() * HFinalScaled.selfadjointView<Eigen::Upper>().ldlt().solve(
 					SVecI.asDiagonal() * bFinal_top);//  SVec.asDiagonal() * svd.matrixV() * Ub;
 
 			}
@@ -383,11 +383,11 @@ namespace ldso {
 			if (!std::isfinite(x.squaredNorm()))
 			{
 				//std::cout << "H:" << std::endl << HFinal_top << std::endl;
-				std::cout << "eigenvalues:" << std::endl << HFinal_top.eigenvalues().transpose().format(setting_vi_format) << std::endl;
+				std::cout << "eigenvalues:" << std::endl << HFinal_top.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl;
 				std::cout << "eigenvalues:" << std::endl << H_I.eigenvalues().transpose().format(setting_vi_format) << std::endl;
-				std::cout << "eigenvalues:" << std::endl << Hbb_I_inv.eigenvalues().transpose().format(setting_vi_format) << std::endl;
+				std::cout << "eigenvalues:" << std::endl << Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl;
 				std::cout << "eigenvalues:" << std::endl << (HL_top + HM + HA_top - H_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl;
-				std::cout << "eigenvalues:" << std::endl << (H_I.selfadjointView<Eigen::Upper>().toDenseMatrix() - H_I_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl;
+				std::cout << "eigenvalues:" << std::endl << (H_I.selfadjointView<Eigen::Upper>().toDenseMatrix() - H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format) << std::endl;
 				//std::cout << "b:" << std::endl << bFinal_top << std::endl;
 			}
 
@@ -778,6 +778,7 @@ namespace ldso {
 			bb_I = VecX::Zero(4 + 15 * nFrames);
 			H_I = MatXX::Zero(CPARS + 8 * nFrames, CPARS + 8 * nFrames);
 			b_I = VecX::Zero(CPARS + 8 * nFrames);
+			H_I_sc = MatXX::Zero(CPARS + 8 * nFrames, CPARS + 8 * nFrames);
 
 			VecX deltaX = VecX::Zero(4 + 15 * nFrames);
 
@@ -832,7 +833,7 @@ namespace ldso {
 			MatXX HabHbbinv;
 			HabHbbinv = Hab_I * Hbb_I_inv.selfadjointView<Eigen::Upper>();
 
-			H_I_sc = HabHbbinv * Hab_I.transpose();
+			H_I_sc.triangularView<Eigen::Upper>() = HabHbbinv * Hab_I.transpose();
 			b_I_sc = HabHbbinv * bb_I;
 		}
 
@@ -886,13 +887,12 @@ namespace ldso {
 			VecX bMScaled = SVecI.asDiagonal() * bM_I;
 
 			// invert bottom part!
-			Mat1515 hpi = HMScaled.bottomRightCorner<15, 15>().selfadjointView<Eigen::Upper>();
-			hpi = 0.5f * (hpi + hpi);
-			hpi = hpi.inverse();
-			hpi = 0.5f * (hpi + hpi);
+			MatXX hpi = Mat1515::Zero();
+			hpi.triangularView<Eigen::Upper>() = HMScaled.bottomRightCorner<15, 15>();
+			hpi = util::MatrixInverter::invertPosDef(hpi);
 
 			// schur-complement!
-			MatXX bli = HMScaled.topRightCorner(ndim, 15) * hpi;
+			MatXX bli = HMScaled.topRightCorner(ndim, 15) * hpi.selfadjointView<Eigen::Upper>();
 			HMScaled.topLeftCorner(ndim, ndim).noalias() -= bli * HMScaled.topRightCorner(ndim, 15).transpose();
 			bMScaled.head(ndim).noalias() -= bli * bMScaled.tail<15>();
 
@@ -901,7 +901,7 @@ namespace ldso {
 			bMScaled = SVec.asDiagonal() * bMScaled;
 
 			// set.
-			HM_I = 0.5 * (HMScaled.topLeftCorner(ndim, ndim) + HMScaled.topLeftCorner(ndim, ndim).transpose());
+			HM_I.triangularView<Eigen::Upper>() = HMScaled.topLeftCorner(ndim, ndim);
 			bM_I = bMScaled.head(ndim);
 		}
 
