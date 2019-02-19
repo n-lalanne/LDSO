@@ -171,6 +171,8 @@ namespace ldso {
 	extern double setting_coarse_tracker_lambda_increase;
 	extern double setting_coarse_tracker_lambda_decrease;
 
+	extern bool setting_use_fast_matrix_inverter;
+
 	//==================== Visual Inertial Settings
 	extern int setting_vi_nMeanFilterGravityDirection; // the number of messurements to go back for estimating the initial gravity direction
 

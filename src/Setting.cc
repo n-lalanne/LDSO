@@ -133,6 +133,8 @@ namespace ldso {
 	double setting_coarse_tracker_lambda_increase = 4.0;
 	double setting_coarse_tracker_lambda_decrease = 0.5;
 
+	bool setting_use_fast_matrix_inverter = true;
+
 	//==================== Visual Inertial Settings
 	int setting_vi_nMeanFilterGravityDirection = 40;
 

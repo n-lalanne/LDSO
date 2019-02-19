@@ -40,7 +40,7 @@ namespace ldso {
 				bb = -J_i.transpose() * W * r_pr + bM_I;
 
 				Mat1515 HabHbbinv;
-				HabHbbinv = Hba.transpose() * util::MatrixInverter::invertPosDef(Hbb).selfadjointView<Eigen::Upper>();
+				HabHbbinv = Hba.transpose() * util::MatrixInverter::invertPosDef(Hbb, setting_use_fast_matrix_inverter).selfadjointView<Eigen::Upper>();
 
 				HM_I.triangularView<Eigen::Upper>() = J_j.transpose() * W * J_j - HabHbbinv * Hba;
 				bM_I = -J_j.transpose() * W * r_pr - HabHbbinv * bb;
@@ -91,7 +91,7 @@ namespace ldso {
 				W.setZero();
 				W.block<9, 9>(0, 0).triangularView<Eigen::Upper>() = preIntegration->Sigma_ij;
 				W.block<6, 6>(9, 9).triangularView<Eigen::Upper>() = preIntegration->Sigma_bd * preIntegration->dt_ij;
-				W = setting_vi_lambda_coarse_tracker * util::MatrixInverter::invertPosDef(W);
+				W = setting_vi_lambda_coarse_tracker * util::MatrixInverter::invertPosDef(W, setting_use_fast_matrix_inverter);
 
 				w.setZero();
 				w.block<3, 1>(0, 0) = setting_vi_lambda_coarse_tracker * setting_vi_lambda_rot * setting_vi_lambda_rot * Vec3::Ones();
@@ -113,7 +113,7 @@ namespace ldso {
 					for (int i = 0; i < 15; i++)
 						Hj(i, i) *= (1 + lambda);
 
-					Hbb_inv = util::MatrixInverter::invertPosDef(Hj);
+					Hbb_inv = util::MatrixInverter::invertPosDef(Hj, setting_use_fast_matrix_inverter);
 
 					bb += -J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr;
 					bb += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
@@ -140,7 +140,7 @@ namespace ldso {
 						Hbb(i, i) *= (1 + lambda);
 					}
 
-					Hbb_inv = util::MatrixInverter::invertPosDef(Hbb);
+					Hbb_inv = util::MatrixInverter::invertPosDef(Hbb, setting_use_fast_matrix_inverter);
 
 					bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr + visualWeight * (bM_I - HM_I.selfadjointView<Eigen::Upper>() * S.block<15, 15>(10, 10) * (x_i - x_backup_i));
 					bb.block<15, 1>(15, 0) += -J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr;

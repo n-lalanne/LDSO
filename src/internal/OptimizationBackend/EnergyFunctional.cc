@@ -383,11 +383,12 @@ namespace ldso {
 			if (!std::isfinite(x.squaredNorm()))
 			{
 				//std::cout << "H:" << std::endl << HFinal_top << std::endl;
-				std::cout << "eigenvalues:" << std::endl << HFinal_top.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl;
-				std::cout << "eigenvalues:" << std::endl << H_I.eigenvalues().transpose().format(setting_vi_format) << std::endl;
-				std::cout << "eigenvalues:" << std::endl << Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl;
-				std::cout << "eigenvalues:" << std::endl << (HL_top + HM + HA_top - H_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl;
-				std::cout << "eigenvalues:" << std::endl << (H_I.selfadjointView<Eigen::Upper>().toDenseMatrix() - H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format) << std::endl;
+				std::cout << "HFinal_top:" << std::endl << HFinal_top.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
+				std::cout << "H_I:" << std::endl << H_I.eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
+				std::cout << "Hbb_I_inv:" << std::endl << Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
+				std::cout << "HM_I:" << std::endl << HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
+				std::cout << "(HL_top + HM + HA_top - H_sc):" << std::endl << (HL_top + HM + HA_top - H_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
+				std::cout << "(H_I - H_I_sc):" << std::endl << (H_I.selfadjointView<Eigen::Upper>().toDenseMatrix() - H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
 				//std::cout << "b:" << std::endl << bFinal_top << std::endl;
 			}
 
@@ -822,13 +823,13 @@ namespace ldso {
 			//if ((HM_I+ Hbb_I).selfadjointView<Eigen::Upper>().eigenvalues().real().minCoeff() < 0.0)
 			//	LOG(INFO) << (HM_I + Hbb_I).eigenvalues().transpose().format(setting_vi_format);
 
-			Hbb_I.triangularView<Eigen::Upper>() += HM_I;
+			Hbb_I.triangularView<Eigen::Upper>() += HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
 			bb_I += (bM_I + HM_I.selfadjointView<Eigen::Upper>() * deltaX);
 
 			for (int i = 0; i < 4 + 15 * nFrames; i++)
 				Hbb_I(i, i) *= (1 + lambda);
 
-			Hbb_I_inv = util::MatrixInverter::invertPosDef(Hbb_I);
+			Hbb_I_inv = util::MatrixInverter::invertPosDef(Hbb_I, setting_use_fast_matrix_inverter);
 
 			MatXX HabHbbinv;
 			HabHbbinv = Hab_I * Hbb_I_inv.selfadjointView<Eigen::Upper>();
@@ -841,6 +842,8 @@ namespace ldso {
 		{
 			int ndim = (nFrames - 1) * 15 + 4;// new dimension
 			int odim = nFrames * 15 + 4;// old dimension
+
+			HM_I = HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
 
 			if ((int)fh->idx != (int)frames.size() - 1) {
 				int io = fh->idx * 15 + 4;    // index of frame to move to end
@@ -889,7 +892,7 @@ namespace ldso {
 			// invert bottom part!
 			MatXX hpi = Mat1515::Zero();
 			hpi.triangularView<Eigen::Upper>() = HMScaled.bottomRightCorner<15, 15>();
-			hpi = util::MatrixInverter::invertPosDef(hpi);
+			hpi = util::MatrixInverter::invertPosDef(hpi, setting_use_fast_matrix_inverter);
 
 			// schur-complement!
 			MatXX bli = HMScaled.topRightCorner(ndim, 15) * hpi.selfadjointView<Eigen::Upper>();

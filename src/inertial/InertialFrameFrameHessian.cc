@@ -113,16 +113,16 @@ namespace ldso {
 				W.setZero();
 				W.block<9, 9>(0, 0).triangularView<Eigen::Upper>() = preIntegration->Sigma_ij;
 				W.block<6, 6>(9, 9).triangularView<Eigen::Upper>() = preIntegration->Sigma_bd * preIntegration->dt_ij;
-				W = util::MatrixInverter::invertPosDef(W);
+				W = util::MatrixInverter::invertPosDef(W, setting_use_fast_matrix_inverter);
 
 				if (setting_vi_fej_window_optimization)
 					computeJacobian(J_from, J_to, preIntegration, from->T_WB_EvalPT.translation(), to->T_WB_EvalPT.translation(), from->T_WB_EvalPT.so3().inverse(), to->T_WB_EvalPT.so3().inverse(), to->T_WB_EvalPT.so3(), from->W_v_B_EvalPT, to->W_v_B_EvalPT, from->db_g_EvalPT, to->db_g_EvalPT, from->db_a_EvalPT, to->db_a_EvalPT, from->b_g_lin, to->b_g_lin, from->b_a_lin, to->b_a_lin);
 				else
 					computeJacobian(J_from, J_to, preIntegration, from->T_WB_PRE.translation(), to->T_WB_PRE.translation(), from->T_BW_PRE.so3(), to->T_BW_PRE.so3(), to->T_WB_PRE.so3(), from->W_v_B_PRE, to->W_v_B_PRE, from->db_g_PRE, to->db_g_PRE, from->db_a_PRE, to->db_a_PRE, from->b_g_lin, to->b_g_lin, from->b_a_lin, to->b_a_lin);
 
-				H_to.triangularView<Eigen::Upper>() = J_to.transpose() * visualWeight * W * J_to;
+				H_to.triangularView<Eigen::Upper>() = J_to.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_to;
 
-				H_from.triangularView<Eigen::Upper>() = J_from.transpose() * visualWeight * W * J_from;
+				H_from.triangularView<Eigen::Upper>() = J_from.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_from;
 
 				H_from_to = J_from.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_to;
 			}

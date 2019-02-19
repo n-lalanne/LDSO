@@ -44,7 +44,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 find_package(LibZip QUIET)
 
 if (MSVC)
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /FR /bigobj /fp:fast /openmp /O2 /arch:AVX")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /FR /bigobj /fp:precise /openmp /O2 /arch:AVX")
 	add_definitions("-D__SSE3__")
 	add_definitions("-DNOMINMAX")
 	add_definitions("-D_USE_MATH_DEFINES")
