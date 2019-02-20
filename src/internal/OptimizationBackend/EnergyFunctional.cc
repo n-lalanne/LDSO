@@ -786,6 +786,8 @@ namespace ldso {
 
 			int index = 0;
 
+			Mat1515 S2_inv = S.block<15, 15>(10, 10).inverse();
+
 			for (auto f : frames)
 			{
 				Mat2525 H = S * f->inertialFrameHessian->H * S;
@@ -811,7 +813,7 @@ namespace ldso {
 
 				Hab_I.block<6, 4>(CPARS + 8 * index, 0) += H.block<6, 4>(0, 6);
 				Hab_I.block<6, 15>(CPARS + 8 * index, 4 + 15 * index) += H.block<6, 15>(0, 10);
-				deltaX.segment<15>(4 + index * 15) = S.block<15, 15>(10, 10) * f->inertialFrameHessian->x;
+				deltaX.segment<15>(4 + index * 15) = S2_inv * f->inertialFrameHessian->x;
 				index++;
 			}
 
@@ -825,7 +827,7 @@ namespace ldso {
 			//	LOG(INFO) << (HM_I + Hbb_I).eigenvalues().transpose().format(setting_vi_format);
 
 			Hbb_I.triangularView<Eigen::Upper>() += HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
-			bb_I += (bM_I + HM_I.selfadjointView<Eigen::Upper>() * deltaX);
+			bb_I += bM_I + HM_I.selfadjointView<Eigen::Upper>() * deltaX;
 
 			for (int i = 0; i < 4 + 15 * nFrames; i++)
 				Hbb_I(i, i) *= (1 + lambda);
@@ -841,10 +843,13 @@ namespace ldso {
 
 		void EnergyFunctional::marginalizeInertialFrameHessian(shared_ptr<FrameHessian> fh)
 		{
+			Mat1515 S2 = S.block<15, 15>(10, 10);
 			int ndim = (nFrames - 1) * 15 + 4;// new dimension
 			int odim = nFrames * 15 + 4;// old dimension
 
 			HM_I = HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
+
+			//LOG(INFO) << "HM_I(1):" << (HM_I).eigenvalues().transpose().format(setting_vi_format);
 
 			if ((int)fh->idx != (int)frames.size() - 1) {
 				int io = fh->idx * 15 + 4;    // index of frame to move to end
@@ -869,22 +874,24 @@ namespace ldso {
 
 			if (fh->inertialFrameHessian->from != nullptr)
 			{
-				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += fh->inertialFrameHessian->from->H_from.selfadjointView<Eigen::Upper>().toDenseMatrix();
-				HM_I.block<15, 15>(fh->idx * 15 + 4, fh->idx * 15 + 4).triangularView<Eigen::Upper>() += fh->inertialFrameHessian->from->H_to.selfadjointView<Eigen::Upper>().toDenseMatrix();
-				HM_I.block<15, 15>(fh->idx * 15 + 4, ndim) += fh->inertialFrameHessian->from->H_from_to;
+				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += S2 * fh->inertialFrameHessian->from->H_from.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
+				HM_I.block<15, 15>(fh->idx * 15 + 4, fh->idx * 15 + 4).triangularView<Eigen::Upper>() += S2 * fh->inertialFrameHessian->from->H_to.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
+				HM_I.block<15, 15>(fh->idx * 15 + 4, ndim) += S2 * fh->inertialFrameHessian->from->H_from_to * S2;
 
-				bM_I.tail<15>() -= fh->inertialFrameHessian->from->b_from;
-				bM_I.segment<15>(fh->idx * 15 + 4) -= fh->inertialFrameHessian->from->b_to;
+				bM_I.tail<15>() -= S2 * fh->inertialFrameHessian->from->b_from;
+				bM_I.segment<15>(fh->idx * 15 + 4) -= S2 * fh->inertialFrameHessian->from->b_to;
 			}
 			if (fh->inertialFrameHessian->to != nullptr)
 			{
-				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += fh->inertialFrameHessian->to->H_to.selfadjointView<Eigen::Upper>().toDenseMatrix();
-				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, (fh->idx - 1) * 15 + 4).triangularView<Eigen::Upper>() += fh->inertialFrameHessian->to->H_from.selfadjointView<Eigen::Upper>().toDenseMatrix();
-				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, ndim) += fh->inertialFrameHessian->to->H_from_to.transpose();
+				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += S2 * fh->inertialFrameHessian->to->H_to.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
+				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, (fh->idx - 1) * 15 + 4).triangularView<Eigen::Upper>() += S2 * fh->inertialFrameHessian->to->H_from.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
+				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, ndim) += S2 * fh->inertialFrameHessian->to->H_from_to.transpose() * S2;
 
-				bM_I.tail<15>() -= fh->inertialFrameHessian->to->b_to;
-				bM_I.segment<15>((fh->idx - 1) * 15 + 4) -= fh->inertialFrameHessian->to->b_from;
+				bM_I.tail<15>() -= S2 * fh->inertialFrameHessian->to->b_to;
+				bM_I.segment<15>((fh->idx - 1) * 15 + 4) -= S2 * fh->inertialFrameHessian->to->b_from;
 			}
+
+			//LOG(INFO) << "HM_I(1.2):" << (HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format);
 
 			/*std::cout << "HM_I: " << std::endl << HM_I.bottomRightCorner<15, 15>().selfadjointView<Eigen::Upper>().toDenseMatrix() << std::endl;
 			std::cout << "Hab: " << std::endl << HM_I.topRightCorner(ndim, 15) << std::endl;*/
@@ -894,18 +901,25 @@ namespace ldso {
 
 			// scale!
 			MatXX HMScaled = MatXX::Zero(odim, odim);
-			HMScaled.triangularView<Eigen::Upper>() = SVecI.asDiagonal() * HM_I * SVecI.asDiagonal();
+			HMScaled.triangularView<Eigen::Upper>() = SVecI.asDiagonal() * HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix() * SVecI.asDiagonal();
 			VecX bMScaled = SVecI.asDiagonal() * bM_I;
+
+			//LOG(INFO) << "HM_I(1.3.1):" << (HMScaled.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format);
+			//LOG(INFO) << "HM_I(1.3.2):" << (SVecI.asDiagonal().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format);
 
 			// invert bottom part!
 			MatXX hpi = Mat1515::Zero();
 			hpi.triangularView<Eigen::Upper>() = HMScaled.bottomRightCorner<15, 15>().selfadjointView<Eigen::Upper>().toDenseMatrix();
 			hpi = util::MatrixInverter::invertPosDef(hpi, setting_use_fast_matrix_inverter);
 
+			//LOG(INFO) << "HM_I(1.4):" << (HMScaled.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format);
+
 			// schur-complement!
 			MatXX bli = HMScaled.topRightCorner(ndim, 15) * hpi.selfadjointView<Eigen::Upper>();
 			HMScaled.topLeftCorner(ndim, ndim).noalias() -= bli * HMScaled.topRightCorner(ndim, 15).transpose();
 			bMScaled.head(ndim).noalias() -= bli * bMScaled.tail<15>();
+
+			//LOG(INFO) << "HM_I(1.5):" << (HMScaled.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format);
 
 			// unscale!
 			HMScaled = SVec.asDiagonal() * HMScaled.selfadjointView<Eigen::Upper>().toDenseMatrix() * SVec.asDiagonal();
@@ -915,6 +929,8 @@ namespace ldso {
 			HM_I = MatXX::Zero(ndim, ndim);
 			HM_I.triangularView<Eigen::Upper>() = HMScaled.topLeftCorner(ndim, ndim);
 			bM_I = bMScaled.head(ndim);
+
+			//LOG(INFO) << "HM_I(2):" << (HM_I).eigenvalues().transpose().format(setting_vi_format);
 		}
 
 		void EnergyFunctional::resubstituteInertial(VecX x, shared_ptr<inertial::InertialHessian> HInertial)

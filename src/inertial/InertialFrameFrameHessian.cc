@@ -103,6 +103,10 @@ namespace ldso {
 		{
 			r.setZero();
 
+			H_to = Mat1515::Zero();
+			H_from = Mat1515::Zero();
+			H_from_to = Mat1515::Zero();
+
 			computeResidual(r, preIntegration, from->T_WB_PRE.translation(), to->T_WB_PRE.translation(), from->T_BW_PRE.so3(), to->T_BW_PRE.so3(), to->T_WB_PRE.so3(), from->W_v_B_PRE, to->W_v_B_PRE, from->db_g_PRE, to->db_g_PRE, from->db_a_PRE, to->db_a_PRE, from->b_g_lin, to->b_g_lin, from->b_a_lin, to->b_a_lin);
 
 			if (!setting_vi_fej_window_optimization || force)
