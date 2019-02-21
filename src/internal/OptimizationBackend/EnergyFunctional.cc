@@ -876,7 +876,7 @@ namespace ldso {
 			{
 				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += S2 * fh->inertialFrameHessian->from->H_from.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
 				HM_I.block<15, 15>(fh->idx * 15 + 4, fh->idx * 15 + 4).triangularView<Eigen::Upper>() += S2 * fh->inertialFrameHessian->from->H_to.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
-				HM_I.block<15, 15>(fh->idx * 15 + 4, ndim) += S2 * fh->inertialFrameHessian->from->H_from_to * S2;
+				HM_I.block<15, 15>(fh->idx * 15 + 4, ndim) += S2 * fh->inertialFrameHessian->from->H_from_to.transpose() * S2;
 
 				bM_I.tail<15>() -= S2 * fh->inertialFrameHessian->from->b_from;
 				bM_I.segment<15>(fh->idx * 15 + 4) -= S2 * fh->inertialFrameHessian->from->b_to;
@@ -885,13 +885,13 @@ namespace ldso {
 			{
 				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += S2 * fh->inertialFrameHessian->to->H_to.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
 				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, (fh->idx - 1) * 15 + 4).triangularView<Eigen::Upper>() += S2 * fh->inertialFrameHessian->to->H_from.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
-				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, ndim) += S2 * fh->inertialFrameHessian->to->H_from_to.transpose() * S2;
+				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, ndim) += S2 * fh->inertialFrameHessian->to->H_from_to * S2;
 
 				bM_I.tail<15>() -= S2 * fh->inertialFrameHessian->to->b_to;
 				bM_I.segment<15>((fh->idx - 1) * 15 + 4) -= S2 * fh->inertialFrameHessian->to->b_from;
 			}
 
-			//LOG(INFO) << "HM_I(1.2):" << (HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format);
+			LOG(INFO) << "HM_I(1.2):" << (HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format);
 
 			/*std::cout << "HM_I: " << std::endl << HM_I.bottomRightCorner<15, 15>().selfadjointView<Eigen::Upper>().toDenseMatrix() << std::endl;
 			std::cout << "Hab: " << std::endl << HM_I.topRightCorner(ndim, 15) << std::endl;*/

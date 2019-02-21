@@ -136,7 +136,7 @@ namespace ldso {
 			db_a_PRE = db_a_EvalPT + x.block<3, 1>(12, 0);
 
 			if (setting_vi_debug)
-				LOG(INFO) << "Inertial Frame Hessian (" << fh->frameID << ") u: [" << T_WB_PRE.log().transpose().segment<3>(0).format(setting_vi_format) << "]; omega: [" << T_WB_PRE.log().transpose().segment<3>(3).format(setting_vi_format) << "]; v: [" << W_v_B_PRE.transpose().format(setting_vi_format) << "]; bg: [" << db_g_PRE.transpose().format(setting_vi_format) << "]; ba: [" << db_a_PRE.transpose().format(setting_vi_format) << "];";
+				LOG(INFO) << "Inertial Frame Hessian (" << fh->frameID << ") u: [" << T_WB_PRE.log().transpose().segment<3>(0).format(setting_vi_format) << "]; omega: [" << T_WB_PRE.log().transpose().segment<3>(3).format(setting_vi_format) << "]; v: [" << W_v_B_PRE.transpose().format(setting_vi_format) << "]; bg: [" << (db_g_PRE+b_g_lin).transpose().format(setting_vi_format) << "]; ba: [" << (db_a_PRE+b_a_lin).transpose().format(setting_vi_format) << "];";
 		}
 	}
 }
