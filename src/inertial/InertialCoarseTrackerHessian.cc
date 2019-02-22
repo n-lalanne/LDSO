@@ -47,10 +47,8 @@ namespace ldso {
 
 				Tw_i = Tw_j;
 				v_i = v_j;
-				bg_i = Vec3::Zero();
-				ba_i = Vec3::Zero();
-				lin_bias_g += bg_j;
-				lin_bias_a += ba_j;
+				bg_i = bg_j;
+				ba_i = ba_j;
 			}
 		}
 
@@ -184,8 +182,8 @@ namespace ldso {
 				T_bc = Hinertial->T_BC;
 				R_wd = Hinertial->R_WD_PRE;
 
-				lin_bias_g = fh->inertialFrameHessian->b_g_lin;
-				lin_bias_a = fh->inertialFrameHessian->b_a_lin;
+				lin_bias_g = fh->inertialFrameHessian->b_g_lin + fh->inertialFrameHessian->db_g_PRE;
+				lin_bias_a = fh->inertialFrameHessian->b_a_lin + fh->inertialFrameHessian->db_a_PRE;
 
 				fix_i = true;
 				HM_I.setZero();

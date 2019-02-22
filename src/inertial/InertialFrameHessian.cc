@@ -14,16 +14,11 @@ namespace ldso {
 			if (from)
 			{
 				from->linearize(visualWeight / ((double)nPreIntegrationFactors), force);
-				if (setting_vi_debug)
-					LOG(INFO) << "r (pre): [" << from->r.transpose().format(setting_vi_format) << "]";
 			}
 
 			visualWeight /= ((double)nCombineFactors);
 
 			computeResidual(r, inertialHessian->scale_PRE, T_WB_PRE.so3(), T_BW_PRE.so3(), inertialHessian->T_CB.so3(), inertialHessian->T_BC.so3(), fh->PRE_worldToCam.so3(), fh->PRE_camToWorld.so3(), inertialHessian->R_DW_PRE, inertialHessian->R_WD_PRE, T_WB_PRE.translation(), inertialHessian->T_CB.translation(), fh->PRE_camToWorld);
-
-			if (setting_vi_debug)
-				LOG(INFO) << "r (combine): [" << r.transpose().format(setting_vi_format) << "]";
 
 			if (!setting_vi_fej_window_optimization || force)
 			{
@@ -57,7 +52,10 @@ namespace ldso {
 				b.block<15, 1>(10, 0) += from->b_from;
 
 				if (setting_vi_debug)
-					LOG(INFO) << "Inertial Pre-Integration (" << fh->frameID << ") dR: [" << (from->preIntegration->delta_R_ij*SO3::exp(from->preIntegration->d_delta_R_ij_dg* db_g_PRE)).log().transpose().format(setting_vi_format) << "]; dv: [" << (T_WB_PRE.so3() * (from->preIntegration->delta_v_ij + from->preIntegration->d_delta_v_ij_dg * db_g_PRE + from->preIntegration->d_delta_v_ij_da *db_a_PRE) - Vec3(0, 0, 9.81*from->preIntegration->dt_ij)).transpose().format(setting_vi_format) << "]; dp: [" << (from->preIntegration->delta_p_ij + from->preIntegration->d_delta_p_ij_dg * db_g_PRE + from->preIntegration->d_delta_p_ij_da *db_a_PRE).transpose().format(setting_vi_format) << "]; dt: " << from->preIntegration->dt_ij << ";";
+					LOG(INFO) << "r (pre): [" << (visualWeight * ((double)nCombineFactors) / ((double)nPreIntegrationFactors) * from->W.selfadjointView<Eigen::Upper>().toDenseMatrix() * from->r).transpose().format(setting_vi_format) << "] - Energy: " << (from->r.transpose() * visualWeight * ((double)nCombineFactors) / ((double)nPreIntegrationFactors) * from->W.selfadjointView<Eigen::Upper>().toDenseMatrix() * from->r);
+
+				if (setting_vi_debug)
+					LOG(INFO) << "Inertial Pre-Integration (" << fh->frameID << ") dR: [" << (from->preIntegration->delta_R_ij*SO3::exp(from->preIntegration->d_delta_R_ij_dg* db_g_PRE)).log().transpose().format(setting_vi_format) << "]; dv: [" << (T_WB_PRE.so3() * (from->preIntegration->delta_v_ij + from->preIntegration->d_delta_v_ij_dg * db_g_PRE + from->preIntegration->d_delta_v_ij_da *db_a_PRE) - Vec3(0, 0, 9.81*from->preIntegration->dt_ij)).transpose().format(setting_vi_format) << "]; dp: [" << (T_WB_PRE.so3() *(from->preIntegration->delta_p_ij + from->preIntegration->d_delta_p_ij_dg * db_g_PRE + from->preIntegration->d_delta_p_ij_da *db_a_PRE)).transpose().format(setting_vi_format) << "]; dt: " << from->preIntegration->dt_ij << ";";
 			}
 
 			if (to)
@@ -66,6 +64,9 @@ namespace ldso {
 			}
 
 			//LOG(INFO) << "eigen H: " << H.eigenvalues().format(setting_vi_format);
+
+			if (setting_vi_debug)
+				LOG(INFO) << "r (combine): [" << (visualWeight * W.asDiagonal() * r).transpose().format(setting_vi_format) << "] - Energy: " << (r.transpose() * visualWeight * W.asDiagonal() * r) << " - Weight: " << (visualWeight * W).transpose().format(setting_vi_format);
 
 			b += -J.transpose() * visualWeight * W.asDiagonal() * r;
 
@@ -136,7 +137,7 @@ namespace ldso {
 			db_a_PRE = db_a_EvalPT + x.block<3, 1>(12, 0);
 
 			if (setting_vi_debug)
-				LOG(INFO) << "Inertial Frame Hessian (" << fh->frameID << ") u: [" << T_WB_PRE.log().transpose().segment<3>(0).format(setting_vi_format) << "]; omega: [" << T_WB_PRE.log().transpose().segment<3>(3).format(setting_vi_format) << "]; v: [" << W_v_B_PRE.transpose().format(setting_vi_format) << "]; bg: [" << (db_g_PRE+b_g_lin).transpose().format(setting_vi_format) << "]; ba: [" << (db_a_PRE+b_a_lin).transpose().format(setting_vi_format) << "];";
+				LOG(INFO) << "Inertial Frame Hessian (" << fh->frameID << ") u: [" << T_WB_PRE.log().transpose().segment<3>(0).format(setting_vi_format) << "]; omega: [" << T_WB_PRE.log().transpose().segment<3>(3).format(setting_vi_format) << "]; v: [" << W_v_B_PRE.transpose().format(setting_vi_format) << "]; bg: [" << (db_g_PRE + b_g_lin).transpose().format(setting_vi_format) << "]; ba: [" << (db_a_PRE + b_a_lin).transpose().format(setting_vi_format) << "];";
 		}
 	}
 }
