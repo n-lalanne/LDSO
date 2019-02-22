@@ -149,13 +149,13 @@ namespace ldso {
 	bool setting_vi_fej_window_optimization = true;
 	bool setting_vi_debug = true;
 
-	double setting_vi_lambda_overall = 1e-2;
+	double setting_vi_lambda_overall = 1e5;
 
 	double setting_vi_lambda_rot = 1 / setting_vi_lambda_overall * 1e5; // lambda for rotation weight
 	double setting_vi_lambda_trans = 1 / setting_vi_lambda_overall * 1e5; // lambda for translation weight
 
 	double setting_vi_lambda_white_noise = 1; // lambda for inertial weight
-	double setting_vi_lambda_random_walk = 2; // lambda for inertial weight
+	double setting_vi_lambda_random_walk = 10; // lambda for inertial weight
 
 	Eigen::IOFormat setting_vi_format(3, Eigen::DontAlignCols, "\t", " ", "", "", "", "");
 
