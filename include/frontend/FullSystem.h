@@ -269,7 +269,7 @@ namespace ldso {
 
 		/// print the residual in optimization
 		void printOptRes(const Vec3 &res, double resL, double resM, double resPrior, double LExact, float a,
-			float b, double resInertial);
+			float b, double resInertial, string state);
 
 	public:
 		shared_ptr<Camera> Hcalib = nullptr;    // calib information

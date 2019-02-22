@@ -872,7 +872,7 @@ namespace ldso {
 			applyRes_Reductor(true, 0, activeResiduals.size(), 0, 0);
 
 		printOptRes(lastEnergy, lastEnergyL, lastEnergyM, 0, 0, frames.back()->frameHessian->aff_g2l().a,
-			frames.back()->frameHessian->aff_g2l().b, lastInertialEnergy);
+			frames.back()->frameHessian->aff_g2l().b, lastInertialEnergy, "INIT");
 
 		double lambda = 1e-1;
 		float stepsize = 1;
@@ -911,14 +911,16 @@ namespace ldso {
 			double newEnergyL = calcLEnergy();
 			double newEnergyM = calcMEnergy();
 
-			LOG(INFO) << "active residuals: " << newEnergy[2] << endl;
+			//LOG(INFO) << "active residuals: " << newEnergy[2] << endl;
 
-			printOptRes(newEnergy, newEnergyL, newEnergyM, 0, 0, frames.back()->frameHessian->aff_g2l().a,
-				frames.back()->frameHessian->aff_g2l().b, newInertialEnergy);
+
 
 			// control the lambda in LM
 			if (setting_forceAceptStep || (newEnergy[0] + newEnergy[1] + newEnergyL + newEnergyM + newInertialEnergy <
 				lastEnergy[0] + lastEnergy[1] + lastEnergyL + lastEnergyM + lastInertialEnergy)) {
+
+				printOptRes(newEnergy, newEnergyL, newEnergyM, 0, 0, frames.back()->frameHessian->aff_g2l().a,
+					frames.back()->frameHessian->aff_g2l().b, newInertialEnergy, "ACCEPT");
 
 				// energy is decreasing
 				if (multiThreading)
@@ -935,6 +937,9 @@ namespace ldso {
 				lambda *= 0.25;
 			}
 			else {
+				printOptRes(newEnergy, newEnergyL, newEnergyM, 0, 0, frames.back()->frameHessian->aff_g2l().a,
+					frames.back()->frameHessian->aff_g2l().b, newInertialEnergy, "REJECT");
+
 				// energy increases, reload the backup state and increase lambda
 				loadStateBackup();
 				lastEnergy = linearizeAll(false);
@@ -2073,9 +2078,10 @@ namespace ldso {
 	}
 
 	void FullSystem::printOptRes(const Vec3 &res, double resL, double resM, double resPrior, double LExact, float a,
-		float b, double resInertial) {
+		float b, double resInertial, string state) {
 		char buff[256] = {};
-		sprintf(buff, "A(%f)=(AV %.3f). Num: A(%d) + M(%d); ab %f %f; Inertial: %f (%f)!\n",
+		sprintf(buff, "[%s] A(%f)=(AV %.3f). Num: A(%d) + M(%d); ab %f %f; Inertial: %f (%f)!\n",
+			state,
 			res[0],
 			sqrtf((float)(res[0] / (patternNum * ef->resInA))),
 			ef->resInA,
