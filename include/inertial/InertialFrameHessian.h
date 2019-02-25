@@ -65,6 +65,8 @@ namespace ldso {
 			Mat625 J;
 			double energy;
 
+			double lastVisualWeight;
+
 		};
 	}
 }

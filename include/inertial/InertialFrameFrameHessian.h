@@ -48,6 +48,9 @@ namespace ldso {
 			Mat1515 W;
 
 			double energy;
+
+			double lastVisualWeight;
+
 			shared_ptr<inertial::PreIntegration> preIntegration;
 		private:
 

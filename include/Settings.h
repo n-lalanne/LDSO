@@ -183,6 +183,8 @@ namespace ldso {
 
 	extern bool setting_vi_enable; // enable or disable data fusion inertial
 
+	extern bool setting_vi_optimize_scale_and_gravity_direction; // enable or disable data fusion inertial
+
 	extern double setting_vi_lambda_rot; // lambda for rotation weight
 	extern double setting_vi_lambda_trans; // lambda for rotation weight
 
@@ -190,6 +192,8 @@ namespace ldso {
 	extern double setting_vi_lambda_coarse_tracker; // lambda for inertial weight
 	extern double setting_vi_lambda_white_noise; // lambda for inertial weight
 	extern double setting_vi_lambda_random_walk; // lambda for inertial weight
+
+	extern double setting_vi_marginalization_weight;
 
 	extern bool setting_vi_debug;
 

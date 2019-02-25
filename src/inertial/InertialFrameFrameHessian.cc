@@ -129,6 +129,18 @@ namespace ldso {
 				H_from.triangularView<Eigen::Upper>() = J_from.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_from;
 
 				H_from_to = J_from.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_to;
+
+				lastVisualWeight = visualWeight;
+			}
+
+
+			if (setting_vi_fej_window_optimization)
+			{
+				H_to.triangularView<Eigen::Upper>() *= visualWeight / lastVisualWeight;
+
+				H_from.triangularView<Eigen::Upper>() *= visualWeight / lastVisualWeight;
+
+				H_from_to *= visualWeight / lastVisualWeight;
 			}
 
 			b_to = -J_to.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r;

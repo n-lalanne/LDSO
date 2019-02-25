@@ -143,19 +143,23 @@ namespace ldso {
 	double setting_vi_hasMovementThreshold = 0.01;
 	int setting_vi_hasMovementResetPeriod = 200 * 0.2;
 
-	double setting_vi_lambda_coarse_tracker = 1e-2;
+	double setting_vi_lambda_coarse_tracker = 1;
 
 	bool setting_vi_enable = true;
 	bool setting_vi_fej_window_optimization = true;
 	bool setting_vi_debug = true;
 
-	double setting_vi_lambda_overall = 1e5;
+	bool setting_vi_optimize_scale_and_gravity_direction = false;
 
-	double setting_vi_lambda_rot = 1 / setting_vi_lambda_overall * 1e5; // lambda for rotation weight
-	double setting_vi_lambda_trans = 1 / setting_vi_lambda_overall * 1e5; // lambda for translation weight
+	double setting_vi_lambda_overall = 1e-3;
+
+	double setting_vi_lambda_rot = 1 / setting_vi_lambda_overall * 1e7; // lambda for rotation weight
+	double setting_vi_lambda_trans = 1 / setting_vi_lambda_overall * 1e7; // lambda for translation weight
 
 	double setting_vi_lambda_white_noise = 1; // lambda for inertial weight
-	double setting_vi_lambda_random_walk = 10; // lambda for inertial weight
+	double setting_vi_lambda_random_walk = 2; // lambda for inertial weight
+
+	double setting_vi_marginalization_weight = 0.5 * 0.5;
 
 	Eigen::IOFormat setting_vi_format(3, Eigen::DontAlignCols, "\t", " ", "", "", "", "");
 

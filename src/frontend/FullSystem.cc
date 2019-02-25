@@ -259,7 +259,7 @@ namespace ldso {
 
 				T_ij = coarseTracker->inertialCoarseTrackerHessian->T_bc.inverse() * SE3(T_ij.so3(), exp(-coarseTracker->inertialCoarseTrackerHessian->scale) * T_ij.translation()) *coarseTracker->inertialCoarseTrackerHessian->T_bc;
 
-				lastF_2_fh_tries.push_back(T_ij.inverse()*lastF_2_slast);
+				//lastF_2_fh_tries.push_back(T_ij.inverse()*lastF_2_slast);
 			}
 
 			// get last delta-movement.
@@ -859,7 +859,7 @@ namespace ldso {
 		}
 
 		Vec3 lastEnergy = linearizeAll(false);
-		LOG(INFO) << "active residuals: " << lastEnergy[2] << endl;
+		//LOG(INFO) << "active residuals: " << lastEnergy[2] << endl;
 		double lastInertialEnergy = linearizeInertial(lastEnergy[2], true);
 		double lastEnergyL = calcLEnergy();
 		double lastEnergyM = calcMEnergy();
@@ -2083,13 +2083,13 @@ namespace ldso {
 		sprintf(buff, "[%s] A(%f)=(AV %.3f). Num: A(%d) + M(%d); ab %f %f; Inertial: %f (%f)!\n",
 			state,
 			res[0],
-			sqrtf((float)(res[0] / (patternNum * ef->resInA))),
+			sqrtf((float)(res[0] / (patternNum * res[2]))),
 			ef->resInA,
 			ef->resInM,
 			a,
 			b,
 			resInertial,
-			sqrtf(resInertial / (patternNum * ef->resInA))
+			sqrtf(resInertial / (patternNum * res[2]))
 		);
 		LOG(INFO) << string(buff) << endl;
 	}

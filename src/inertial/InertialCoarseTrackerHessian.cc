@@ -34,16 +34,16 @@ namespace ldso {
 				Mat1515 Hba = Mat1515::Zero(15, 15);
 				Vec15 bb = Vec15::Zero();
 
-				Hbb.triangularView<Eigen::Upper>() = J_i.transpose() * W.selfadjointView<Eigen::Upper>() * J_i + HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
-				Hba = J_i.transpose() * W.selfadjointView<Eigen::Upper>() * J_j;
+				Hbb.triangularView<Eigen::Upper>() = setting_vi_marginalization_weight * J_i.transpose() * W.selfadjointView<Eigen::Upper>() * J_i + HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
+				Hba = setting_vi_marginalization_weight * J_i.transpose() * W.selfadjointView<Eigen::Upper>() * J_j;
 
-				bb = -J_i.transpose() * W.selfadjointView<Eigen::Upper>() * r_pr + bM_I;
+				bb = -setting_vi_marginalization_weight * J_i.transpose() * W.selfadjointView<Eigen::Upper>() * r_pr + bM_I;
 
 				Mat1515 HabHbbinv;
 				HabHbbinv = Hba.transpose() * util::MatrixInverter::invertPosDef(Hbb, setting_use_fast_matrix_inverter).selfadjointView<Eigen::Upper>();
 
-				HM_I.triangularView<Eigen::Upper>() = J_j.transpose() * W.selfadjointView<Eigen::Upper>() * J_j - HabHbbinv * Hba;
-				bM_I = -J_j.transpose() * W.selfadjointView<Eigen::Upper>() * r_pr - HabHbbinv * bb;
+				HM_I.triangularView<Eigen::Upper>() = setting_vi_marginalization_weight * J_j.transpose() * W.selfadjointView<Eigen::Upper>() * J_j - HabHbbinv * Hba;
+				bM_I = -setting_vi_marginalization_weight * J_j.transpose() * W.selfadjointView<Eigen::Upper>() * r_pr - HabHbbinv * bb;
 
 				Tw_i = Tw_j;
 				v_i = v_j;

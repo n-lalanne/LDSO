@@ -23,6 +23,15 @@ namespace ldso {
 			Vec25 s;
 			s << SCALE_XI_TRANS, SCALE_XI_TRANS, SCALE_XI_TRANS, SCALE_XI_ROT, SCALE_XI_ROT, SCALE_XI_ROT, SCALE_VI_ROT, SCALE_VI_ROT, SCALE_VI_ROT, SCALE_VI_S, SCALE_VI_TRANS, SCALE_VI_TRANS, SCALE_VI_TRANS, SCALE_VI_ROT, SCALE_VI_ROT, SCALE_VI_ROT, SCALE_VI_V, SCALE_VI_V, SCALE_VI_V, SCALE_VI_B, SCALE_VI_B, SCALE_VI_B, SCALE_VI_B, SCALE_VI_B, SCALE_VI_B;
 			S = s.asDiagonal();
+
+
+			int scaleGravityOffset = 0;
+
+			if (setting_vi_optimize_scale_and_gravity_direction)
+				scaleGravityOffset = 4;
+
+			MatXX HM_I = MatXX::Zero(scaleGravityOffset, scaleGravityOffset);
+			VecX bM_I = VecX::Zero(scaleGravityOffset);
 		}
 
 		EnergyFunctional::~EnergyFunctional() {
@@ -53,10 +62,15 @@ namespace ldso {
 			HM.rightCols<8>().setZero();
 			HM.bottomRows<8>().setZero();
 
+			int scaleGravityOffset = 0;
+
+			if (setting_vi_optimize_scale_and_gravity_direction)
+				scaleGravityOffset = 4;
+
 			// extend H,b
-			assert(HM_I.cols() == 15 * (nFrames - 1) + 4);
-			bM_I.conservativeResize(15 * nFrames + 4);
-			HM_I.conservativeResize(15 * nFrames + 4, 15 * nFrames + 4);
+			assert(HM_I.cols() == 15 * (nFrames - 1) + scaleGravityOffset);
+			bM_I.conservativeResize(15 * nFrames + scaleGravityOffset);
+			HM_I.conservativeResize(15 * nFrames + scaleGravityOffset, 15 * nFrames + scaleGravityOffset);
 			bM_I.tail<15>().setZero();
 			HM_I.rightCols<15>().setZero();
 			HM_I.bottomRows<15>().setZero();
@@ -775,14 +789,19 @@ namespace ldso {
 
 		void EnergyFunctional::combineInertialHessians(double lambda)
 		{
-			Hab_I = MatXX::Zero(CPARS + 8 * nFrames, 4 + 15 * nFrames);
-			Hbb_I = MatXX::Zero(4 + 15 * nFrames, 4 + 15 * nFrames);
-			bb_I = VecX::Zero(4 + 15 * nFrames);
+			int scaleGravityOffset = 0;
+
+			if (setting_vi_optimize_scale_and_gravity_direction)
+				scaleGravityOffset = 4;
+
+			Hab_I = MatXX::Zero(CPARS + 8 * nFrames, scaleGravityOffset + 15 * nFrames);
+			Hbb_I = MatXX::Zero(scaleGravityOffset + 15 * nFrames, scaleGravityOffset + 15 * nFrames);
+			bb_I = VecX::Zero(scaleGravityOffset + 15 * nFrames);
 			H_I = MatXX::Zero(CPARS + 8 * nFrames, CPARS + 8 * nFrames);
 			b_I = VecX::Zero(CPARS + 8 * nFrames);
 			H_I_sc = MatXX::Zero(CPARS + 8 * nFrames, CPARS + 8 * nFrames);
 
-			VecX deltaX = VecX::Zero(4 + 15 * nFrames);
+			VecX deltaX = VecX::Zero(scaleGravityOffset + 15 * nFrames);
 
 			int index = 0;
 
@@ -796,24 +815,31 @@ namespace ldso {
 				H_I.block<6, 6>(CPARS + 8 * index, CPARS + 8 * index).triangularView<Eigen::Upper>() += H.block<6, 6>(0, 0);
 				b_I.block<6, 1>(CPARS + 8 * index, 0) -= b.block<6, 1>(0, 0);
 
-				Hbb_I.block<4, 4>(0, 0).triangularView<Eigen::Upper>() += H.block<4, 4>(6, 6);
-				Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * index).triangularView<Eigen::Upper>() += H.block<15, 15>(10, 10);
-				Hbb_I.block<4, 15>(0, 4 + 15 * index) += H.block<4, 15>(6, 10);
+				if (setting_vi_optimize_scale_and_gravity_direction) {
+					Hbb_I.block<4, 4>(0, 0).triangularView<Eigen::Upper>() += H.block<4, 4>(6, 6);
+					Hbb_I.block<4, 15>(0, 4 + 15 * index) += H.block<4, 15>(6, 10);
+				}
+
+				Hbb_I.block<15, 15>(scaleGravityOffset + 15 * index, scaleGravityOffset + 15 * index).triangularView<Eigen::Upper>() += H.block<15, 15>(10, 10);
+
 				//Hbb_I.block<15, 4>(4 + 15 * index, 0) += H.block<15, 4>(10, 6);
 
 				if (f->inertialFrameHessian->from != nullptr)
 				{
 					Mat1515 Hab = S.block<15, 15>(10, 10) * f->inertialFrameHessian->from->H_from_to * S.block<15, 15>(10, 10);
-					Hbb_I.block<15, 15>(4 + 15 * index, 4 + 15 * (index + 1)) += Hab;
+					Hbb_I.block<15, 15>(scaleGravityOffset + 15 * index, scaleGravityOffset + 15 * (index + 1)) += Hab;
 					//Hbb_I.block<15, 15>(4 + 15 * (index + 1), 4 + 15 * index) += Hab.transpose();
 				}
 
-				bb_I.block<4, 1>(0, 0) -= b.block<4, 1>(6, 0);
-				bb_I.block<15, 1>(4 + 15 * index, 0) -= b.block<15, 1>(10, 0);
+				if (setting_vi_optimize_scale_and_gravity_direction)
+					bb_I.block<4, 1>(0, 0) -= b.block<4, 1>(6, 0);
+				bb_I.block<15, 1>(scaleGravityOffset + 15 * index, 0) -= b.block<15, 1>(10, 0);
 
-				Hab_I.block<6, 4>(CPARS + 8 * index, 0) += H.block<6, 4>(0, 6);
-				Hab_I.block<6, 15>(CPARS + 8 * index, 4 + 15 * index) += H.block<6, 15>(0, 10);
-				deltaX.segment<15>(4 + index * 15) = S2_inv * f->inertialFrameHessian->x;
+				if (setting_vi_optimize_scale_and_gravity_direction)
+					Hab_I.block<6, 4>(CPARS + 8 * index, 0) += H.block<6, 4>(0, 6);
+				Hab_I.block<6, 15>(CPARS + 8 * index, scaleGravityOffset + 15 * index) += H.block<6, 15>(0, 10);
+
+				deltaX.segment<15>(scaleGravityOffset + index * 15) = S2_inv * f->inertialFrameHessian->x;
 				index++;
 			}
 
@@ -829,7 +855,7 @@ namespace ldso {
 			Hbb_I.triangularView<Eigen::Upper>() += HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
 			bb_I += bM_I + HM_I.selfadjointView<Eigen::Upper>() * deltaX;
 
-			for (int i = 0; i < 4 + 15 * nFrames; i++)
+			for (int i = 0; i < scaleGravityOffset + 15 * nFrames; i++)
 				Hbb_I(i, i) *= (1 + lambda);
 
 			Hbb_I_inv = util::MatrixInverter::invertPosDef(Hbb_I, setting_use_fast_matrix_inverter);
@@ -843,18 +869,23 @@ namespace ldso {
 
 		void EnergyFunctional::marginalizeInertialFrameHessian(shared_ptr<FrameHessian> fh)
 		{
+			int scaleGravityOffset = 0;
+
+			if (setting_vi_optimize_scale_and_gravity_direction)
+				scaleGravityOffset = 4;
+
 			Mat1515 S2 = S.block<15, 15>(10, 10);
-			int ndim = (nFrames - 1) * 15 + 4;// new dimension
-			int odim = nFrames * 15 + 4;// old dimension
+			int ndim = (nFrames - 1) * 15 + scaleGravityOffset;// new dimension
+			int odim = nFrames * 15 + scaleGravityOffset;// old dimension
 
 			HM_I = HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
 
 			//LOG(INFO) << "HM_I(1):" << (HM_I).eigenvalues().transpose().format(setting_vi_format);
 
 			if ((int)fh->idx != (int)frames.size() - 1) {
-				int io = fh->idx * 15 + 4;    // index of frame to move to end
+				int io = fh->idx * 15 + scaleGravityOffset;    // index of frame to move to end
 				int ntail = 15 * (nFrames - fh->idx - 1);
-				assert((io + 15 + ntail) == nFrames * 15 + 4);
+				assert((io + 15 + ntail) == nFrames * 15 + scaleGravityOffset);
 
 				Vec15 bTmp = bM_I.segment<15>(io);
 				VecX tailTMP = bM_I.tail(ntail);
@@ -874,24 +905,24 @@ namespace ldso {
 
 			if (fh->inertialFrameHessian->from != nullptr)
 			{
-				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += S2 * fh->inertialFrameHessian->from->H_from.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
-				HM_I.block<15, 15>(fh->idx * 15 + 4, fh->idx * 15 + 4).triangularView<Eigen::Upper>() += S2 * fh->inertialFrameHessian->from->H_to.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
-				HM_I.block<15, 15>(fh->idx * 15 + 4, ndim) += S2 * fh->inertialFrameHessian->from->H_from_to.transpose() * S2;
+				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += setting_vi_marginalization_weight * S2 * fh->inertialFrameHessian->from->H_from.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
+				HM_I.block<15, 15>(fh->idx * 15 + scaleGravityOffset, fh->idx * 15 + scaleGravityOffset).triangularView<Eigen::Upper>() += setting_vi_marginalization_weight * S2 * fh->inertialFrameHessian->from->H_to.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
+				HM_I.block<15, 15>(fh->idx * 15 + scaleGravityOffset, ndim) += setting_vi_marginalization_weight * S2 * fh->inertialFrameHessian->from->H_from_to.transpose() * S2;
 
-				bM_I.tail<15>() -= S2 * fh->inertialFrameHessian->from->b_from;
-				bM_I.segment<15>(fh->idx * 15 + 4) -= S2 * fh->inertialFrameHessian->from->b_to;
+				bM_I.tail<15>() -= setting_vi_marginalization_weight * S2 * fh->inertialFrameHessian->from->b_from;
+				bM_I.segment<15>(fh->idx * 15 + scaleGravityOffset) -= setting_vi_marginalization_weight * S2 * fh->inertialFrameHessian->from->b_to;
 			}
 			if (fh->inertialFrameHessian->to != nullptr)
 			{
-				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += S2 * fh->inertialFrameHessian->to->H_to.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
-				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, (fh->idx - 1) * 15 + 4).triangularView<Eigen::Upper>() += S2 * fh->inertialFrameHessian->to->H_from.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
-				HM_I.block<15, 15>((fh->idx - 1) * 15 + 4, ndim) += S2 * fh->inertialFrameHessian->to->H_from_to * S2;
+				HM_I.bottomRightCorner<15, 15>().triangularView<Eigen::Upper>() += setting_vi_marginalization_weight * S2 * fh->inertialFrameHessian->to->H_to.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
+				HM_I.block<15, 15>((fh->idx - 1) * 15 + scaleGravityOffset, (fh->idx - 1) * 15 + scaleGravityOffset).triangularView<Eigen::Upper>() += setting_vi_marginalization_weight * S2 * fh->inertialFrameHessian->to->H_from.selfadjointView<Eigen::Upper>().toDenseMatrix() * S2;
+				HM_I.block<15, 15>((fh->idx - 1) * 15 + scaleGravityOffset, ndim) += setting_vi_marginalization_weight * S2 * fh->inertialFrameHessian->to->H_from_to * S2;
 
-				bM_I.tail<15>() -= S2 * fh->inertialFrameHessian->to->b_to;
-				bM_I.segment<15>((fh->idx - 1) * 15 + 4) -= S2 * fh->inertialFrameHessian->to->b_from;
+				bM_I.tail<15>() -= setting_vi_marginalization_weight * S2 * fh->inertialFrameHessian->to->b_to;
+				bM_I.segment<15>((fh->idx - 1) * 15 + scaleGravityOffset) -= setting_vi_marginalization_weight * S2 * fh->inertialFrameHessian->to->b_from;
 			}
 
-			LOG(INFO) << "HM_I(1.2):" << (HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format);
+			//LOG(INFO) << "HM_I(1.2):" << (HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format);
 
 			/*std::cout << "HM_I: " << std::endl << HM_I.bottomRightCorner<15, 15>().selfadjointView<Eigen::Upper>().toDenseMatrix() << std::endl;
 			std::cout << "Hab: " << std::endl << HM_I.topRightCorner(ndim, 15) << std::endl;*/
@@ -935,15 +966,23 @@ namespace ldso {
 
 		void EnergyFunctional::resubstituteInertial(VecX x, shared_ptr<inertial::InertialHessian> HInertial)
 		{
+			int scaleGravityOffset = 0;
+
+			if (setting_vi_optimize_scale_and_gravity_direction)
+				scaleGravityOffset = 4;
+
 			int index = 0;
 
 			VecX xb = Hbb_I_inv.selfadjointView<Eigen::Upper>() * (bb_I - Hab_I.transpose() * x);
 
-			HInertial->x_step = -S.block<4, 4>(6, 6) * xb.block<4, 1>(0, 0);
+			if (setting_vi_optimize_scale_and_gravity_direction)
+				HInertial->x_step = -S.block<4, 4>(6, 6) * xb.block<4, 1>(0, 0);
+			else
+				HInertial->x_step = Vec4::Zero();
 
 			for (auto f : frames)
 			{
-				f->inertialFrameHessian->x_step = -S.block<15, 15>(10, 10) * xb.block<15, 1>(4 + 15 * index, 0);
+				f->inertialFrameHessian->x_step = -S.block<15, 15>(10, 10) * xb.block<15, 1>(scaleGravityOffset + 15 * index, 0);
 				index++;
 			}
 		}

@@ -35,6 +35,8 @@ namespace ldso {
 
 				H.block<16, 16>(0, 0).triangularView<Eigen::Upper>() = J.block<6, 16>(0, 0).transpose() * visualWeight * W.asDiagonal() * J.block<6, 16>(0, 0);
 
+				lastVisualWeight = visualWeight;
+
 				if (from)
 				{
 					H.block<15, 15>(10, 10).triangularView<Eigen::Upper>() += from->H_from;
@@ -52,7 +54,8 @@ namespace ldso {
 				b.block<15, 1>(10, 0) += from->b_from;
 
 				if (setting_vi_debug)
-					LOG(INFO) << "r (pre): [" << (visualWeight * ((double)nCombineFactors) / ((double)nPreIntegrationFactors) * from->W.selfadjointView<Eigen::Upper>().toDenseMatrix() * from->r).transpose().format(setting_vi_format) << "] - Energy: " << (from->r.transpose() * visualWeight * ((double)nCombineFactors) / ((double)nPreIntegrationFactors) * from->W.selfadjointView<Eigen::Upper>().toDenseMatrix() * from->r);
+					//LOG(INFO) << "r (pre): [" << (visualWeight * ((double)nCombineFactors) / ((double)nPreIntegrationFactors) * from->W.selfadjointView<Eigen::Upper>().toDenseMatrix() * from->r).transpose().format(setting_vi_format) << "] - Energy: " << (from->r.transpose() * visualWeight * ((double)nCombineFactors) / ((double)nPreIntegrationFactors) * from->W.selfadjointView<Eigen::Upper>().toDenseMatrix() * from->r);
+					LOG(INFO) << "r (pre): [" << (from->r).transpose().format(setting_vi_format) << "] - Energy: " << (from->r.transpose() * visualWeight * ((double)nCombineFactors) / ((double)nPreIntegrationFactors) * from->W.selfadjointView<Eigen::Upper>().toDenseMatrix() * from->r);
 
 				if (setting_vi_debug)
 					LOG(INFO) << "Inertial Pre-Integration (" << fh->frameID << ") dR: [" << (from->preIntegration->delta_R_ij*SO3::exp(from->preIntegration->d_delta_R_ij_dg* db_g_PRE)).log().transpose().format(setting_vi_format) << "]; dv: [" << (T_WB_PRE.so3() * (from->preIntegration->delta_v_ij + from->preIntegration->d_delta_v_ij_dg * db_g_PRE + from->preIntegration->d_delta_v_ij_da *db_a_PRE) - Vec3(0, 0, 9.81*from->preIntegration->dt_ij)).transpose().format(setting_vi_format) << "]; dp: [" << (T_WB_PRE.so3() *(from->preIntegration->delta_p_ij + from->preIntegration->d_delta_p_ij_dg * db_g_PRE + from->preIntegration->d_delta_p_ij_da *db_a_PRE)).transpose().format(setting_vi_format) << "]; dt: " << from->preIntegration->dt_ij << ";";
@@ -63,10 +66,16 @@ namespace ldso {
 				b.block<15, 1>(10, 0) += to->b_to;
 			}
 
+			if (setting_vi_fej_window_optimization)
+			{
+				H.block<16, 16>(0, 0).triangularView<Eigen::Upper>() *= visualWeight / lastVisualWeight;
+			}
+
 			//LOG(INFO) << "eigen H: " << H.eigenvalues().format(setting_vi_format);
 
 			if (setting_vi_debug)
-				LOG(INFO) << "r (combine): [" << (visualWeight * W.asDiagonal() * r).transpose().format(setting_vi_format) << "] - Energy: " << (r.transpose() * visualWeight * W.asDiagonal() * r) << " - Weight: " << (visualWeight * W).transpose().format(setting_vi_format);
+				//LOG(INFO) << "r (combine): [" << (visualWeight * W.asDiagonal() * r).transpose().format(setting_vi_format) << "] - Energy: " << (r.transpose() * visualWeight * W.asDiagonal() * r) << " - Weight: " << (visualWeight * W).transpose().format(setting_vi_format);
+				LOG(INFO) << "r (combine): [" << r.transpose().format(setting_vi_format) << "] - Energy: " << (r.transpose() * visualWeight * W.asDiagonal() * r);
 
 			b += -J.transpose() * visualWeight * W.asDiagonal() * r;
 
