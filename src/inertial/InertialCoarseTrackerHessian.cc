@@ -162,6 +162,9 @@ namespace ldso {
 
 		void InertialCoarseTrackerHessian::setValues(std::vector <shared_ptr<internal::FrameHessian>> &frameHessians, shared_ptr<inertial::InertialHessian> Hinertial)
 		{
+			T_bc = Hinertial->T_BC;
+			R_wd = Hinertial->R_WD_PRE;
+
 			if (setting_vi_enable) {
 				assert(frameHessians.size() > 0);
 				shared_ptr<internal::FrameHessian> fh = frameHessians.back();
@@ -179,9 +182,7 @@ namespace ldso {
 				ba_j = Vec3::Zero();
 
 				scale = Hinertial->scale_PRE;
-				T_bc = Hinertial->T_BC;
-				R_wd = Hinertial->R_WD_PRE;
-
+				
 				lin_bias_g = fh->inertialFrameHessian->b_g_lin + fh->inertialFrameHessian->db_g_PRE;
 				lin_bias_a = fh->inertialFrameHessian->b_a_lin + fh->inertialFrameHessian->db_a_PRE;
 

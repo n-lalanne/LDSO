@@ -259,7 +259,7 @@ namespace ldso {
 
 				T_ij = coarseTracker->inertialCoarseTrackerHessian->T_bc.inverse() * SE3(T_ij.so3(), exp(-coarseTracker->inertialCoarseTrackerHessian->scale) * T_ij.translation()) *coarseTracker->inertialCoarseTrackerHessian->T_bc;
 
-				//lastF_2_fh_tries.push_back(T_ij.inverse()*lastF_2_slast);
+				lastF_2_fh_tries.push_back(T_ij.inverse()*lastF_2_slast);
 			}
 
 			// get last delta-movement.
@@ -442,15 +442,18 @@ namespace ldso {
 		LOG(INFO) << "Coarse Tracker tracked ab = " << aff_g2l.a << " " << aff_g2l.b << " (exp " << fh->ab_exposure
 			<< " ). Res " << achievedRes[0] << endl;
 
-		fh->inertialFrameHessian->T_WB_EvalPT = coarseTracker->inertialCoarseTrackerHessian->Tw_j;
-		fh->inertialFrameHessian->W_v_B_EvalPT = coarseTracker->inertialCoarseTrackerHessian->v_j;
-		fh->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
-		fh->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
-		fh->inertialFrameHessian->b_g_lin = coarseTracker->inertialCoarseTrackerHessian->lin_bias_g;
-		fh->inertialFrameHessian->b_a_lin = coarseTracker->inertialCoarseTrackerHessian->lin_bias_a;
+		if (setting_vi_enable)
+		{
+			fh->inertialFrameHessian->T_WB_EvalPT = coarseTracker->inertialCoarseTrackerHessian->Tw_j;
+			fh->inertialFrameHessian->W_v_B_EvalPT = coarseTracker->inertialCoarseTrackerHessian->v_j;
+			fh->inertialFrameHessian->db_g_EvalPT = Vec3::Zero();
+			fh->inertialFrameHessian->db_a_EvalPT = Vec3::Zero();
+			fh->inertialFrameHessian->b_g_lin = coarseTracker->inertialCoarseTrackerHessian->lin_bias_g;
+			fh->inertialFrameHessian->b_a_lin = coarseTracker->inertialCoarseTrackerHessian->lin_bias_a;
 
-		fh->inertialFrameHessian->setState(Vec15::Zero());
-		coarseTracker->inertialCoarseTrackerHessian->marginalize();
+			fh->inertialFrameHessian->setState(Vec15::Zero());
+			coarseTracker->inertialCoarseTrackerHessian->marginalize();
+		}
 
 		return Vec4(achievedRes[0], flowVecs[0], flowVecs[1], flowVecs[2]);
 	}
@@ -1668,7 +1671,17 @@ namespace ldso {
 				if (fr->frameHessian->inertialFrameHessian->from)
 					energyInertialOnly += fr->frameHessian->inertialFrameHessian->from->energy;
 			}
-			LOG(INFO) << "Energy Inertial: " << energy << " (" << energyInertialOnly << ")";
+			LOG(INFO) << "Energy Inertial: " << energy << " (" << energyInertialOnly << ") L_{trans}: " << setting_vi_lambda_trans << " L_{rot}: " << setting_vi_lambda_rot;
+
+			if (sqrt(energy / (activeVisualResiduals * patternNum)) < 1 && setting_vi_lambda_trans < 1e1)
+			{
+				setting_vi_lambda_trans *= 1;
+			}
+
+			if (sqrt(energy / (activeVisualResiduals * patternNum)) < 1 && setting_vi_lambda_rot < 1e1)
+			{
+				setting_vi_lambda_rot *= 1;
+			}
 		}
 		return energy;
 	}
