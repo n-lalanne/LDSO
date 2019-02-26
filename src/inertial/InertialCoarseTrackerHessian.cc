@@ -17,7 +17,7 @@ namespace ldso {
 
 		void InertialCoarseTrackerHessian::marginalize()
 		{
-			if (setting_vi_enable) {
+			if (setting_vi_enable && setting_vi_enable_coarse_tracker) {
 				fix_i = false;
 
 				Mat1515 J_i = Mat1515::Zero();
@@ -53,7 +53,7 @@ namespace ldso {
 		}
 
 		void InertialCoarseTrackerHessian::restore() {
-			if (setting_vi_enable) {
+			if (setting_vi_enable && setting_vi_enable_coarse_tracker) {
 				applyStep(-step);
 			}
 		}
@@ -71,7 +71,7 @@ namespace ldso {
 			H_I_sc.setZero();
 			b_I_sc.setZero();
 
-			if (setting_vi_enable) {
+			if (setting_vi_enable && setting_vi_enable_coarse_tracker) {
 				InertialFrameFrameHessian::computeResidual(r_pr, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
 				InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
 
@@ -193,7 +193,7 @@ namespace ldso {
 		}
 
 		void InertialCoarseTrackerHessian::applyStep(VecX s) {
-			if (setting_vi_enable)
+			if (setting_vi_enable && setting_vi_enable_coarse_tracker)
 			{
 				if (!fix_i)
 				{
@@ -221,7 +221,7 @@ namespace ldso {
 		}
 
 		void InertialCoarseTrackerHessian::update(Vec8 x) {
-			if (setting_vi_enable) {
+			if (setting_vi_enable && setting_vi_enable_coarse_tracker) {
 				step = Hbb_inv.selfadjointView<Eigen::Upper>() * (bb - Hab.transpose() * x);
 
 				if (!fix_i)
@@ -237,7 +237,7 @@ namespace ldso {
 			}
 		}
 		void InertialCoarseTrackerHessian::backup() {
-			if (setting_vi_enable) {
+			if (setting_vi_enable && setting_vi_enable_coarse_tracker) {
 				x_backup_i = Vec15::Zero();
 				x_backup_j = Vec15::Zero();
 
@@ -262,7 +262,7 @@ namespace ldso {
 		}
 
 		void InertialCoarseTrackerHessian::reset() {
-			if (setting_vi_enable) {
+			if (setting_vi_enable && setting_vi_enable_coarse_tracker) {
 				Tw_i = SE3::exp(x_backup_i.block<6, 1>(0, 0));
 				Tw_j = SE3::exp(x_backup_j.block<6, 1>(0, 0));
 

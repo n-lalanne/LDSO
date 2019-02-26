@@ -182,6 +182,8 @@ namespace ldso {
 	extern int setting_vi_hasMovementResetPeriod; // threshold for movemed detection
 
 	extern bool setting_vi_enable; // enable or disable data fusion inertial
+	extern bool setting_vi_enable_coarse_tracker; // enable or disable data fusion inertial
+
 
 	extern bool setting_vi_optimize_scale_and_gravity_direction; // enable or disable data fusion inertial
 
@@ -192,6 +194,8 @@ namespace ldso {
 	extern double setting_vi_lambda_coarse_tracker; // lambda for inertial weight
 	extern double setting_vi_lambda_white_noise; // lambda for inertial weight
 	extern double setting_vi_lambda_random_walk; // lambda for inertial weight
+
+	extern double setting_vi_scale_init; 
 
 	extern double setting_vi_marginalization_weight;
 
