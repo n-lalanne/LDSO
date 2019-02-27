@@ -276,6 +276,11 @@ namespace ldso {
 			if (setting_solverMode & SOLVER_USE_GN) lambda = 0;
 			if (setting_solverMode & SOLVER_FIX_LAMBDA) lambda = 1e-5;
 
+			int scaleGravityOffset = 0;
+
+			if (setting_vi_optimize_scale_and_gravity_direction)
+				scaleGravityOffset = 4;
+
 			assert(EFDeltaValid);
 			assert(EFAdjointsValid);
 			assert(EFIndicesValid);
@@ -293,8 +298,18 @@ namespace ldso {
 
 			bM_top = (bM + HM * getStitchedDeltaF());
 
-			MatXX HFinal_top = MatXX::Zero(HA_top.rows(), HA_top.cols());
+			MatXX HFinal_top;
 			VecX bFinal_top;
+
+			if (setting_vi_use_schur_complement || !setting_vi_enable)
+			{
+				HFinal_top = MatXX::Zero(HA_top.rows(), HA_top.cols());
+				bFinal_top = VecX::Zero(bA_top.rows());
+			}
+			else {
+				HFinal_top = MatXX::Zero(HA_top.rows() + nFrames * 15 + scaleGravityOffset, HA_top.cols() + nFrames * 15 + scaleGravityOffset);
+				bFinal_top = VecX::Zero(bA_top.rows() + nFrames * 15 + scaleGravityOffset);
+			}
 
 			if (setting_solverMode & SOLVER_ORTHOGONALIZE_SYSTEM) {
 				// have a look if prior is there.
@@ -311,34 +326,45 @@ namespace ldso {
 
 				HFinal_top = HT_act + HM;
 				bFinal_top = bT_act + bM_top;
-				lastHS = HFinal_top;
-				lastbS = bFinal_top;
+				//lastHS = HFinal_top;
+				//lastbS = bFinal_top;
 
 				for (int i = 0; i < 8 * nFrames + CPARS; i++)
 					HFinal_top(i, i) *= (1 + lambda);
 			}
 			else {
-				HFinal_top.triangularView<Eigen::Upper>() = HL_top + HM + HA_top;
-				bFinal_top = bL_top + bM_top + bA_top - b_sc / (1 + lambda);
+				HFinal_top.topLeftCorner(8 * nFrames + CPARS, 8 * nFrames + CPARS).triangularView<Eigen::Upper>() = HL_top + HM + HA_top;
+				bFinal_top.head(8 * nFrames + CPARS) = bL_top + bM_top + bA_top - b_sc / (1 + lambda);
 
-				lastHS = HFinal_top - H_sc - H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix();
+				//lastHS = HFinal_top - H_sc - H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix();
 
 				if (setting_vi_enable) {
-					HFinal_top.triangularView<Eigen::Upper>() += H_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
-					bFinal_top += b_I - b_I_sc;
-					lastHS -= H_I_sc.selfadjointView<Eigen::Upper>();
+					HFinal_top.topLeftCorner(8 * nFrames + CPARS, 8 * nFrames + CPARS).triangularView<Eigen::Upper>() += H_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
+					bFinal_top.head(8 * nFrames + CPARS) += b_I;
+
+					if (setting_vi_use_schur_complement) {
+
+						bFinal_top -= b_I_sc;
+					}
+					else {
+						bFinal_top.tail(nFrames * 15 + scaleGravityOffset) += bb_I;
+						HFinal_top.bottomRightCorner(nFrames * 15 + scaleGravityOffset, nFrames * 15 + scaleGravityOffset).triangularView<Eigen::Upper>() += Hbb_I;
+						HFinal_top.topRightCorner(CPARS + 8 * nFrames, scaleGravityOffset + 15 * nFrames) += Hab_I;
+					}
+					//lastHS -= H_I_sc.selfadjointView<Eigen::Upper>();
 				}
 
 
-				lastbS = bFinal_top;
+				//lastbS = bFinal_top;
 
 				for (int i = 0; i < 8 * nFrames + CPARS; i++)
 					HFinal_top(i, i) *= (1 + lambda);
 
 				if (setting_vi_enable)
-					HFinal_top.triangularView<Eigen::Upper>() -= H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix();
+					if (setting_vi_use_schur_complement)
+						HFinal_top.triangularView<Eigen::Upper>() -= H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix();
 
-				HFinal_top.triangularView<Eigen::Upper>() -= (H_sc) * (1.0f / (1 + lambda));
+				HFinal_top.topLeftCorner(8 * nFrames + CPARS, 8 * nFrames + CPARS).triangularView<Eigen::Upper>() -= (H_sc) * (1.0f / (1 + lambda));
 			}
 
 			// get the result
@@ -403,17 +429,17 @@ namespace ldso {
 				std::cout << "HM_I:" << std::endl << HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
 				std::cout << "(HL_top + HM + HA_top - H_sc):" << std::endl << (HL_top + HM + HA_top - H_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
 				std::cout << "(H_I - H_I_sc):" << std::endl << (H_I.selfadjointView<Eigen::Upper>().toDenseMatrix() - H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
-				std::cout << "Hbb_I_inv:" << std::endl << Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix() << std::endl << std::endl;
+				//std::cout << "Hbb_I_inv:" << std::endl << Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix() << std::endl << std::endl;
 				//std::cout << "b:" << std::endl << bFinal_top << std::endl;
 			}
 
-			lastX = x;
+			lastX = x.head(8 * nFrames + CPARS);
 			currentLambda = lambda;
 
 			if (setting_vi_enable)
 				resubstituteInertial(x, HInertial);
 
-			resubstituteF_MT(x, HCalib, multiThreading);
+			resubstituteF_MT(lastX, HCalib, multiThreading);
 			currentLambda = 0;
 
 		}
@@ -858,13 +884,16 @@ namespace ldso {
 			for (int i = 0; i < scaleGravityOffset + 15 * nFrames; i++)
 				Hbb_I(i, i) *= (1 + lambda);
 
-			Hbb_I_inv = util::MatrixInverter::invertPosDef(Hbb_I, setting_use_fast_matrix_inverter);
+			if (setting_vi_use_schur_complement)
+			{
+				Hbb_I_inv = util::MatrixInverter::invertPosDef(Hbb_I, setting_use_fast_matrix_inverter);
 
-			MatXX HabHbbinv;
-			HabHbbinv = Hab_I * Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix();
+				MatXX HabHbbinv;
+				HabHbbinv = Hab_I * Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix();
 
-			H_I_sc.triangularView<Eigen::Upper>() = HabHbbinv * Hab_I.transpose();
-			b_I_sc = HabHbbinv * bb_I;
+				H_I_sc.triangularView<Eigen::Upper>() = HabHbbinv * Hab_I.transpose();
+				b_I_sc = HabHbbinv * bb_I;
+			}
 		}
 
 		void EnergyFunctional::marginalizeInertialFrameHessian(shared_ptr<FrameHessian> fh)
@@ -973,7 +1002,16 @@ namespace ldso {
 
 			int index = 0;
 
-			VecX xb = Hbb_I_inv.selfadjointView<Eigen::Upper>() * (bb_I - Hab_I.transpose() * x);
+			VecX xb;
+
+			if (setting_vi_use_schur_complement)
+			{
+				xb = Hbb_I_inv.selfadjointView<Eigen::Upper>() * (bb_I - Hab_I.transpose() * x);
+			}
+			else
+			{
+				xb = x.tail(scaleGravityOffset + nFrames * 15);
+			}
 
 			if (setting_vi_optimize_scale_and_gravity_direction)
 				HInertial->x_step = -S.block<4, 4>(6, 6) * xb.block<4, 1>(0, 0);

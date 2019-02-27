@@ -127,10 +127,36 @@ namespace ldso {
 
 			// L-M iteration
 			for (int iteration = 0; iteration < maxIterations[lvl]; iteration++) {
-				Mat88 Hl = H + inertialCoarseTrackerHessian->H_I.triangularView<Eigen::Upper>().toDenseMatrix();
-				for (int i = 0; i < 8; i++) Hl(i, i) *= (1 + lambda);
-				Hl -= inertialCoarseTrackerHessian->H_I_sc.triangularView<Eigen::Upper>();
-				Vec8 inc = Hl.ldlt().solve(-b + inertialCoarseTrackerHessian->b_I - inertialCoarseTrackerHessian->b_I_sc);
+				MatXX Hl;
+				VecX bl;
+				if (setting_vi_use_schur_complement) {
+					Hl = MatXX::Zero(8, 8);
+					bl = VecX::Zero(8);
+				}
+				else {
+					Hl = MatXX::Zero(8 + inertialCoarseTrackerHessian->Hbb.rows(), 8 + inertialCoarseTrackerHessian->Hbb.cols());
+					bl = VecX::Zero(8 + inertialCoarseTrackerHessian->Hbb.rows());
+				}
+
+				Hl.topLeftCorner(8, 8).triangularView<Eigen::Upper>() += H + inertialCoarseTrackerHessian->H_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
+
+				for (int i = 0; i < 8; i++)
+					Hl(i, i) *= (1 + lambda);
+
+				bl.head<8>() += -b + inertialCoarseTrackerHessian->b_I;
+
+				if (setting_vi_use_schur_complement) {
+					Hl.triangularView<Eigen::Upper>() -= inertialCoarseTrackerHessian->H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix();
+					bl.head<8>() -= inertialCoarseTrackerHessian->b_I_sc;
+				}
+				else
+				{
+					Hl.bottomRightCorner(inertialCoarseTrackerHessian->Hbb.rows(), inertialCoarseTrackerHessian->Hbb.cols()).triangularView<Eigen::Upper>() += inertialCoarseTrackerHessian->Hbb;
+					Hl.topRightCorner(8, inertialCoarseTrackerHessian->Hbb.cols()) += inertialCoarseTrackerHessian->Hab;
+					bl.tail(inertialCoarseTrackerHessian->bb.rows()) = inertialCoarseTrackerHessian->bb;
+				}
+
+				VecX inc = Hl.ldlt().solve(bl);
 
 				// depends on the mode, if a,b is fixed, don't estimate them
 				if (setting_affineOptModeA < 0 && setting_affineOptModeB < 0)    // fix a, b
@@ -162,7 +188,7 @@ namespace ldso {
 					extrapFac = sqrtf(sqrt(lambdaExtrapolationLimit / lambda));
 				inc *= extrapFac;
 
-				Vec8 incScaled = inc;
+				Vec8 incScaled = inc.head<8>();
 				incScaled.segment<3>(0) *= SCALE_XI_TRANS;
 				incScaled.segment<3>(3) *= SCALE_XI_ROT;
 				incScaled.segment<1>(6) *= SCALE_A;

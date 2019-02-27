@@ -184,6 +184,7 @@ namespace ldso {
 	extern bool setting_vi_enable; // enable or disable data fusion inertial
 	extern bool setting_vi_enable_coarse_tracker; // enable or disable data fusion inertial
 
+	extern bool setting_vi_use_schur_complement;
 
 	extern bool setting_vi_optimize_scale_and_gravity_direction; // enable or disable data fusion inertial
 

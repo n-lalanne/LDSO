@@ -103,15 +103,16 @@ namespace ldso {
 					bb = VecX::Zero(15);
 					Hab = MatXX::Zero(8, 15);
 
-					Mat1515 Hj;
+					Hbb = MatXX::Zero(15, 15);
 
-					Hj.triangularView<Eigen::Upper>() = J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_j;
-					Hj.block<6, 6>(0, 0).triangularView<Eigen::Upper>() += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
+					Hbb.triangularView<Eigen::Upper>() = J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_j;
+					Hbb.block<6, 6>(0, 0).triangularView<Eigen::Upper>() += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
 
 					for (int i = 0; i < 15; i++)
-						Hj(i, i) *= (1 + lambda);
+						Hbb(i, i) *= (1 + lambda);
 
-					Hbb_inv = util::MatrixInverter::invertPosDef(Hj, setting_use_fast_matrix_inverter);
+					if (setting_vi_use_schur_complement)
+						Hbb_inv = util::MatrixInverter::invertPosDef(Hbb, setting_use_fast_matrix_inverter);
 
 					bb += -J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr;
 					bb += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
@@ -126,7 +127,7 @@ namespace ldso {
 					bb = VecX::Zero(30);
 					Hab = MatXX::Zero(8, 30);
 
-					MatXX Hbb = MatXX::Zero(30, 30);
+					Hbb = MatXX::Zero(30, 30);
 
 					Hbb.block<15, 15>(0, 0).triangularView<Eigen::Upper>() = J_i.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_i + visualWeight * HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix();
 					Hbb.block<15, 15>(0, 15) = J_i.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_j;
@@ -138,7 +139,8 @@ namespace ldso {
 						Hbb(i, i) *= (1 + lambda);
 					}
 
-					Hbb_inv = util::MatrixInverter::invertPosDef(Hbb, setting_use_fast_matrix_inverter);
+					if (setting_vi_use_schur_complement)
+						Hbb_inv = util::MatrixInverter::invertPosDef(Hbb, setting_use_fast_matrix_inverter);
 
 					bb.block<15, 1>(0, 0) += -J_i.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr + visualWeight * (bM_I - HM_I.selfadjointView<Eigen::Upper>() * S.block<15, 15>(10, 10).inverse() * (x_i - x_backup_i));
 					bb.block<15, 1>(15, 0) += -J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr;
@@ -149,11 +151,14 @@ namespace ldso {
 				H_I.block<6, 6>(0, 0).triangularView<Eigen::Upper>() = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() *  J_co.block<6, 6>(0, 0);
 				b_I.block<6, 1>(0, 0) = -J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() * r_co;
 
-				MatXX HabHbbinv;
-				HabHbbinv = Hab * Hbb_inv.selfadjointView<Eigen::Upper>();
+				if (setting_vi_use_schur_complement)
+				{
+					MatXX HabHbbinv;
+					HabHbbinv = Hab * Hbb_inv.selfadjointView<Eigen::Upper>();
 
-				H_I_sc.triangularView<Eigen::Upper>() = HabHbbinv * Hab.transpose();
-				b_I_sc += HabHbbinv * bb;
+					H_I_sc.triangularView<Eigen::Upper>() = HabHbbinv * Hab.transpose();
+					b_I_sc += HabHbbinv * bb;
+				}
 
 				energy += r_pr.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr;
 				energy += r_co.transpose() * visualWeight * w.asDiagonal() * r_co;
@@ -182,7 +187,7 @@ namespace ldso {
 				ba_j = Vec3::Zero();
 
 				scale = Hinertial->scale_PRE;
-				
+
 				lin_bias_g = fh->inertialFrameHessian->b_g_lin + fh->inertialFrameHessian->db_g_PRE;
 				lin_bias_a = fh->inertialFrameHessian->b_a_lin + fh->inertialFrameHessian->db_a_PRE;
 
@@ -220,10 +225,12 @@ namespace ldso {
 			}
 		}
 
-		void InertialCoarseTrackerHessian::update(Vec8 x) {
+		void InertialCoarseTrackerHessian::update(VecX x) {
 			if (setting_vi_enable && setting_vi_enable_coarse_tracker) {
-				step = Hbb_inv.selfadjointView<Eigen::Upper>() * (bb - Hab.transpose() * x);
-
+				if (setting_vi_use_schur_complement)
+					step = Hbb_inv.selfadjointView<Eigen::Upper>() * (bb - Hab.transpose() * x);
+				else
+					step = x.tail(fix_i ? 15 : 30);
 				if (!fix_i)
 				{
 					step.block<15, 1>(0, 0) = S.block<15, 15>(10, 10) * step.block<15, 1>(0, 0);

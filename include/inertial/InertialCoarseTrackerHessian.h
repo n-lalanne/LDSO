@@ -20,7 +20,7 @@ namespace ldso {
 
 			void setValues(std::vector <shared_ptr<internal::FrameHessian>> &frameHessians, shared_ptr<inertial::InertialHessian> Hinertial);
 			void compute(double visualWeight, SE3 T_id, SE3 T_ji, double lambda);
-			void update(Vec8 x);
+			void update(VecX x);
 			void backup();
 			void reset();
 			void marginalize();
@@ -57,6 +57,7 @@ namespace ldso {
 			Mat88 H_I = Mat88::Zero();
 			Mat88 H_I_sc = Mat88::Zero();
 
+			MatXX Hbb = MatXX::Zero(15, 15);
 			VecX bb = VecX::Zero(15);
 
 			MatXX Hbb_inv = MatXX::Zero(15, 15);

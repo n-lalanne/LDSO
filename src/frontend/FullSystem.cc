@@ -259,7 +259,7 @@ namespace ldso {
 
 				T_ij = coarseTracker->inertialCoarseTrackerHessian->T_bc.inverse() * SE3(T_ij.so3(), exp(-coarseTracker->inertialCoarseTrackerHessian->scale) * T_ij.translation()) *coarseTracker->inertialCoarseTrackerHessian->T_bc;
 
-				//lastF_2_fh_tries.push_back(T_ij.inverse()*lastF_2_slast);
+				lastF_2_fh_tries.push_back(T_ij.inverse()*lastF_2_slast);
 			}
 
 			// get last delta-movement.

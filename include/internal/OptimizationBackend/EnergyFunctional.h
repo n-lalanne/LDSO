@@ -157,8 +157,8 @@ namespace ldso {
 
 			int resInA = 0, resInL = 0, resInM = 0;
 
-			MatXX lastHS;
-			VecX lastbS;
+			//MatXX lastHS;
+			//VecX lastbS;
 			VecX lastX;
 
 			std::vector<VecX> lastNullspaces_forLogging;
