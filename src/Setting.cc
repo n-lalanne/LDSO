@@ -159,11 +159,13 @@ namespace ldso {
 
 	double setting_vi_lambda_overall = 1e-2;
 
-	double setting_vi_lambda_rot = 1 / setting_vi_lambda_overall * 1e3; // lambda for rotation weight
-	double setting_vi_lambda_trans = 1 / setting_vi_lambda_overall * 1e3; // lambda for translation weight
+	double setting_vi_lambda_rot = 1 / setting_vi_lambda_overall * 1e2; // lambda for rotation weight
+	double setting_vi_lambda_trans = 1 / setting_vi_lambda_overall * 1e2; // lambda for translation weight
 
-	double setting_vi_lambda_white_noise = 1; // lambda for inertial weight
-	double setting_vi_lambda_random_walk = 2; // lambda for inertial weight
+	double setting_vi_lambda_white_noise_gyro = 1; // lambda for inertial weight
+	double setting_vi_lambda_random_walk_gyro = 2; // lambda for inertial weight
+	double setting_vi_lambda_white_noise_acc = 1; // lambda for inertial weight
+	double setting_vi_lambda_random_walk_acc = 10; // lambda for inertial weight
 
 	double setting_vi_marginalization_weight = 0.5 * 0.5;
 

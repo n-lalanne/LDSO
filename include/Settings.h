@@ -193,8 +193,12 @@ namespace ldso {
 
 	extern double setting_vi_lambda_overall; // lambda for inertial weight
 	extern double setting_vi_lambda_coarse_tracker; // lambda for inertial weight
-	extern double setting_vi_lambda_white_noise; // lambda for inertial weight
-	extern double setting_vi_lambda_random_walk; // lambda for inertial weight
+
+	extern double setting_vi_lambda_white_noise_gyro; // lambda for inertial weight
+	extern double setting_vi_lambda_random_walk_gyro; // lambda for inertial weight
+	extern double setting_vi_lambda_white_noise_acc; // lambda for inertial weight
+	extern double setting_vi_lambda_random_walk_acc; // lambda for inertial weight
+
 
 	extern double setting_vi_scale_init; 
 
