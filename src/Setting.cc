@@ -153,17 +153,17 @@ namespace ldso {
 
 	bool setting_vi_use_schur_complement = false;
 
-	bool setting_vi_optimize_scale_and_gravity_direction = false;
+	bool setting_vi_optimize_scale_and_gravity_direction = true;
 
-	double setting_vi_scale_init = -0.35;
+	double setting_vi_scale_init = 0;
 
-	double setting_vi_lambda_overall = 1;
+	double setting_vi_lambda_overall = 1e-2;
 
-	double setting_vi_lambda_rot = 1 / setting_vi_lambda_overall * 1e4; // lambda for rotation weight
-	double setting_vi_lambda_trans = 1 / setting_vi_lambda_overall * 1e4; // lambda for translation weight
+	double setting_vi_lambda_rot = 1 / setting_vi_lambda_overall * 1e3; // lambda for rotation weight
+	double setting_vi_lambda_trans = 1 / setting_vi_lambda_overall * 1e3; // lambda for translation weight
 
 	double setting_vi_lambda_white_noise = 1; // lambda for inertial weight
-	double setting_vi_lambda_random_walk = 10000; // lambda for inertial weight
+	double setting_vi_lambda_random_walk = 2; // lambda for inertial weight
 
 	double setting_vi_marginalization_weight = 0.5 * 0.5;
 

@@ -259,7 +259,7 @@ namespace ldso {
 
 				T_ij = coarseTracker->inertialCoarseTrackerHessian->T_bc.inverse() * SE3(T_ij.so3(), exp(-coarseTracker->inertialCoarseTrackerHessian->scale) * T_ij.translation()) *coarseTracker->inertialCoarseTrackerHessian->T_bc;
 
-				lastF_2_fh_tries.push_back(T_ij.inverse()*lastF_2_slast);
+				//lastF_2_fh_tries.push_back(T_ij.inverse()*lastF_2_slast);
 			}
 
 			// get last delta-movement.
@@ -1547,18 +1547,22 @@ namespace ldso {
 
 		preIntegration->addImuData(newFrame->inertialFrameHessian->imuDataHistory);
 
+		int count = 0;
 		for (int n = 0; n < setting_vi_nMeanFilterGravityDirection && n < historySize; n++)
 		{
 			inertial::ImuData imu = newFrame->inertialFrameHessian->imuDataHistory[n];
 			b_g += Vec3(imu.ax, imu.ay, imu.az);
+			count++;
 		}
 
-		b_g /= b_g.norm();
+		b_g /= count;
 
-		Vec3 axis = b_g.cross(w_g);
+		Vec3 b_g_n = b_g / b_g.norm();
+
+		Vec3 axis = b_g_n.cross(w_g);
 
 		double axis_abs = axis.norm();
-		double theta = acos(b_g.dot(w_g));
+		double theta = acos(b_g_n.dot(w_g));
 
 		SO3 R_wb;
 		SO3 R_cd = SO3(Eigen::Quaterniond::Identity());
@@ -1576,14 +1580,14 @@ namespace ldso {
 
 		Hinertial->setEvalPT((R_wb*R_bc*R_cd).inverse(), setting_vi_scale_init);
 
-		Vec3 g(0, 0, -9.81);
+		Vec3 g(0, 0, 9.81);
 
 		SE3 T_dc0 = SE3();
 		SE3 T_dc1 = firstToNew.inverse();
 		SE3 T_wb0 = SE3(Hinertial->R_WD_PRE, Vec3::Zero()) * T_dc0 * Hinertial->T_CB;
 		SE3 T_wb1 = SE3(Hinertial->R_WD_PRE, Vec3::Zero()) * T_dc1 * Hinertial->T_CB;
 
-		nextKeyFramePreIntegration->lin_bias_a = Vec3::Zero();
+		nextKeyFramePreIntegration->lin_bias_a = (b_g - R_wb.inverse().matrix() * g);
 		nextKeyFramePreIntegration->lin_bias_g = Vec3::Zero();
 
 		firstFrame->frame->setPose(T_dc0.inverse());

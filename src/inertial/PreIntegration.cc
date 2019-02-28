@@ -60,7 +60,7 @@ namespace ldso {
 			Mat33 B22 = delta_R_ij.matrix() * delta_t;
 			B.block<3, 3>(0, 0) = B11;
 			B.block<3, 3>(3, 3) = B22;
-			B.block<3, 3>(3, 6) = B22 * delta_t*0.5;
+			B.block<3, 3>(6, 3) = B22 * delta_t*0.5;
 
 			delta_R_ij = delta_R_ij * ddelta_R_k;
 			d_delta_R_ij_dg = SO3::exp(-omega_corr * delta_t).matrix()*d_delta_R_ij_dg - B11;
