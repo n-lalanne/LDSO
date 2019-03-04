@@ -147,12 +147,13 @@ namespace ldso {
 
 			// invert bottom part!
 			Mat88 hpi = HMScaled.bottomRightCorner<8, 8>();
-			hpi = 0.5f * (hpi + hpi);
+			/*hpi = 0.5f * (hpi + hpi);
 			hpi = hpi.inverse();
-			hpi = 0.5f * (hpi + hpi);
+			hpi = 0.5f * (hpi + hpi);*/
+			hpi = util::MatrixInverter::invertPosDef(hpi);
 
 			// schur-complement!
-			MatXX bli = HMScaled.bottomLeftCorner(8, ndim).transpose() * hpi;
+			MatXX bli = HMScaled.bottomLeftCorner(8, ndim).transpose() * hpi.selfadjointView<Eigen::Upper>().toDenseMatrix();
 			HMScaled.topLeftCorner(ndim, ndim).noalias() -= bli * HMScaled.bottomLeftCorner(8, ndim);
 			bMScaled.head(ndim).noalias() -= bli * bMScaled.tail<8>();
 
@@ -428,7 +429,8 @@ namespace ldso {
 				std::cout << "Hbb_I_inv:" << std::endl << Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
 				std::cout << "HM_I:" << std::endl << HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
 				std::cout << "(HL_top + HM + HA_top - H_sc):" << std::endl << (HL_top + HM + HA_top - H_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
-				std::cout << "(H_I - H_I_sc):" << std::endl << (H_I.selfadjointView<Eigen::Upper>().toDenseMatrix() - H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
+				if (setting_vi_use_schur_complement)
+					std::cout << "(H_I - H_I_sc):" << std::endl << (H_I.selfadjointView<Eigen::Upper>().toDenseMatrix() - H_I_sc.selfadjointView<Eigen::Upper>().toDenseMatrix()).eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
 				//std::cout << "Hbb_I_inv:" << std::endl << Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix() << std::endl << std::endl;
 				//std::cout << "b:" << std::endl << bFinal_top << std::endl;
 			}

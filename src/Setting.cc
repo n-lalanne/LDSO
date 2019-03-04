@@ -140,7 +140,7 @@ namespace ldso {
 
 	int setting_vi_nMaxIterationsIIRInitialization = 100;
 	double setting_vi_epsilonIIRInitialization = 0.1;
-	double setting_vi_hasMovementThreshold = 0.01;
+	double setting_vi_hasMovementThreshold = 0.05;
 	int setting_vi_hasMovementResetPeriod = 200 * 0.2;
 
 	double setting_vi_lambda_coarse_tracker = 1e-2;
@@ -163,9 +163,9 @@ namespace ldso {
 	double setting_vi_lambda_trans = 1 / setting_vi_lambda_overall * 1e2; // lambda for translation weight
 
 	double setting_vi_lambda_white_noise_gyro = 1; // lambda for inertial weight
-	double setting_vi_lambda_random_walk_gyro = 2; // lambda for inertial weight
+	double setting_vi_lambda_random_walk_gyro = 1; // lambda for inertial weight
 	double setting_vi_lambda_white_noise_acc = 1; // lambda for inertial weight
-	double setting_vi_lambda_random_walk_acc = 10; // lambda for inertial weight
+	double setting_vi_lambda_random_walk_acc = 1; // lambda for inertial weight
 
 	double setting_vi_marginalization_weight = 0.5 * 0.5;
 
