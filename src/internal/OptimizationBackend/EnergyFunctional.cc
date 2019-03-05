@@ -75,6 +75,11 @@ namespace ldso {
 			HM_I.rightCols<15>().setZero();
 			HM_I.bottomRows<15>().setZero();
 
+			if (fh->frame->kfId == 0)
+			{
+				HM_I.bottomRightCorner<15, 15>().block<3, 3>(6, 6) = setting_vi_velocity_prior * Vec3::Ones().asDiagonal();
+			}
+
 			// set index as invalid
 			EFIndicesValid = false;
 			EFAdjointsValid = false;

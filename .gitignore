@@ -19,3 +19,4 @@ evaluation/matlab-evaluation/**/*.mat
 
 # python
 **.pyc
+/.vs/LDSO/v15

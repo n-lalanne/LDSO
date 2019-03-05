@@ -58,6 +58,9 @@ namespace ldso {
 					LOG(INFO) << "r (pre): [" << (from->r).transpose().format(setting_vi_format) << "] - Energy: " << (from->r.transpose() * visualWeight * ((double)nCombineFactors) / ((double)nPreIntegrationFactors) * from->W.selfadjointView<Eigen::Upper>().toDenseMatrix() * from->r);
 
 				if (setting_vi_debug)
+					LOG(INFO) << "Gravity: [" << (T_WB_EvalPT.so3() * from->preIntegration->g_mean).format(setting_vi_format) << "] - error: " << (T_WB_EvalPT.so3() * from->preIntegration->g_mean - Vec3(0, 0, 9.81)).format(setting_vi_format) << " (" << (T_WB_EvalPT.so3() * from->preIntegration->g_mean - Vec3(0, 0, 9.81)).norm() << ")";
+
+				if (setting_vi_debug)
 					LOG(INFO) << "Inertial Pre-Integration (" << fh->frameID << ") dR: [" << (from->preIntegration->delta_R_ij*SO3::exp(from->preIntegration->d_delta_R_ij_dg* db_g_PRE)).log().transpose().format(setting_vi_format) << "]; dv: [" << (T_WB_PRE.so3() * (from->preIntegration->delta_v_ij + from->preIntegration->d_delta_v_ij_dg * db_g_PRE + from->preIntegration->d_delta_v_ij_da *db_a_PRE) - Vec3(0, 0, 9.81*from->preIntegration->dt_ij)).transpose().format(setting_vi_format) << "]; dp: [" << (T_WB_PRE.so3() *(from->preIntegration->delta_p_ij + from->preIntegration->d_delta_p_ij_dg * db_g_PRE + from->preIntegration->d_delta_p_ij_da *db_a_PRE)).transpose().format(setting_vi_format) << "]; dt: " << from->preIntegration->dt_ij << ";";
 			}
 

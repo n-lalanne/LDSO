@@ -25,6 +25,8 @@ namespace ldso {
 			Vec3 delta_v_ij;
 			SO3 delta_R_ij;
 
+			Vec3 g_mean;
+
 			Mat33 d_delta_p_ij_dg;
 			Mat33 d_delta_p_ij_da;
 

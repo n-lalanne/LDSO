@@ -186,7 +186,13 @@ namespace ldso {
 	}
 
 	void FullSystem::deliverTrackedFrame(shared_ptr<FrameHessian> fh, bool needKF) {
-		if (linearizeOperation) {
+		int nframes = 0;
+		{
+			unique_lock<mutex> lck(framesMutex);
+			nframes = frames.size();
+		}
+
+		if (linearizeOperation || nframes < setting_minFrames) {
 			if (needKF) {
 				makeKeyFrame(fh);
 			}
@@ -504,6 +510,7 @@ namespace ldso {
 			fh->frame->kfId = fh->frameID = globalMap->NumFrames();
 
 			if (setting_vi_enable) {
+				//nextKeyFramePreIntegration->reEvaluate();
 				shared_ptr<inertial::InertialFrameFrameHessian> inertialFrameHessian = shared_ptr<inertial::InertialFrameFrameHessian>(new inertial::InertialFrameFrameHessian(nextKeyFramePreIntegration));
 				nextKeyFramePreIntegration = shared_ptr<inertial::PreIntegration>(new inertial::PreIntegration());
 
@@ -783,7 +790,7 @@ namespace ldso {
 			Vec2 refToFh = AffLight::fromToVecExposure(frames.back()->frameHessian->ab_exposure, fh->ab_exposure,
 				frames.back()->frameHessian->aff_g2l(), fh->aff_g2l());
 
-			if (!coarseTracker && !coarseTracker->lastRef && frames[i] != coarseTracker->lastRef->frame)
+			if (coarseTracker && coarseTracker->lastRef && frames[i]->kfId != coarseTracker->lastRef->frame->kfId)
 			{
 				// some kind of marginlization conditions
 				if ((in < setting_minPointsRemaining * (in + out) ||

@@ -53,6 +53,13 @@ namespace ldso {
 			omega_corr -= lin_bias_g;
 			alpha_corr -= lin_bias_a;
 
+			int n = round(dt_ij / delta_t);
+
+			if (n == 1)
+				g_mean = alpha_corr;
+			else
+				g_mean = (g_mean * (n - 1) + delta_R_ij.matrix() * alpha_corr) / n;
+
 			SO3 ddelta_R_k = SO3::exp(omega_corr * delta_t);
 			Mat33 A21 = -delta_R_ij.matrix() * SO3::hat(alpha_corr) * delta_t;
 
@@ -104,6 +111,8 @@ namespace ldso {
 			d_delta_R_ij_dg.setZero();
 
 			Sigma_ij.setZero();
+
+			g_mean.setZero();
 
 			dt_ij = 0;
 		}

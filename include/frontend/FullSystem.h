@@ -330,7 +330,7 @@ namespace ldso {
 		vector<ldso::inertial::ImuData> imuDataHistory;
 		shared_ptr<ldso::inertial::InertialHessian> Hinertial = nullptr;
 		shared_ptr<ldso::inertial::PreIntegration> nextKeyFramePreIntegration = nullptr;
-
+		mutex preIntegrationMutex;
 		double linearizeInertial(double activeVisualResiduals, bool force);
 
 	public:

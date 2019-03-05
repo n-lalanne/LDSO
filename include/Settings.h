@@ -211,6 +211,8 @@ namespace ldso {
 
 	extern bool setting_vi_fej_window_optimization;
 
+	extern double setting_vi_velocity_prior;
+
 	extern Eigen::IOFormat setting_vi_format;
 	//=======================
 
