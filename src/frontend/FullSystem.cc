@@ -257,7 +257,9 @@ namespace ldso {
 
 				coarseTracker->inertialCoarseTrackerHessian->Tw_j = coarseTracker->inertialCoarseTrackerHessian->Tw_i * T_ij;
 
-				T_ij = coarseTracker->inertialCoarseTrackerHessian->T_bc.inverse() * SE3(T_ij.so3(), exp(-coarseTracker->inertialCoarseTrackerHessian->scale) * T_ij.translation()) *coarseTracker->inertialCoarseTrackerHessian->T_bc;
+				T_ij = coarseTracker->inertialCoarseTrackerHessian->T_bc.inverse() * T_ij *coarseTracker->inertialCoarseTrackerHessian->T_bc;
+
+				T_ij.translation() /= exp(coarseTracker->inertialCoarseTrackerHessian->scale);
 
 				lastF_2_fh_tries.push_back(T_ij.inverse()*lastF_2_slast);
 			}

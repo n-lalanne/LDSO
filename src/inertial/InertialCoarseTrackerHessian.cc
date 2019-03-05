@@ -89,23 +89,35 @@ namespace ldso {
 				W.setZero();
 				W.block<9, 9>(0, 0).triangularView<Eigen::Upper>() = preIntegration->Sigma_ij;
 				W.block<6, 6>(9, 9).triangularView<Eigen::Upper>() = preIntegration->Sigma_bd * preIntegration->dt_ij;
-				W = setting_vi_lambda_coarse_tracker * util::MatrixInverter::invertPosDef(W, setting_use_fast_matrix_inverter);
+				W = util::MatrixInverter::invertPosDef(W, setting_use_fast_matrix_inverter);
 
 				w.setZero();
-				w.block<3, 1>(0, 0) = setting_vi_lambda_coarse_tracker * setting_vi_lambda_rot * setting_vi_lambda_rot * Vec3::Ones();
-				w.block<3, 1>(3, 0) = setting_vi_lambda_coarse_tracker * setting_vi_lambda_trans * Vec3::Ones();
+				w.block<3, 1>(0, 0) = setting_vi_lambda_rot * setting_vi_lambda_rot * Vec3::Ones();
+				w.block<3, 1>(3, 0) = setting_vi_lambda_trans * Vec3::Ones();
 
 
 				if (fix_i)
 				{
 					J_j = J_j * S.block<15, 15>(10, 10);
-					Hbb_inv = MatXX::Zero(15, 15);
-					bb = VecX::Zero(15);
-					Hab = MatXX::Zero(8, 15);
 
-					Hbb = MatXX::Zero(15, 15);
+					int kvb_offset = 0;
 
-					Hbb.triangularView<Eigen::Upper>() = J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_j;
+					if (setting_vi_optimize_keyframe_velocity_and_bias)
+						kvb_offset = 9;
+
+					Hbb = MatXX::Zero(15 + kvb_offset, 15 + kvb_offset);
+					Hbb_inv = MatXX::Zero(15 + kvb_offset, 15 + kvb_offset);
+					bb = VecX::Zero(15 + kvb_offset);
+					Hab = MatXX::Zero(8, 15 + kvb_offset);
+
+					if (setting_vi_optimize_keyframe_velocity_and_bias)
+					{
+						J_i = J_i * S.block<15, 15>(10, 10);
+						Hbb.block<9, 9>(0, 0).triangularView<Eigen::Upper>() = (J_i.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_i).block<9, 9>(6, 6);
+						bb.segment<9>(0) += (-J_i.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr).segment<9>(6, 6);
+					}
+
+					Hbb.block<15, 15>(kvb_offset, kvb_offset).triangularView<Eigen::Upper>() = J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * J_j;
 					Hbb.block<6, 6>(0, 0).triangularView<Eigen::Upper>() += J_co.block<6, 6>(0, 10).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 6>(0, 10);
 
 					for (int i = 0; i < 15; i++)
@@ -114,9 +126,9 @@ namespace ldso {
 					if (setting_vi_use_schur_complement)
 						Hbb_inv = util::MatrixInverter::invertPosDef(Hbb, setting_use_fast_matrix_inverter);
 
-					bb += -J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr;
-					bb += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
-					Hab.block<6, 15>(0, 0) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 15>(0, 10);
+					bb.segment<15>(kvb_offset) += -J_j.transpose() * visualWeight * W.selfadjointView<Eigen::Upper>() * r_pr;
+					bb.segment<15>(kvb_offset) += -J_co.block<6, 15>(0, 10).transpose() *  visualWeight * w.asDiagonal() * r_co;
+					Hab.block<6, 15>(0, kvb_offset) = J_co.block<6, 6>(0, 0).transpose() * visualWeight * w.asDiagonal() * J_co.block<6, 15>(0, 10);
 				}
 				else
 				{
@@ -194,6 +206,14 @@ namespace ldso {
 				fix_i = true;
 				HM_I.setZero();
 				bM_I.setZero();
+
+				if (setting_vi_optimize_keyframe_velocity_and_bias)
+				{
+					HM_I.block<3, 3>(6, 6).triangularView<Eigen::Upper>() = util::MatrixInverter::invertPosDef(fh->inertialFrameHessian->to->preIntegration->Sigma_ij.block<3, 3>(3, 3), setting_use_fast_matrix_inverter);
+					HM_I.block<6, 6>(9, 9).triangularView<Eigen::Upper>() = inertial::PreIntegration::Sigma_bd.inverse();
+
+					HM_I *= setting_vi_marginalization_weight * setting_vi_lambda_coarse_tracker;
+				}
 			}
 		}
 
@@ -202,24 +222,40 @@ namespace ldso {
 			{
 				if (!fix_i)
 				{
-					Tw_i = SE3::exp(s.block<6, 1>(0, 0)) * Tw_i;
-					v_i += s.block<3, 1>(6, 0);
-					bg_i += s.block<3, 1>(9, 0);
-					ba_i += s.block<3, 1>(12, 0);
-					Tw_j = SE3::exp(s.block<6, 1>(0 + 15, 0)) * Tw_j;
-					v_j += s.block<3, 1>(6 + 15, 0);
-					bg_j += s.block<3, 1>(9 + 15, 0);
-					ba_j += s.block<3, 1>(12 + 15, 0);
-					x_i += s.block<15, 1>(0, 0);
-					x_j += s.block<15, 1>(15, 0);
+					Tw_i = SE3::exp(s.segment<6>(0)) * Tw_i;
+					v_i += s.segment<3>(6);
+					bg_i += s.segment<3>(9);
+					ba_i += s.segment<3>(12);
+					Tw_j = SE3::exp(s.segment<6>(0 + 15)) * Tw_j;
+					v_j += s.segment<3>(6 + 15);
+					bg_j += s.segment<3>(9 + 15);
+					ba_j += s.segment<3>(12 + 15);
+
+					x_i.segment<6>(0) = (SE3::exp(s.segment<6>(0))*SE3::exp(x_i.segment<6>(0))).log();
+					x_j.segment<6>(0) = (SE3::exp(s.segment<6>(15))*SE3::exp(x_j.segment<6>(0))).log();
+					x_i.segment<9>(6) += s.segment<9>(0 + 6);
+					x_j.segment<9>(6) += s.segment<9>(15 + 6);
 				}
 				else
 				{
-					Tw_j = SE3::exp(s.block<6, 1>(0, 0)) * Tw_j;
-					v_j += s.block<3, 1>(6, 0);
-					bg_j += s.block<3, 1>(9, 0);
-					ba_j += s.block<3, 1>(12, 0);
-					x_j += s.block<15, 1>(0, 0);
+					int kvb_offset = 0;
+
+					if (setting_vi_optimize_keyframe_velocity_and_bias)
+					{
+						kvb_offset = 9;
+						v_j += s.segment<3>(0);
+						bg_j += s.segment<3>(3);
+						ba_j += s.segment<3>(6);
+						x_i.segment<9>(6) += s.segment<9>(0);
+					}
+
+					Tw_j = SE3::exp(s.segment<6>(0 + kvb_offset)) * Tw_j;
+					v_j += s.segment<3>(6 + kvb_offset);
+					bg_j += s.segment<3>(9 + kvb_offset);
+					ba_j += s.segment<3>(12 + kvb_offset);
+
+					x_j.segment<6>(0) = (SE3::exp(s.segment<6>(0 + kvb_offset))*SE3::exp(x_j.segment<6>(0))).log();
+					x_j.segment<9>(6) += s.segment<9>(6 + kvb_offset);
 					//LOG(INFO) << "step: " << s.transpose().format(setting_vi_format);
 				}
 			}
@@ -227,18 +263,27 @@ namespace ldso {
 
 		void InertialCoarseTrackerHessian::update(VecX x) {
 			if (setting_vi_enable && setting_vi_enable_coarse_tracker) {
+				int kvb_offset = 0;
+
+				if (setting_vi_optimize_keyframe_velocity_and_bias)
+					kvb_offset = 9;
+
 				if (setting_vi_use_schur_complement)
 					step = Hbb_inv.selfadjointView<Eigen::Upper>() * (bb - Hab.transpose() * x);
 				else
-					step = x.tail(fix_i ? 15 : 30);
+					step = x.tail(fix_i ? 15 + kvb_offset : 30);
+
 				if (!fix_i)
 				{
-					step.block<15, 1>(0, 0) = S.block<15, 15>(10, 10) * step.block<15, 1>(0, 0);
-					step.block<15, 1>(15, 0) = S.block<15, 15>(10, 10) * step.block<15, 1>(15, 0);
+					step.segment<15>(0) = S.block<15, 15>(10, 10) * step.segment<15>(0);
+					step.segment<15>(15) = S.block<15, 15>(10, 10) * step.segment<15>(15);
 				}
 				else
 				{
-					step.block<15, 1>(0, 0) = S.block<15, 15>(10, 10) * step.block<15, 1>(0, 0);
+					if (setting_vi_optimize_keyframe_velocity_and_bias)
+						step.segment<9>(0) = S.block<9, 9>(16, 16) * step.segment<9>(0);
+
+					step.segment<15>(kvb_offset) = S.block<15, 15>(10, 10) * step.segment<15>(kvb_offset);
 				}
 				applyStep(step);
 			}

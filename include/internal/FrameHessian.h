@@ -56,8 +56,18 @@ namespace ldso {
 			}
 
 			// state - state0
-			EIGEN_STRONG_INLINE const Vec10 get_state_minus_stateZero() const {
-				return get_state() - get_state_zero();
+			EIGEN_STRONG_INLINE Vec10 get_state_minus_stateZero() {
+				//return get_state() - get_state_zero();
+				Vec10 res = get_state() - get_state_zero();
+				res.head<6>() = (SE3::exp(-get_state_zero().head<6>())*SE3::exp(get_state().head<6>())).log();
+				return res;
+			}
+
+			EIGEN_STRONG_INLINE Vec10 get_state_minus_statePriorZero() {
+				//return (get_state() - getPriorZero()).head<8>();
+				Vec10 res = (get_state() - getPriorZero());
+				res.head<6>() = (SE3::exp(-getPriorZero().head<6>())*SE3::exp(get_state().head<6>())).log();
+				return res;
 			}
 
 			inline Vec6 w2c_leftEps() const {

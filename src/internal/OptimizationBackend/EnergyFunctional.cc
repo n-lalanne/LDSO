@@ -511,7 +511,7 @@ namespace ldso {
 			cDeltaF = HCalib->value_minus_value_zero.cast<float>();
 			for (auto f : frames) {
 				f->delta = f->get_state_minus_stateZero().head<8>();
-				f->delta_prior = (f->get_state() - f->getPriorZero()).head<8>();
+				f->delta_prior = (f->get_state_minus_statePriorZero()).head<8>();
 
 				for (auto feat : f->frame->features) {
 					if (feat->status == Feature::FeatureStatus::VALID && feat->point &&

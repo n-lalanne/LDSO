@@ -140,10 +140,11 @@ namespace ldso {
 
 	int setting_vi_nMaxIterationsIIRInitialization = 100;
 	double setting_vi_epsilonIIRInitialization = 0.1;
-	double setting_vi_hasMovementThreshold = 0.05;
+	double setting_vi_hasMovementThreshold = 0.02;
 	int setting_vi_hasMovementResetPeriod = 200 * 0.2;
 
-	double setting_vi_lambda_coarse_tracker = 1e-2;
+	double setting_vi_lambda_coarse_tracker = 1e-3;
+	double setting_vi_lambda_coarse_tracker_level_increase = 200;
 
 	bool setting_vi_enable = true;
 	bool setting_vi_enable_coarse_tracker = true;
@@ -154,12 +155,13 @@ namespace ldso {
 	bool setting_vi_use_schur_complement = false;
 
 	bool setting_vi_optimize_scale_and_gravity_direction = true;
+	bool setting_vi_optimize_keyframe_velocity_and_bias = true;
 
 	double setting_vi_scale_init = 0;
 
 	double setting_vi_lambda_overall = 1e-2;
 
-	double setting_vi_lambda_rot = 1 / setting_vi_lambda_overall * 1e2; // lambda for rotation weight
+	double setting_vi_lambda_rot = 1 / setting_vi_lambda_overall * 5e1; // lambda for rotation weight
 	double setting_vi_lambda_trans = 1 / setting_vi_lambda_overall * 1e2; // lambda for translation weight
 
 	double setting_vi_lambda_white_noise_gyro = 1; // lambda for inertial weight

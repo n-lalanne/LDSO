@@ -130,7 +130,7 @@ namespace ldso {
 		void FrameHessian::takeData() {
 			prior = getPrior().head<8>();
 			delta = get_state_minus_stateZero().head<8>();
-			delta_prior = (get_state() - getPriorZero()).head<8>();
+			delta_prior = get_state_minus_statePriorZero().head<8>();
 		}
 	}
 

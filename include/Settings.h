@@ -185,6 +185,7 @@ namespace ldso {
 	extern bool setting_vi_enable_coarse_tracker; // enable or disable data fusion inertial
 
 	extern bool setting_vi_use_schur_complement;
+	extern bool setting_vi_optimize_keyframe_velocity_and_bias;
 
 	extern bool setting_vi_optimize_scale_and_gravity_direction; // enable or disable data fusion inertial
 
@@ -193,6 +194,8 @@ namespace ldso {
 
 	extern double setting_vi_lambda_overall; // lambda for inertial weight
 	extern double setting_vi_lambda_coarse_tracker; // lambda for inertial weight
+	extern double setting_vi_lambda_coarse_tracker_level_increase;
+
 
 	extern double setting_vi_lambda_white_noise_gyro; // lambda for inertial weight
 	extern double setting_vi_lambda_random_walk_gyro; // lambda for inertial weight

@@ -89,7 +89,7 @@ namespace ldso {
 			// compute the residual and adjust the huber threshold
 			Vec6 resOld = calcRes(lvl, refToNew_current, aff_g2l_current, setting_coarseCutoffTH * levelCutoffRepeat);
 
-			double visualWeight = resOld[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
+			double visualWeight = resOld[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall * setting_vi_lambda_coarse_tracker * (coarsestLvl + 1 - lvl) * setting_vi_lambda_coarse_tracker_level_increase;
 
 			while (resOld[5] > 0.6 && levelCutoffRepeat < 50) {
 				// more than 60% is over than threshold, then increate the cut off threshold
