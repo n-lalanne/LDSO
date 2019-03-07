@@ -1548,7 +1548,8 @@ namespace ldso {
 		// =============== Visual Inertial - Estimate gravity direction
 
 		Vec3 w_g(0, 0, 1);
-		Vec3 b_g(0, 0, 0);
+		Vec3 mean_a(0, 0, 0);
+		Vec3 mean_g(0, 0, 0);
 
 		int historySize = newFrame->inertialFrameHessian->imuDataHistory.size();
 
@@ -1560,13 +1561,15 @@ namespace ldso {
 		for (int n = 0; n < setting_vi_nMeanFilterGravityDirection && n < historySize; n++)
 		{
 			inertial::ImuData imu = newFrame->inertialFrameHessian->imuDataHistory[n];
-			b_g += Vec3(imu.ax, imu.ay, imu.az);
+			mean_a += Vec3(imu.ax, imu.ay, imu.az);
+			mean_g += Vec3(imu.gx, imu.gy, imu.gz);
 			count++;
 		}
 
-		b_g /= count;
+		mean_a /= count;
+		mean_g /= count;
 
-		Vec3 b_g_n = b_g / b_g.norm();
+		Vec3 b_g_n = mean_a / mean_a.norm();
 
 		Vec3 axis = b_g_n.cross(w_g);
 
@@ -1596,8 +1599,8 @@ namespace ldso {
 		SE3 T_wb0 = SE3(Hinertial->R_WD_PRE, Vec3::Zero()) * T_dc0 * Hinertial->T_CB;
 		SE3 T_wb1 = SE3(Hinertial->R_WD_PRE, Vec3::Zero()) * T_dc1 * Hinertial->T_CB;
 
-		nextKeyFramePreIntegration->lin_bias_a = (b_g - R_wb.inverse().matrix() * g);
-		nextKeyFramePreIntegration->lin_bias_g = Vec3::Zero();
+		nextKeyFramePreIntegration->lin_bias_a = (mean_a - R_wb.inverse().matrix() * g);
+		nextKeyFramePreIntegration->lin_bias_g = mean_g;
 
 		firstFrame->frame->setPose(T_dc0.inverse());
 		firstFrame->frame->setPoseInertial(T_dc0.inverse()*SE3(Hinertial->R_DW_PRE, Vec3::Zero()), 1);
