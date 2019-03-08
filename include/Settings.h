@@ -168,6 +168,8 @@ namespace ldso {
 	extern bool setting_pause;
 	extern int setting_pointSelection;      // 0-DSO's selection. 1-LDSO's selection, 2-Random selection
 
+	extern bool setting_keyframesPerSecond_additional;
+
 	extern double setting_coarse_tracker_lambda_increase;
 	extern double setting_coarse_tracker_lambda_decrease;
 

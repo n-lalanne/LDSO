@@ -156,7 +156,7 @@ namespace ldso {
 					(frame->timeStamp - frames.back()->timeStamp) >
 					0.95f / setting_keyframesPerSecond;
 			}
-			else {
+			if (setting_keyframesPerSecond <= 0 || setting_keyframesPerSecond_additional) {
 				Vec2 refToFh = AffLight::fromToVecExposure(coarseTracker->lastRef->ab_exposure, fh->ab_exposure,
 					coarseTracker->lastRef_aff_g2l, fh->aff_g2l());
 
@@ -171,7 +171,7 @@ namespace ldso {
 				bool b1 = b > 1;
 				bool b2 = 2 * coarseTracker->firstCoarseRMSE < tres[0];
 
-				needToMakeKF = allFrameHistory.size() == 1 || b1 || b2;
+				needToMakeKF |= allFrameHistory.size() == 1 || b1 || b2;
 			}
 
 			for (shared_ptr<OutputWrapper> ow : viewers)

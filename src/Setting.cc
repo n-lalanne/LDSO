@@ -129,6 +129,8 @@ namespace ldso {
 	bool setting_fastLoopClosing = true;
 	bool setting_showLoopClosing = true;
 
+	bool setting_keyframesPerSecond_additional = true;
+
 
 	double setting_coarse_tracker_lambda_increase = 4.0;
 	double setting_coarse_tracker_lambda_decrease = 0.5;
