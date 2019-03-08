@@ -106,9 +106,29 @@ namespace ldso {
         }
 
 		// get and write pose
-		SE3 getPoseInertial() {
+		SE3 getTcwInertial() {
 			unique_lock<mutex> lck(poseMutex);
 			return TcwInertial;
+		}
+
+		SE3 getTbwInertial() {
+			unique_lock<mutex> lck(poseMutex);
+			return TbwInertial;
+		}
+
+		Vec3 getVelocityInertial() {
+			unique_lock<mutex> lck(poseMutex);
+			return v;
+		}
+
+		Vec3 getBiasGyroscopeInertial() {
+			unique_lock<mutex> lck(poseMutex);
+			return bg;
+		}
+
+		Vec3 getBiasAccelerometerInertial() {
+			unique_lock<mutex> lck(poseMutex);
+			return ba;
 		}
 
 		double getScaleInertial() {
@@ -116,10 +136,14 @@ namespace ldso {
 			return scale;
 		}
 
-		void setPoseInertial(const SE3 &Tcw, double scale) {
+		void setPoseInertial(const SE3 &Tcw, double scale, const SE3 &Tbw, const Vec3 &v, const Vec3 bg, const Vec3 ba) {
 			unique_lock<mutex> lck(poseMutex);
 			this->TcwInertial = Tcw;
 			this->scale = scale;
+			this->TbwInertial = Tbw;
+			this->v = v;
+			this->bg = bg;
+			this->ba = ba;
 		}
 
         // get and write the optimized pose by loop closing
@@ -147,6 +171,10 @@ namespace ldso {
         Sim3 TcwOpti;     // pose from world to camera optimized by global pose graph (with scale)
 
 		SE3 TcwInertial = SE3(Eigen::Quaterniond::Identity(), Vec3::Zero());
+		SE3 TbwInertial = SE3(Eigen::Quaterniond::Identity(), Vec3::Zero());
+		Vec3 v;
+		Vec3 bg;
+		Vec3 ba;
 		double scale;
     public:
         bool poseValid = true;     // if pose is valid (false when initializing)
