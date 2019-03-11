@@ -474,6 +474,9 @@ namespace ldso {
 		if (mappingThread.joinable())
 			mappingThread.join();
 
+		for (shared_ptr<OutputWrapper> ow : viewers)
+			ow->publishKeyframes(frames, true, Hcalib->mpCH, Hinertial);
+
 		if (setting_enableLoopClosing)
 			loopClosing->SetFinish(true);
 	}
