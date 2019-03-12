@@ -25,7 +25,7 @@ namespace ldso {
 				Vec15 r_pr = Vec15::Zero();
 
 				InertialFrameFrameHessian::computeResidual(r_pr, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
-				InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g + bg_j, lin_bias_a, lin_bias_a + ba_j);
+				InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
 
 				J_i = J_i * S.block<15, 15>(10, 10);
 				J_j = J_j * S.block<15, 15>(10, 10);
