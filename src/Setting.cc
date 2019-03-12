@@ -167,9 +167,9 @@ namespace ldso {
 	double setting_vi_lambda_trans = 1 / setting_vi_lambda_overall * 1e2; // lambda for translation weight
 
 	double setting_vi_lambda_white_noise_gyro = 1; 
-	double setting_vi_lambda_random_walk_gyro = 1; 
+	double setting_vi_lambda_random_walk_gyro = 10; 
 	double setting_vi_lambda_white_noise_acc = 1; 
-	double setting_vi_lambda_random_walk_acc = 1;
+	double setting_vi_lambda_random_walk_acc = 10;
 
 	double setting_vi_marginalization_weight = 0.5 * 0.5;
 
