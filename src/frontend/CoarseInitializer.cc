@@ -192,7 +192,7 @@ namespace ldso {
 		Eigen::Vector3f *colorRef = firstFrame->dIp[lvl];
 		Eigen::Vector3f *colorNew = newFrame->dIp[lvl];
 
-		Mat33f RKi = (refToNew.rotationMatrix() * Ki[lvl]).cast<float>();
+		Mat33f RKi = (refToNew.rotationMatrix() * Ki[lvl]).cast<float>().eval();
 		Vec3f t = refToNew.translation().cast<float>();
 		Eigen::Vector2f r2new_aff = Eigen::Vector2f(exp(refToNew_aff.a), refToNew_aff.b);
 

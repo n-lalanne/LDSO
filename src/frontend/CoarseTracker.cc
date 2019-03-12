@@ -553,7 +553,7 @@ namespace ldso {
 		float cyl = cy[lvl];
 
 
-		Mat33f RKi = (refToNew.rotationMatrix().cast<float>() * Ki[lvl]);
+		Mat33f RKi = (refToNew.rotationMatrix().cast<float>() * Ki[lvl]).eval();
 		Vec3f t = (refToNew.translation()).cast<float>();
 		Vec2f affLL = AffLight::fromToVecExposure(lastRef->ab_exposure, newFrame->ab_exposure, lastRef_aff_g2l,
 			aff_g2l).cast<float>();
