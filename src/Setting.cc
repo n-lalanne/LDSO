@@ -159,6 +159,8 @@ namespace ldso {
 	bool setting_vi_optimize_scale_and_gravity_direction = true;
 	bool setting_vi_optimize_keyframe_velocity_and_bias = true;
 
+	bool setting_vi_estimate_init_bias = true;
+
 	double setting_vi_scale_init = 0;
 
 	double setting_vi_lambda_overall = 1e-2;
@@ -167,9 +169,9 @@ namespace ldso {
 	double setting_vi_lambda_trans = 1 / setting_vi_lambda_overall * 1e2; // lambda for translation weight
 
 	double setting_vi_lambda_white_noise_gyro = 1; 
-	double setting_vi_lambda_random_walk_gyro = 10; 
+	double setting_vi_lambda_random_walk_gyro = 2; 
 	double setting_vi_lambda_white_noise_acc = 1; 
-	double setting_vi_lambda_random_walk_acc = 10;
+	double setting_vi_lambda_random_walk_acc = 2;
 
 	double setting_vi_marginalization_weight = 0.5 * 0.5;
 

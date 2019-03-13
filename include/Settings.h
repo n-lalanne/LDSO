@@ -206,6 +206,7 @@ namespace ldso {
 
 
 	extern double setting_vi_scale_init; 
+	extern bool setting_vi_estimate_init_bias;
 
 	extern double setting_vi_marginalization_weight;
 
