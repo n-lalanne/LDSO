@@ -148,7 +148,7 @@ namespace ldso {
 	double setting_vi_lambda_coarse_tracker = 1;
 	double setting_vi_lambda_coarse_tracker_level_increase = 1;
 
-	bool setting_vi_enable = true;
+	bool setting_vi_enable = false;
 	bool setting_vi_enable_coarse_tracker = true;
 
 	bool setting_vi_fej_window_optimization = true;
@@ -175,7 +175,7 @@ namespace ldso {
 
 	double setting_vi_marginalization_weight = 0.5 * 0.5;
 
-	double setting_vi_velocity_prior = 0;
+	double setting_vi_velocity_prior = 1e12;
 
 	Eigen::IOFormat setting_vi_format(3, Eigen::DontAlignCols, "\t", " ", "", "", "", "");
 
