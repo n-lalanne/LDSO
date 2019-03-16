@@ -95,7 +95,7 @@ namespace ldso {
 				// more than 60% is over than threshold, then increate the cut off threshold
 				levelCutoffRepeat *= 2;
 				resOld = calcRes(lvl, refToNew_current, aff_g2l_current, setting_coarseCutoffTH * levelCutoffRepeat);
-				visualWeight = resOld[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
+				visualWeight = resOld[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall * setting_vi_lambda_coarse_tracker * (coarsestLvl + 1 - lvl) * setting_vi_lambda_coarse_tracker_level_increase;
 			}
 
 			//printf("INCREASING cutoff to %f (ratio is %f)!\n", setting_coarseCutoffTH*levelCutoffRepeat, resOld[5]);
@@ -254,13 +254,13 @@ namespace ldso {
 					lambda *= setting_coarse_tracker_lambda_increase;
 					if (lambda < lambdaExtrapolationLimit) lambda = lambdaExtrapolationLimit;
 					inertialCoarseTrackerHessian->restore();
-					visualWeight = resOld[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall;
+					resOld[1] * patternNum * setting_vi_lambda_overall * setting_vi_lambda_overall * setting_vi_lambda_coarse_tracker * (coarsestLvl + 1 - lvl) * setting_vi_lambda_coarse_tracker_level_increase;
 					inertialCoarseTrackerHessian->compute(visualWeight, lastRef->PRE_worldToCam, refToNew_current, lambda);
 					//LOG(INFO) << "initial energy: " << inertialCoarseTrackerHessian->energy << " (" << inertialCoarseTrackerHessian->energy / (resOld[1] * patternNum) << ")" << std::endl;
 				}
 
 				// terminate if increment is small
-				if (!(inc.norm() > 1e-3)) {
+				if (!(inc.head<8>().norm() > 1e-3)) {
 					break;
 				}
 			} // end of L-M iteration

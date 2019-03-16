@@ -151,10 +151,11 @@ namespace ldso {
 
 			bool needToMakeKF = false;
 			if (setting_keyframesPerSecond > 0) {
+				double preScale = allFrameHistory.size() < setting_start_increase_phase ? setting_start_increase_keyframesPerSecond : 1;
 				// make key frame by time
 				needToMakeKF = allFrameHistory.size() == 1 ||
 					(frame->timeStamp - frames.back()->timeStamp) >
-					0.95f / setting_keyframesPerSecond;
+					0.95f / (setting_keyframesPerSecond * preScale);
 			}
 			if (setting_keyframesPerSecond <= 0 || setting_keyframesPerSecond_additional) {
 				Vec2 refToFh = AffLight::fromToVecExposure(coarseTracker->lastRef->ab_exposure, fh->ab_exposure,
@@ -1602,12 +1603,12 @@ namespace ldso {
 		SE3 T_wb0 = SE3(Hinertial->R_WD_PRE, Vec3::Zero()) * T_dc0 * Hinertial->T_CB;
 		SE3 T_wb1 = SE3(Hinertial->R_WD_PRE, Vec3::Zero()) * T_dc1 * Hinertial->T_CB;
 
-		if (setting_vi_estimate_init_bias) 
+		if (setting_vi_estimate_init_bias)
 		{
 			nextKeyFramePreIntegration->lin_bias_a = (mean_a - R_wb.inverse().matrix() * g);
 			nextKeyFramePreIntegration->lin_bias_g = mean_g;
 		}
-		else 
+		else
 		{
 			nextKeyFramePreIntegration->lin_bias_a = Vec3::Zero();
 			nextKeyFramePreIntegration->lin_bias_g = Vec3::Zero();
@@ -1699,16 +1700,6 @@ namespace ldso {
 					energyInertialOnly += fr->frameHessian->inertialFrameHessian->from->energy;
 			}
 			LOG(INFO) << "Energy Inertial: " << energy << " (" << energyInertialOnly << ") L_{trans}: " << setting_vi_lambda_trans << " L_{rot}: " << setting_vi_lambda_rot;
-
-			if (sqrt(energy / (activeVisualResiduals * patternNum)) < 1 && setting_vi_lambda_trans < 1e1)
-			{
-				setting_vi_lambda_trans *= 1;
-			}
-
-			if (sqrt(energy / (activeVisualResiduals * patternNum)) < 1 && setting_vi_lambda_rot < 1e1)
-			{
-				setting_vi_lambda_rot *= 1;
-			}
 		}
 		return energy;
 	}

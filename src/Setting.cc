@@ -20,7 +20,7 @@ namespace ldso {
 	float setting_initialAffBPrior = 1e14;
 	float setting_initialAffAPrior = 1e14;
 	float setting_initialCalibHessian = 5e9;
-	int setting_solverMode = 0;// SOLVER_FIX_LAMBDA | SOLVER_ORTHOGONALIZE_X_LATER;
+	int setting_solverMode = SOLVER_FIX_LAMBDA | SOLVER_ORTHOGONALIZE_X_LATER;
 	double setting_solverModeDelta = 0.00001;
 	float setting_minIdepthH_act = 100;
 	float setting_minIdepthH_marg = 50;
@@ -70,7 +70,7 @@ namespace ldso {
 	bool setting_relinAlways = true;
 	bool setting_fixCalib = false;
 	bool setting_activateAllOnMarg = false;
-	bool setting_forceAceptStep = false;
+	bool setting_forceAceptStep = true;
 	float setting_useDepthWeightsCoarse = -1;
 	bool setting_dilateDoubleCoarse = false;
 	float setting_huberTH = 9;              // done
@@ -130,7 +130,8 @@ namespace ldso {
 	bool setting_showLoopClosing = true;
 
 	bool setting_keyframesPerSecond_additional = true;
-
+	double setting_start_increase_keyframesPerSecond = 2.0;
+	int setting_start_increase_phase = 0;
 
 	double setting_coarse_tracker_lambda_increase = 4.0;
 	double setting_coarse_tracker_lambda_decrease = 0.5;
@@ -145,7 +146,7 @@ namespace ldso {
 	double setting_vi_hasMovementThreshold = 0.02;
 	int setting_vi_hasMovementResetPeriod = 200 * 0.2;
 
-	double setting_vi_lambda_coarse_tracker = 1;
+	double setting_vi_lambda_coarse_tracker = 1e-2;
 	double setting_vi_lambda_coarse_tracker_level_increase = 1;
 
 	bool setting_vi_enable = true;
@@ -169,13 +170,13 @@ namespace ldso {
 	double setting_vi_lambda_trans = 1 / setting_vi_lambda_overall * 1e2; // lambda for translation weight
 
 	double setting_vi_lambda_white_noise_gyro = 1; 
-	double setting_vi_lambda_random_walk_gyro = 2; 
+	double setting_vi_lambda_random_walk_gyro = 1; 
 	double setting_vi_lambda_white_noise_acc = 1; 
-	double setting_vi_lambda_random_walk_acc = 2;
+	double setting_vi_lambda_random_walk_acc = 1;
 
-	double setting_vi_marginalization_weight = 0.5 * 0.5;
+	double setting_vi_marginalization_weight = 0.75 * 0.75;
 
-	double setting_vi_velocity_prior = 1e12;
+	double setting_vi_velocity_prior = 1e2;
 
 	Eigen::IOFormat setting_vi_format(3, Eigen::DontAlignCols, "\t", " ", "", "", "", "");
 

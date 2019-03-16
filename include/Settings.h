@@ -37,8 +37,8 @@ namespace ldso {
 	const float SCALE_VI_V = 0.1f;        //
 	const float SCALE_VI_ROT = 1.0f;      //
 	const float SCALE_VI_TRANS = 0.5f;         //
-	const float SCALE_VI_B = 0.001f;        //
-	const float SCALE_VI_S = 0.001f;         //
+	const float SCALE_VI_B = 0.01f;        //
+	const float SCALE_VI_S = 0.01f;         //
 
 	// inverse version
 	const float SCALE_IDEPTH_INVERSE = (1.0f / SCALE_IDEPTH);
@@ -169,6 +169,8 @@ namespace ldso {
 	extern int setting_pointSelection;      // 0-DSO's selection. 1-LDSO's selection, 2-Random selection
 
 	extern bool setting_keyframesPerSecond_additional;
+	extern double setting_start_increase_keyframesPerSecond;
+	extern int setting_start_increase_phase;
 
 	extern double setting_coarse_tracker_lambda_increase;
 	extern double setting_coarse_tracker_lambda_decrease;
