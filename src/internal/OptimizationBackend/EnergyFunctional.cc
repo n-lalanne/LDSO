@@ -431,7 +431,7 @@ namespace ldso {
 				//std::cout << "H:" << std::endl << HFinal_top << std::endl;
 				std::cout << "HFinal_top:" << std::endl << HFinal_top.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
 				std::cout << "H_I:" << std::endl << H_I.eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
-				std::cout << "Hbb_I_inv:" << std::endl << Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
+				//std::cout << "Hbb_I_inv:" << std::endl << Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
 				std::cout << "HM_I:" << std::endl << HM_I.selfadjointView<Eigen::Upper>().toDenseMatrix().eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
 				std::cout << "(HL_top + HM + HA_top - H_sc):" << std::endl << (HL_top + HM + HA_top - H_sc).eigenvalues().transpose().format(setting_vi_format) << std::endl << std::endl;
 				if (setting_vi_use_schur_complement)
@@ -439,6 +439,20 @@ namespace ldso {
 				//std::cout << "Hbb_I_inv:" << std::endl << Hbb_I_inv.selfadjointView<Eigen::Upper>().toDenseMatrix() << std::endl << std::endl;
 				//std::cout << "b:" << std::endl << bFinal_top << std::endl;
 			}
+
+			LOG(INFO) << "norm(HFinal_top): " << HFinal_top.selfadjointView<Eigen::Upper>().toDenseMatrix().norm();
+			LOG(INFO) << "norm(H_I): " << H_I.selfadjointView<Eigen::Upper>().toDenseMatrix().norm();
+
+			LOG(INFO) << "norm(Hab_I): " << Hab_I.selfadjointView<Eigen::Upper>().toDenseMatrix().norm();
+			LOG(INFO) << "norm(Hbb_I): " << Hbb_I.selfadjointView<Eigen::Upper>().toDenseMatrix().norm();
+
+			LOG(INFO) << "norm(HL_top): " << HL_top.selfadjointView<Eigen::Upper>().toDenseMatrix().norm();
+			LOG(INFO) << "norm(HM): " << HM.selfadjointView<Eigen::Upper>().toDenseMatrix().norm();
+			LOG(INFO) << "norm(HA_top): " << HA_top.selfadjointView<Eigen::Upper>().toDenseMatrix().norm();
+
+			LOG(INFO) << "norm(bFinal_top): " << bFinal_top.norm();
+			LOG(INFO) << "norm(b_I): " << b_I.norm();
+			LOG(INFO) << "norm(x): " << x.norm();
 
 			lastX = x.head(8 * nFrames + CPARS);
 			currentLambda = lambda;
