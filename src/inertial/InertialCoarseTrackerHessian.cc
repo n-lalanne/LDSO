@@ -25,7 +25,11 @@ namespace ldso {
 				Vec15 r_pr = Vec15::Zero();
 
 				InertialFrameFrameHessian::computeResidual(r_pr, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
-				InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
+
+				if (setting_vi_fej_course_tracker)
+					InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i_EvalPT.translation(), Tw_j.translation(), Tw_i_EvalPT.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i_EvalPT, v_j, bg_i_EvalPT, bg_j, ba_i_EvalPT, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
+				else
+					InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
 
 				J_i = J_i * S.block<15, 15>(10, 10);
 				J_j = J_j * S.block<15, 15>(10, 10);
@@ -49,6 +53,11 @@ namespace ldso {
 				v_i = v_j;
 				bg_i = bg_j;
 				ba_i = ba_j;
+
+				Tw_i_EvalPT = Tw_i;
+				v_i_EvalPT = v_i;
+				bg_i_EvalPT = bg_i;
+				ba_i_EvalPT = ba_i;
 			}
 		}
 
@@ -71,9 +80,14 @@ namespace ldso {
 			H_I_sc.setZero();
 			b_I_sc.setZero();
 
-			if (setting_vi_enable && setting_vi_enable_coarse_tracker) {
+			if (setting_vi_enable && setting_vi_enable_coarse_tracker)
+			{
 				InertialFrameFrameHessian::computeResidual(r_pr, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
-				InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
+
+				if (setting_vi_fej_course_tracker)
+					InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i_EvalPT.translation(), Tw_j.translation(), Tw_i_EvalPT.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i_EvalPT, v_j, bg_i_EvalPT, bg_j, ba_i_EvalPT, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
+				else
+					InertialFrameFrameHessian::computeJacobian(J_i, J_j, preIntegration, Tw_i.translation(), Tw_j.translation(), Tw_i.so3().inverse(), Tw_j.so3().inverse(), Tw_j.so3(), v_i, v_j, bg_i, bg_j, ba_i, ba_j, lin_bias_g, lin_bias_g, lin_bias_a, lin_bias_a);
 
 				//LOG(INFO) << "Bias Lin: (g): " << lin_bias_g.transpose().format(setting_vi_format) << "(a): " << lin_bias_a.transpose().format(setting_vi_format);
 
@@ -202,6 +216,11 @@ namespace ldso {
 
 				lin_bias_g = fh->inertialFrameHessian->b_g_lin + fh->inertialFrameHessian->db_g_PRE;
 				lin_bias_a = fh->inertialFrameHessian->b_a_lin + fh->inertialFrameHessian->db_a_PRE;
+
+				Tw_i_EvalPT = Tw_i;
+				v_i_EvalPT = v_i;
+				bg_i_EvalPT = bg_i;
+				ba_i_EvalPT = ba_i;
 
 				fix_i = true;
 				HM_I.setZero();

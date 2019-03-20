@@ -153,6 +153,7 @@ namespace ldso {
 	bool setting_vi_enable_coarse_tracker = true;
 
 	bool setting_vi_fej_window_optimization = true;
+	bool setting_vi_fej_course_tracker = true;
 	bool setting_vi_debug = true;
 
 	bool setting_vi_use_schur_complement = false;

@@ -29,9 +29,11 @@ namespace ldso {
 			shared_ptr<PreIntegration> preIntegration;
 
 			Vec3 v_i;
+			Vec3 v_i_EvalPT;
 			Vec3 v_j;
 
 			SE3 Tw_i;
+			SE3 Tw_i_EvalPT;
 			SE3 Tw_j;
 
 			Vec3 lin_bias_g;
@@ -39,6 +41,8 @@ namespace ldso {
 
 			Vec3 bg_i;
 			Vec3 ba_i;
+			Vec3 bg_i_EvalPT;
+			Vec3 ba_i_EvalPT;
 			Vec3 bg_j;
 			Vec3 ba_j;
 

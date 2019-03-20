@@ -215,6 +215,7 @@ namespace ldso {
 	extern bool setting_vi_debug;
 
 	extern bool setting_vi_fej_window_optimization;
+	extern bool setting_vi_fej_course_tracker;
 
 	extern double setting_vi_velocity_prior;
 
